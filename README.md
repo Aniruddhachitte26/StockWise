@@ -1,0 +1,2 @@
+# StockWise
+Web Application
