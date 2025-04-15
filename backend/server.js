@@ -2,8 +2,8 @@ const express = require("express");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
-//const userRoutes = require("./routes/userRoutes");
-//const authRoutes = require("./routes/authRoutes");
+const userRoutes = require("./routes/userRoutes");
+const authRoutes = require("./routes/authRoutes");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 //const swaggerDocument = YAML.load("./swagger/swagger.yaml");
@@ -33,8 +33,8 @@ app.use("/images", express.static("uploads/images"));
 // app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Routes
-//app.use("/user", userRoutes);
-//app.use("/auth", authRoutes);
+app.use("/user", userRoutes);
+app.use("/auth", authRoutes);
 
 // Default route
 app.get("/", (req, res) => {
