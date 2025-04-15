@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
+const chatbotRoutes = require("./routes/chatbotRoutes");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 //const swaggerDocument = YAML.load("./swagger/swagger.yaml");
@@ -35,6 +36,7 @@ app.use("/images", express.static("uploads/images"));
 // Routes
 app.use("/user", userRoutes);
 app.use("/auth", authRoutes);
+app.use("/summary", chatbotRoutes);
 
 // Default route
 app.get("/", (req, res) => {
