@@ -29,7 +29,7 @@ const validateUserCreate = (req, res, next) => {
 	const { fullName, email, password, type } = req.body;
 
 	// Check if all required fields are present
-	if (!fullName || !email || !password || !type) {
+	if (!fullName || !email || !password ) {
 		return res.status(400).json({ error: "All fields are required." });
 	}
 
@@ -52,12 +52,12 @@ const validateUserCreate = (req, res, next) => {
 		});
 	}
 
-	// Validate type
-	if (!validateUserType(type)) {
-		return res.status(400).json({
-			error: "User type must be either 'admin' or 'user'.",
-		});
-	}
+	// // Validate type
+	// if (!validateUserType(type)) {
+	// 	return res.status(400).json({
+	// 		error: "User type must be either 'admin' or 'user'.",
+	// 	});
+	// }
 
 	next();
 };

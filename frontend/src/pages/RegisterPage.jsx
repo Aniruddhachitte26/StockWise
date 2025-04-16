@@ -37,7 +37,7 @@ const RegisterPage = () => {
     
     try {
       await register({
-        name: values.fullName,
+        fullName: values.fullName,
         email: values.email,
         password: values.password
       });
