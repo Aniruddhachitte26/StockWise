@@ -1,11 +1,12 @@
 // Validate email format
 const validateEmail = (email) => {
-	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 	return emailRegex.test(email);
 };
 
-// Validate full name (only alphabetic characters and spaces)
+// Validate full name (minimum 3 characters, only alphabetic characters and spaces)
 const validateFullName = (name) => {
+	if (!name || name.trim().length < 3) return false;
 	const nameRegex = /^[A-Za-z\s]+$/;
 	return nameRegex.test(name);
 };
@@ -20,48 +21,22 @@ const validatePassword = (password) => {
 
 // Validate user type
 const validateUserType = (type) => {
-	return type === "admin" || type === "employee";
+	return type === "admin" || type === "user";
 };
 
 // Middleware for validating user creation
 const validateUserCreate = (req, res, next) => {
 	const { fullName, email, password, type } = req.body;
 
-	//  Check if Fullname field is present
-	if (!fullName) {
-		return res
-			.status(400)
-			.json({ error: "Full Name is required." });
-	}
-
-	//  Check if Email field is present
-	if (!email) {
-		return res.status(400).json({ error: "Email is required." });
-	}
-
-	// Check if password field is present
-	if (!password) {
-		return res.status(400).json({ error: "Password is required." });
-	}
-
-	// Check if type field is present
-	if (!type) {
-		return res
-			.status(400)
-			.json({ error: "User type is required." });
-	}
-
 	// Check if all required fields are present
 	if (!fullName || !email || !password || !type) {
-		return res
-			.status(400)
-			.json({ error: "All fields are required." });
+		return res.status(400).json({ error: "All fields are required." });
 	}
 
 	// Validate full name
 	if (!validateFullName(fullName)) {
 		return res.status(400).json({
-			error: "Full name must contain only alphabetic characters.",
+			error: "Full name must contain at least 3 alphabetic characters.",
 		});
 	}
 
@@ -80,7 +55,7 @@ const validateUserCreate = (req, res, next) => {
 	// Validate type
 	if (!validateUserType(type)) {
 		return res.status(400).json({
-			error: "User type must be either 'admin' or 'employee'.",
+			error: "User type must be either 'admin' or 'user'.",
 		});
 	}
 
@@ -94,7 +69,7 @@ const validateUserUpdate = (req, res, next) => {
 	// Validate full name if provided
 	if (fullName && !validateFullName(fullName)) {
 		return res.status(400).json({
-			error: "Full name must contain only alphabetic characters.",
+			error: "Full name must contain at least 3 alphabetic characters.",
 		});
 	}
 
@@ -108,15 +83,16 @@ const validateUserUpdate = (req, res, next) => {
 	// Validate type if provided
 	if (type && !validateUserType(type)) {
 		return res.status(400).json({
-			error: "User type must be either 'admin' or 'employee'.",
+			error: "User type must be either 'admin' or 'user'.",
 		});
 	}
 
 	next();
 };
 
+// Make sure to export validateUserUpdate
 module.exports = {
 	validateUserCreate,
 	validateUserUpdate,
-	validateUserType, // Export this for potential use elsewhere
+	validateUserType,
 };

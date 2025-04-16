@@ -1,17 +1,13 @@
-// src/pages/LoginPage.jsx
-
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Formik } from 'formik';
+import { loginSchema } from '../validations/schemas';
 import useAuth from '../hooks/useAuth';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
-import Loader from '../components/common/Loader';
 
 const LoginPage = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [validated, setValidated] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   
   const { login, loading, error, isAuthenticated, clearError } = useAuth();
@@ -39,25 +35,15 @@ const LoginPage = () => {
     };
   }, [error, clearError]);
   
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    
-    // Check form validity
-    if (form.checkValidity() === false) {
-      e.stopPropagation();
-      setValidated(true);
-      return;
-    }
-    
-    setValidated(true);
+  const handleSubmit = async (values, { setSubmitting }) => {
     setErrorMessage('');
     
     try {
-      await login({ email, password });
+      await login({ email: values.email, password: values.password });
       // Successful login will trigger the useEffect above
     } catch (err) {
       // Error is handled by the auth context
+      setSubmitting(false);
     }
   };
   
@@ -81,60 +67,83 @@ const LoginPage = () => {
                   </Alert>
                 )}
                 
-                <Form noValidate validated={validated} onSubmit={handleSubmit}>
-                  <Form.Group className="mb-3" controlId="email">
-                    <Form.Label>Email address</Form.Label>
-                    <Form.Control
-                      type="email"
-                      placeholder="name@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      required
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      Please provide a valid email.
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                  
-                  <Form.Group className="mb-3" controlId="password">
-                    <Form.Label>Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      placeholder="Enter your password"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      required
-                      minLength={8}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      Password must be at least 8 characters.
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                  
-                  <div className="d-flex justify-content-between align-items-center mb-3">
-                    <Form.Check
-                      type="checkbox"
-                      id="rememberMe"
-                      label="Remember me"
-                    />
-                    <Link to="/forgot-password" className="text-decoration-none">
-                      Forgot Password?
-                    </Link>
-                  </div>
-                  
-                  <div className="d-grid gap-2">
-                    <Button variant="primary" type="submit" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <Spinner animation="border" size="sm" className="me-2" />
-                          Signing In...
-                        </>
-                      ) : (
-                        'Sign In'
-                      )}
-                    </Button>
-                  </div>
-                </Form>
+                <Formik
+                  initialValues={{ email: '', password: '' }}
+                  validationSchema={loginSchema}
+                  onSubmit={handleSubmit}
+                >
+                  {({
+                    values,
+                    errors,
+                    touched,
+                    handleChange,
+                    handleBlur,
+                    handleSubmit,
+                    isSubmitting,
+                  }) => (
+                    <Form noValidate onSubmit={handleSubmit}>
+                      <Form.Group className="mb-3" controlId="email">
+                        <Form.Label>Email address</Form.Label>
+                        <Form.Control
+                          type="email"
+                          placeholder="name@example.com"
+                          name="email"
+                          value={values.email}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isInvalid={touched.email && errors.email}
+                        />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.email}
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                      
+                      <Form.Group className="mb-3" controlId="password">
+                        <Form.Label>Password</Form.Label>
+                        <Form.Control
+                          type="password"
+                          placeholder="Enter your password"
+                          name="password"
+                          value={values.password}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isInvalid={touched.password && errors.password}
+                        />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.password}
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                      
+                      <div className="d-flex justify-content-between align-items-center mb-3">
+                        <Form.Check
+                          type="checkbox"
+                          id="rememberMe"
+                          label="Remember me"
+                        />
+                        <Link to="/forgot-password" className="text-decoration-none">
+                          Forgot Password?
+                        </Link>
+                      </div>
+                      
+                      <div className="d-grid gap-2">
+                        <Button 
+                          variant="primary" 
+                          type="submit" 
+                          disabled={loading || isSubmitting}
+                        >
+                          {loading ? (
+                            <>
+                              <Spinner animation="border" size="sm" className="me-2" />
+                              Signing In...
+                            </>
+                          ) : (
+                            'Sign In'
+                          )}
+                        </Button>
+                      </div>
+                    </Form>
+                  )}
+                </Formik>
                 
                 <div className="auth-divider my-4">
                   <span>OR</span>
