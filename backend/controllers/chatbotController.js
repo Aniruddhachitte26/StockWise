@@ -6,7 +6,7 @@ dotenv.config();
 const sessions = new Map();
 
 const isStockRelated = (text) => {
-    return /stock|share|price|market|nasdaq|portfolio|equity|finance|AAPL|MSFT|ticker|chart/i.test(text);
+    return /stock|share|price|market|nasdaq|portfolio|equity|finance|AAPL|MSFT|ticker|chart|trading/i.test(text);
 };
 
 const formatHistoricalData = (data, symbol, shortName, exchange) => {

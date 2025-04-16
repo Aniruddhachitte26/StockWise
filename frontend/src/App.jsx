@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import StockDetailPage from './pages/StockDetailPage';
 import useAuth from './hooks/useAuth';
+import Chat from './pages/Chat';
 import './App.css';
 
 // Remove any container class that might be limiting width
@@ -51,6 +52,9 @@ const AppRoutes = () => {
         />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
+      <ProtectedRoute>
+        {<Chat />}
+      </ProtectedRoute>
     </div>
   );
 };
