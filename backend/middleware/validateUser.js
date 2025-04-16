@@ -53,11 +53,11 @@ const validateUserCreate = (req, res, next) => {
 	}
 
 	// Validate type
-	if (!validateUserType(type)) {
-		return res.status(400).json({
-			error: "User type must be either 'admin' or 'user'.",
-		});
-	}
+	// if (!validateUserType(type)) {
+	// 	return res.status(400).json({
+	// 		error: "User type must be either 'admin' or 'user'.",
+	// 	});
+	// }
 
 	next();
 };
