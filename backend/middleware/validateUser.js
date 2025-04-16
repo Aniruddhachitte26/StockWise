@@ -27,30 +27,6 @@ const validateUserType = (type) => {
 const validateUserCreate = (req, res, next) => {
 	const { fullName, email, password, type } = req.body;
 
-	//  Check if Fullname field is present
-	if (!fullName) {
-		return res
-			.status(400)
-			.json({ error: "Full Name is required." });
-	}
-
-	//  Check if Email field is present
-	if (!email) {
-		return res.status(400).json({ error: "Email is required." });
-	}
-
-	// Check if password field is present
-	if (!password) {
-		return res.status(400).json({ error: "Password is required." });
-	}
-
-	// Check if type field is present
-	if (!type) {
-		return res
-			.status(400)
-			.json({ error: "User type is required." });
-	}
-
 	// Check if all required fields are present
 	if (!fullName || !email || !password || !type) {
 		return res
