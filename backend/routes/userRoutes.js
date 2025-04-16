@@ -9,11 +9,14 @@ const {
 } = require("../middleware/authmiddleware");
 const upload = require("../middleware/fileUpload");
 
+// Make sure validateUserUpdate is properly imported and defined
+console.log("validateUserUpdate:", validateUserUpdate); // Debug line
+
 // Update user - authenticated users can update themselves
 router.put(
 	"/edit",
 	authenticateUser,
-	validateUserUpdate,
+	validateUserUpdate, // This is likely the undefined value
 	userController.updateUser
 );
 

@@ -1,21 +1,14 @@
-// src/pages/RegisterPage.jsx
-
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
+import { Formik } from 'formik';
+import { registerSchema } from '../validations/schemas';
 import useAuth from '../hooks/useAuth';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
+import PasswordStrengthMeter from '../components/common/PasswordStrengthMeter';
 
 const RegisterPage = () => {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    password: '',
-    confirmPassword: ''
-  });
-  const [validated, setValidated] = useState(false);
-  const [passwordsMatch, setPasswordsMatch] = useState(true);
   const [errorMessage, setErrorMessage] = useState('');
   
   const { register, loading, error, isAuthenticated, clearError } = useAuth();
@@ -39,47 +32,19 @@ const RegisterPage = () => {
     };
   }, [error, clearError]);
   
-  // Handle input changes
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
-    
-    // Check password match when either password field changes
-    if (name === 'password' || name === 'confirmPassword') {
-      if (name === 'password') {
-        setPasswordsMatch(value === formData.confirmPassword);
-      } else {
-        setPasswordsMatch(formData.password === value);
-      }
-    }
-  };
-  
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    
-    // Check form validity
-    if (form.checkValidity() === false || !passwordsMatch) {
-      e.stopPropagation();
-      setValidated(true);
-      return;
-    }
-    
-    setValidated(true);
+  const handleSubmit = async (values, { setSubmitting }) => {
     setErrorMessage('');
     
     try {
       await register({
-        name: formData.name,
-        email: formData.email,
-        password: formData.password
+        name: values.fullName,
+        email: values.email,
+        password: values.password
       });
       // Successful registration will trigger the useEffect above
     } catch (err) {
       // Error is handled by the auth context
+      setSubmitting(false);
     }
   };
   
@@ -103,110 +68,144 @@ const RegisterPage = () => {
                   </Alert>
                 )}
                 
-                <Form noValidate validated={validated} onSubmit={handleSubmit}>
-                  <Form.Group className="mb-3" controlId="name">
-                    <Form.Label>Full Name</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="name"
-                      placeholder="Enter your full name"
-                      value={formData.name}
-                      onChange={handleChange}
-                      required
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      Please provide your name.
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                  
-                  <Form.Group className="mb-3" controlId="email">
-                    <Form.Label>Email address</Form.Label>
-                    <Form.Control
-                      type="email"
-                      name="email"
-                      placeholder="name@example.com"
-                      value={formData.email}
-                      onChange={handleChange}
-                      required
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      Please provide a valid email.
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                  
-                  <Form.Group className="mb-3" controlId="password">
-                    <Form.Label>Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      name="password"
-                      placeholder="Create a password"
-                      value={formData.password}
-                      onChange={handleChange}
-                      required
-                      minLength={8}
-                      isInvalid={validated && (!formData.password || !passwordsMatch)}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {formData.password ? (
-                        !passwordsMatch ? 'Passwords do not match.' : ''
-                      ) : (
-                        'Password must be at least 8 characters.'
-                      )}
-                    </Form.Control.Feedback>
-                    <Form.Text className="text-muted">
-                      Password must be at least 8 characters long.
-                    </Form.Text>
-                  </Form.Group>
-                  
-                  <Form.Group className="mb-3" controlId="confirmPassword">
-                    <Form.Label>Confirm Password</Form.Label>
-                    <Form.Control
-                      type="password"
-                      name="confirmPassword"
-                      placeholder="Confirm your password"
-                      value={formData.confirmPassword}
-                      onChange={handleChange}
-                      required
-                      isInvalid={validated && (!formData.confirmPassword || !passwordsMatch)}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {!passwordsMatch ? 'Passwords do not match.' : 'Please confirm your password.'}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-                  
-                  <Form.Group className="mb-3" controlId="terms">
-                    <Form.Check
-                      required
-                      label={
-                        <span>
-                          I agree to the{' '}
-                          <Link to="/terms" target="_blank" className="text-decoration-none">
-                            Terms of Service
-                          </Link>{' '}
-                          and{' '}
-                          <Link to="/privacy" target="_blank" className="text-decoration-none">
-                            Privacy Policy
-                          </Link>
-                        </span>
-                      }
-                      feedback="You must agree before submitting."
-                      feedbackType="invalid"
-                    />
-                  </Form.Group>
-                  
-                  <div className="d-grid gap-2">
-                    <Button variant="primary" type="submit" disabled={loading}>
-                      {loading ? (
-                        <>
-                          <Spinner animation="border" size="sm" className="me-2" />
-                          Creating Account...
-                        </>
-                      ) : (
-                        'Create Account'
-                      )}
-                    </Button>
-                  </div>
-                </Form>
+                <Formik
+                  initialValues={{
+                    fullName: '',
+                    email: '',
+                    password: '',
+                    confirmPassword: '',
+                    terms: false
+                  }}
+                  validationSchema={registerSchema}
+                  onSubmit={handleSubmit}
+                >
+                  {({
+                    values,
+                    errors,
+                    touched,
+                    handleChange,
+                    handleBlur,
+                    handleSubmit,
+                    isSubmitting,
+                  }) => (
+                    <Form noValidate onSubmit={handleSubmit}>
+                      <Form.Group className="mb-3" controlId="fullName">
+                        <Form.Label>Full Name</Form.Label>
+                        <Form.Control
+                          type="text"
+                          name="fullName"
+                          placeholder="Enter your full name"
+                          value={values.fullName}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isInvalid={touched.fullName && errors.fullName}
+                        />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.fullName}
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                      
+                      <Form.Group className="mb-3" controlId="email">
+                        <Form.Label>Email address</Form.Label>
+                        <Form.Control
+                          type="email"
+                          name="email"
+                          placeholder="name@example.com"
+                          value={values.email}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isInvalid={touched.email && errors.email}
+                        />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.email}
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                      
+                      <Form.Group className="mb-3" controlId="password">
+                        <Form.Label>Password</Form.Label>
+                        <Form.Control
+                          type="password"
+                          name="password"
+                          placeholder="Create a password"
+                          value={values.password}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isInvalid={touched.password && errors.password}
+                        />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.password}
+                        </Form.Control.Feedback>
+                        
+                        {/* Password Strength Meter */}
+                        {values.password && (
+                          <PasswordStrengthMeter password={values.password} />
+                        )}
+                        
+                        <Form.Text className="text-muted">
+                          Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.
+                        </Form.Text>
+                      </Form.Group>
+                      
+                      <Form.Group className="mb-3" controlId="confirmPassword">
+                        <Form.Label>Confirm Password</Form.Label>
+                        <Form.Control
+                          type="password"
+                          name="confirmPassword"
+                          placeholder="Confirm your password"
+                          value={values.confirmPassword}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isInvalid={touched.confirmPassword && errors.confirmPassword}
+                        />
+                        <Form.Control.Feedback type="invalid">
+                          {errors.confirmPassword}
+                        </Form.Control.Feedback>
+                      </Form.Group>
+                      
+                      <Form.Group className="mb-3" controlId="terms">
+                        <Form.Check
+                          type="checkbox"
+                          name="terms"
+                          checked={values.terms}
+                          onChange={handleChange}
+                          onBlur={handleBlur}
+                          isInvalid={touched.terms && errors.terms}
+                          feedback={errors.terms}
+                          feedbackType="invalid"
+                          label={
+                            <span>
+                              I agree to the{' '}
+                              <Link to="/terms" target="_blank" className="text-decoration-none">
+                                Terms of Service
+                              </Link>{' '}
+                              and{' '}
+                              <Link to="/privacy" target="_blank" className="text-decoration-none">
+                                Privacy Policy
+                              </Link>
+                            </span>
+                          }
+                        />
+                      </Form.Group>
+                      
+                      <div className="d-grid gap-2">
+                        <Button 
+                          variant="primary" 
+                          type="submit" 
+                          disabled={loading || isSubmitting}
+                        >
+                          {loading ? (
+                            <>
+                              <Spinner animation="border" size="sm" className="me-2" />
+                              Creating Account...
+                            </>
+                          ) : (
+                            'Create Account'
+                          )}
+                        </Button>
+                      </div>
+                    </Form>
+                  )}
+                </Formik>
                 
                 <div className="auth-divider my-4">
                   <span>OR</span>

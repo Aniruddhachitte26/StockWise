@@ -13,6 +13,27 @@ import Error from '../components/common/Error';
 
 import useStock from '../hooks/useStock';
 
+// Custom styles for full-width layout
+const styles = {
+  fullWidth: {
+    width: '100%',
+    maxWidth: '100%',
+    padding: '0 15px',
+    margin: '0 auto'
+  },
+  fullWidthSection: {
+    width: '100%',
+    padding: '3rem 0'
+  },
+  heroSection: {
+    background: 'linear-gradient(135deg, #0d6efd 0%, #0056b3 100%)',
+    padding: '5rem 0',
+    position: 'relative',
+    overflow: 'hidden',
+    width: '100%'
+  }
+};
+
 const HomePage = () => {
   const { 
     marketSummary, 
@@ -56,14 +77,14 @@ const HomePage = () => {
       <Navbar />
       
       {error && (
-        <Container className="mt-3">
+        <div style={styles.fullWidth}>
           <Error message={error} dismissible onClose={clearError} />
-        </Container>
+        </div>
       )}
       
       {/* Hero Section */}
-      <div className="hero-section text-white py-5">
-        <Container>
+      <div style={styles.heroSection} className="text-white">
+        <div style={styles.fullWidth}>
           <Row className="align-items-center">
             <Col md={6} className="mb-4 mb-md-0">
               <h1 className="display-4 fw-bold">Welcome to StockWise Trading</h1>
@@ -100,71 +121,73 @@ const HomePage = () => {
               </div>
             </Col>
           </Row>
-        </Container>
+        </div>
       </div>
 
       {/* Market Summary Section */}
-      <Container className="py-5">
-        <h2 className="text-center mb-4">Market Summary</h2>
-        {marketSummary ? (
-          <Row>
-            <Col md={4} className="mb-4">
-              <Card className="h-100 shadow-sm">
-                <Card.Body>
-                  <Card.Title className="d-flex justify-content-between align-items-center">
-                    S&P 500 
-                    <span className={marketSummary.indices.SP500.change >= 0 ? "text-success" : "text-danger"}>
-                      {marketSummary.indices.SP500.change >= 0 ? "+" : ""}{marketSummary.indices.SP500.percentChange.toFixed(2)}%
-                    </span>
-                  </Card.Title>
-                  <Card.Text className="fs-2 fw-bold">{marketSummary.indices.SP500.price.toFixed(2)}</Card.Text>
-                  <div className="small text-muted">Last updated: {marketSummary.lastUpdated}</div>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={4} className="mb-4">
-              <Card className="h-100 shadow-sm">
-                <Card.Body>
-                  <Card.Title className="d-flex justify-content-between align-items-center">
-                    NASDAQ 
-                    <span className={marketSummary.indices.NASDAQ.change >= 0 ? "text-success" : "text-danger"}>
-                      {marketSummary.indices.NASDAQ.change >= 0 ? "+" : ""}{marketSummary.indices.NASDAQ.percentChange.toFixed(2)}%
-                    </span>
-                  </Card.Title>
-                  <Card.Text className="fs-2 fw-bold">{marketSummary.indices.NASDAQ.price.toFixed(2)}</Card.Text>
-                  <div className="small text-muted">Last updated: {marketSummary.lastUpdated}</div>
-                </Card.Body>
-              </Card>
-            </Col>
-            <Col md={4} className="mb-4">
-              <Card className="h-100 shadow-sm">
-                <Card.Body>
-                  <Card.Title className="d-flex justify-content-between align-items-center">
-                    DOW JONES 
-                    <span className={marketSummary.indices.DOW.change >= 0 ? "text-success" : "text-danger"}>
-                      {marketSummary.indices.DOW.change >= 0 ? "+" : ""}{marketSummary.indices.DOW.percentChange.toFixed(2)}%
-                    </span>
-                  </Card.Title>
-                  <Card.Text className="fs-2 fw-bold">{marketSummary.indices.DOW.price.toFixed(2)}</Card.Text>
-                  <div className="small text-muted">Last updated: {marketSummary.lastUpdated}</div>
-                </Card.Body>
-              </Card>
-            </Col>
-          </Row>
-        ) : (
-          <Row>
-            <Col>
-              <div className="text-center py-5">
-                <Loader />
-              </div>
-            </Col>
-          </Row>
-        )}
-      </Container>
+      <div style={{...styles.fullWidthSection, background: "#f8f9fa"}}>
+        <div style={styles.fullWidth}>
+          <h2 className="text-center mb-4">Market Summary</h2>
+          {marketSummary ? (
+            <Row>
+              <Col md={4} className="mb-4">
+                <Card className="h-100 shadow-sm">
+                  <Card.Body>
+                    <Card.Title className="d-flex justify-content-between align-items-center">
+                      S&P 500 
+                      <span className={marketSummary.indices.SP500.change >= 0 ? "text-success" : "text-danger"}>
+                        {marketSummary.indices.SP500.change >= 0 ? "+" : ""}{marketSummary.indices.SP500.percentChange.toFixed(2)}%
+                      </span>
+                    </Card.Title>
+                    <Card.Text className="fs-2 fw-bold">{marketSummary.indices.SP500.price.toFixed(2)}</Card.Text>
+                    <div className="small text-muted">Last updated: {marketSummary.lastUpdated}</div>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={4} className="mb-4">
+                <Card className="h-100 shadow-sm">
+                  <Card.Body>
+                    <Card.Title className="d-flex justify-content-between align-items-center">
+                      NASDAQ 
+                      <span className={marketSummary.indices.NASDAQ.change >= 0 ? "text-success" : "text-danger"}>
+                        {marketSummary.indices.NASDAQ.change >= 0 ? "+" : ""}{marketSummary.indices.NASDAQ.percentChange.toFixed(2)}%
+                      </span>
+                    </Card.Title>
+                    <Card.Text className="fs-2 fw-bold">{marketSummary.indices.NASDAQ.price.toFixed(2)}</Card.Text>
+                    <div className="small text-muted">Last updated: {marketSummary.lastUpdated}</div>
+                  </Card.Body>
+                </Card>
+              </Col>
+              <Col md={4} className="mb-4">
+                <Card className="h-100 shadow-sm">
+                  <Card.Body>
+                    <Card.Title className="d-flex justify-content-between align-items-center">
+                      DOW JONES 
+                      <span className={marketSummary.indices.DOW.change >= 0 ? "text-success" : "text-danger"}>
+                        {marketSummary.indices.DOW.change >= 0 ? "+" : ""}{marketSummary.indices.DOW.percentChange.toFixed(2)}%
+                      </span>
+                    </Card.Title>
+                    <Card.Text className="fs-2 fw-bold">{marketSummary.indices.DOW.price.toFixed(2)}</Card.Text>
+                    <div className="small text-muted">Last updated: {marketSummary.lastUpdated}</div>
+                  </Card.Body>
+                </Card>
+              </Col>
+            </Row>
+          ) : (
+            <Row>
+              <Col>
+                <div className="text-center py-5">
+                  <Loader />
+                </div>
+              </Col>
+            </Row>
+          )}
+        </div>
+      </div>
 
       {/* Top Stocks Section */}
-      <div className="bg-light py-5">
-        <Container>
+      <div style={styles.fullWidthSection}>
+        <div style={styles.fullWidth}>
           <h2 className="text-center mb-4">Top Stocks</h2>
           {topStocks && topStocks.length > 0 ? (
             <>
@@ -186,46 +209,48 @@ const HomePage = () => {
               <Loader />
             </div>
           )}
-        </Container>
+        </div>
       </div>
 
       {/* Features Section */}
-      <Container className="py-5">
-        <h2 className="text-center mb-5">Why Choose StockWise?</h2>
-        <Row className="g-4">
-          <Col md={4}>
-            <div className="text-center">
-              <div className="feature-icon bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3">
-                <i className="bi bi-graph-up" style={{ fontSize: '1.75rem' }}></i>
+      <div style={{...styles.fullWidthSection, background: "#f8f9fa"}}>
+        <div style={styles.fullWidth}>
+          <h2 className="text-center mb-5">Why Choose StockWise?</h2>
+          <Row className="g-4">
+            <Col md={4}>
+              <div className="text-center">
+                <div className="feature-icon bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3">
+                  <i className="bi bi-graph-up" style={{ fontSize: '1.75rem' }}></i>
+                </div>
+                <h3>Real-Time Market Data</h3>
+                <p>Access up-to-the-minute market information and stock prices to make informed trading decisions.</p>
               </div>
-              <h3>Real-Time Market Data</h3>
-              <p>Access up-to-the-minute market information and stock prices to make informed trading decisions.</p>
-            </div>
-          </Col>
-          <Col md={4}>
-            <div className="text-center">
-              <div className="feature-icon bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3">
-                <i className="bi bi-shield-lock" style={{ fontSize: '1.75rem' }}></i>
+            </Col>
+            <Col md={4}>
+              <div className="text-center">
+                <div className="feature-icon bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3">
+                  <i className="bi bi-shield-lock" style={{ fontSize: '1.75rem' }}></i>
+                </div>
+                <h3>Secure Trading</h3>
+                <p>Trade with confidence on our secure platform with advanced encryption and protection measures.</p>
               </div>
-              <h3>Secure Trading</h3>
-              <p>Trade with confidence on our secure platform with advanced encryption and protection measures.</p>
-            </div>
-          </Col>
-          <Col md={4}>
-            <div className="text-center">
-              <div className="feature-icon bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3">
-                <i className="bi bi-lightning" style={{ fontSize: '1.75rem' }}></i>
+            </Col>
+            <Col md={4}>
+              <div className="text-center">
+                <div className="feature-icon bg-primary text-white rounded-circle d-inline-flex align-items-center justify-content-center mb-3">
+                  <i className="bi bi-lightning" style={{ fontSize: '1.75rem' }}></i>
+                </div>
+                <h3>Fast Execution</h3>
+                <p>Execute trades quickly and efficiently with our high-performance trading engine.</p>
               </div>
-              <h3>Fast Execution</h3>
-              <p>Execute trades quickly and efficiently with our high-performance trading engine.</p>
-            </div>
-          </Col>
-        </Row>
-      </Container>
+            </Col>
+          </Row>
+        </div>
+      </div>
 
       {/* Market News Section */}
-      <div className="bg-light py-5">
-        <Container>
+      <div style={styles.fullWidthSection}>
+        <div style={styles.fullWidth}>
           <h2 className="text-center mb-4">Latest Market News</h2>
           {marketNews && marketNews.length > 0 ? (
             <>
@@ -259,18 +284,18 @@ const HomePage = () => {
               <Loader />
             </div>
           )}
-        </Container>
+        </div>
       </div>
 
       {/* CTA Section */}
-      <div className="cta-section py-5 bg-dark text-white text-center">
-        <Container>
+      <div style={{...styles.fullWidthSection, background: "#212529"}} className="text-white text-center">
+        <div style={styles.fullWidth}>
           <h2 className="mb-4">Ready to Start Trading?</h2>
           <p className="lead mb-4">Join thousands of successful traders on StockWise today!</p>
           <Link to="/register">
             <Button variant="primary" size="lg">Create Your Free Account</Button>
           </Link>
-        </Container>
+        </div>
       </div>
 
       <Footer />

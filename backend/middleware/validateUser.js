@@ -1,11 +1,12 @@
 // Validate email format
 const validateEmail = (email) => {
-	const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+	const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 	return emailRegex.test(email);
 };
 
-// Validate full name (only alphabetic characters and spaces)
+// Validate full name (minimum 3 characters, only alphabetic characters and spaces)
 const validateFullName = (name) => {
+	if (!name || name.trim().length < 3) return false;
 	const nameRegex = /^[A-Za-z\s]+$/;
 	return nameRegex.test(name);
 };
@@ -20,7 +21,7 @@ const validatePassword = (password) => {
 
 // Validate user type
 const validateUserType = (type) => {
-	return type === "admin" || type === "employee";
+	return type === "admin" || type === "user";
 };
 
 // Middleware for validating user creation
@@ -29,15 +30,13 @@ const validateUserCreate = (req, res, next) => {
 
 	// Check if all required fields are present
 	if (!fullName || !email || !password || !type) {
-		return res
-			.status(400)
-			.json({ error: "All fields are required." });
+		return res.status(400).json({ error: "All fields are required." });
 	}
 
 	// Validate full name
 	if (!validateFullName(fullName)) {
 		return res.status(400).json({
-			error: "Full name must contain only alphabetic characters.",
+			error: "Full name must contain at least 3 alphabetic characters.",
 		});
 	}
 
@@ -56,7 +55,7 @@ const validateUserCreate = (req, res, next) => {
 	// Validate type
 	if (!validateUserType(type)) {
 		return res.status(400).json({
-			error: "User type must be either 'admin' or 'employee'.",
+			error: "User type must be either 'admin' or 'user'.",
 		});
 	}
 
@@ -70,7 +69,7 @@ const validateUserUpdate = (req, res, next) => {
 	// Validate full name if provided
 	if (fullName && !validateFullName(fullName)) {
 		return res.status(400).json({
-			error: "Full name must contain only alphabetic characters.",
+			error: "Full name must contain at least 3 alphabetic characters.",
 		});
 	}
 
@@ -84,15 +83,16 @@ const validateUserUpdate = (req, res, next) => {
 	// Validate type if provided
 	if (type && !validateUserType(type)) {
 		return res.status(400).json({
-			error: "User type must be either 'admin' or 'employee'.",
+			error: "User type must be either 'admin' or 'user'.",
 		});
 	}
 
 	next();
 };
 
+// Make sure to export validateUserUpdate
 module.exports = {
 	validateUserCreate,
 	validateUserUpdate,
-	validateUserType, // Export this for potential use elsewhere
+	validateUserType,
 };
