@@ -14,6 +14,24 @@ import StockCard from '../components/common/StockCard';
 import useAuth from '../hooks/useAuth';
 import useStock from '../hooks/useStock';
 
+// Custom CSS to fix the spacing issues
+const customStyles = {
+  container: {
+    maxWidth: '100%',
+    padding: '0 15px',
+  },
+  fullWidthContainer: {
+    width: '100%',
+    maxWidth: '100%',
+    paddingLeft: '15px',
+    paddingRight: '15px',
+    margin: '0 auto'
+  },
+  pageWrapper: {
+    minHeight: 'calc(100vh - 200px)', // Adjust based on your navbar/footer height
+  }
+};
+
 const DashboardPage = () => {
   const { currentUser } = useAuth();
   const { 
@@ -83,9 +101,9 @@ const DashboardPage = () => {
     return (
       <>
         <Navbar />
-        <Container className="py-5">
+        <div style={customStyles.pageWrapper}>
           <Loader fullScreen />
-        </Container>
+        </div>
         <Footer />
       </>
     );
@@ -95,13 +113,13 @@ const DashboardPage = () => {
     <>
       <Navbar />
       
-      <Container className="py-5">
+      <div style={customStyles.fullWidthContainer}>
         {error && (
           <Error message={error} dismissible onClose={clearError} />
         )}
         
         <div className="mb-4">
-          <h1 className="mb-0">Welcome, {currentUser?.name || 'Trader'}</h1>
+          <h1 className="mb-0">Welcome, {currentUser?.fullName || 'Trader'}</h1>
           <p className="text-muted">Here's a summary of your investments</p>
         </div>
         
@@ -325,7 +343,7 @@ const DashboardPage = () => {
             </Card>
           </Col>
         </Row>
-      </Container>
+      </div>
       
       <Footer />
     </>
