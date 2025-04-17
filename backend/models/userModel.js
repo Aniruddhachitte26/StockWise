@@ -25,10 +25,44 @@ const userSchema = new mongoose.Schema(
 		type: {
 			type: String,
 			required: [true, "User type is required"],
-            default: "user",
+			default: "user",
 			enum: ["admin", "user"], // This ensures the type can only be "admin" or "employee"
 			trim: true,
 		},
+		googleId: {
+			type: String,
+			default: null,
+		},
+		authProvider: {
+			type: String,
+			enum: ["local", "google"],
+			default: "local",
+		},
+        address: {
+            type: String,
+            default: null,
+        },
+        phone: {
+            type: String,
+            default: null,
+        },
+        dateOfBirth: {
+            type: Date,
+            default: null,
+        },
+        proof : {
+            type: String,
+            default: null,
+        },
+        proofType : {
+            type: String,
+            default: null,
+            enum: ["driving license", "passport", null],
+        },
+        verified: {
+            type: Boolean,
+            default: false,
+        },
 	},
 	{
 		timestamps: true,
