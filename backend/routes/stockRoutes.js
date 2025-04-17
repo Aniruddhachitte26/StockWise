@@ -1,5 +1,8 @@
 const express = require('express');
 const axios = require('axios');
+const {getPortfolio} = require('../controllers/portfolioController');
+const { getWatchlist, addToWatchlist, removeFromWatchlist} = require('../controllers/watchlistController');
+const {addTransaction, getTransactions} = require('../controllers/transactionController');
 
 const router = express.Router();
 
@@ -57,5 +60,17 @@ router.get('/search', verifyApiKey, async (req, res) => {
         res.status(500).json({ error: 'Failed to search stocks' });
     }
 });
+
+// Portfolio Routes
+router.get('/portfolio/:userId', getPortfolio);
+
+// Watchlist Routes
+router.get('/watchlist/:userId', getWatchlist);
+router.post('/watchlist/add', addToWatchlist);
+router.post('/watchlist/remove', removeFromWatchlist);
+
+// Transaction Routes
+router.post('/transaction', addTransaction);
+router.get('/transactions/:userId', getTransactions);
 
 module.exports = router;
