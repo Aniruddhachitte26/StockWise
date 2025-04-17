@@ -162,24 +162,32 @@ function ProfileComponent() {
     // console.log('Password change requested');
     // setUserData(prev => ({
     //   ...prev,
-    //   oldPassword: '',
+    //   currentPassword: '',
     //   newPassword: '',
     //   confirmPassword: ''
     // }));
 
-    // await axios.patch(
-    //     "http://localhost:3000/auth/change-password",
-    //     {
-    //       currentPassword,
-    //       newPassword,
-    //       confirmPassword,
-    //     },
-    //     {
-    //       headers: {
-    //         Authorization: `Bearer ${localStorage.getItem('token')}`,
-    //       },
-    //     }
-    // );
+    const storedUser = localStorage.getItem('currentUser');
+    const currentUser = storedUser ? JSON.parse(storedUser) : null;
+    let {currentPassword, newPassword, confirmPassword} = userData
+
+    console.log(userData)
+    console.log( currentPassword,
+        newPassword,
+        confirmPassword)
+    await axios.patch(
+        `http://localhost:3000/auth/change-password/${currentUser.id}`,
+        {
+          currentPassword,
+          newPassword,
+          confirmPassword,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${localStorage.getItem('token')}`,
+          },
+        }
+    );
   };
 
     const fileInputRef = useRef(null);
@@ -447,15 +455,15 @@ function ProfileComponent() {
                 
                 <form>
                   <div className="mb-3">
-                    <label htmlFor="oldPassword" style={styles.formLabel}>Current Password</label>
+                    <label htmlFor="currentPassword" style={styles.formLabel}>Current Password</label>
                     <div className="input-group">
                       <span className="input-group-text"><i className="bi bi-key"></i></span>
                       <input 
                         type="password" 
                         className="form-control" 
-                        id="oldPassword"
-                        name="oldPassword"
-                        value={userData.oldPassword}
+                        id="currentPassword"
+                        name="currentPassword"
+                        value={userData.currentPassword}
                         onChange={handleChange}
                         style={styles.formControl}
                       />
