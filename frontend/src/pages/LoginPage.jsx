@@ -11,19 +11,25 @@ import GoogleLoginButton from '../components/common/GoogleLoginButton';
 const LoginPage = () => {
     const [errorMessage, setErrorMessage] = useState('');
 
-    const { login, loading, error, isAuthenticated, clearError } = useAuth();
+    const { login, loading, error, isAuthenticated, currentUser, clearError } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
 
     // Get the page to redirect to after login
     const from = location.state?.from?.pathname || '/dashboard';
 
-    // Redirect if already authenticated
+    // Redirect if already authenticated, with role-based redirect
     useEffect(() => {
         if (isAuthenticated) {
-            navigate(from, { replace: true });
+      // Redirect admins to admin dashboard
+      if (currentUser?.type === 'admin') {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        // Regular users go to user dashboard
+              navigate(from, { replace: true });
+      }
         }
-    }, [isAuthenticated, navigate, from]);
+    }, [isAuthenticated, navigate, from, currentUser]);
 
     // Set error message when auth context error changes
     useEffect(() => {
@@ -40,9 +46,11 @@ const LoginPage = () => {
         setErrorMessage('');
 
         try {
+      console.log('Login attempt with:', values);
             await login({ email: values.email, password: values.password });
             // Successful login will trigger the useEffect above
         } catch (err) {
+      console.error('Login error:', err);
             // Error is handled by the auth context
             setSubmitting(false);
         }
@@ -81,69 +89,76 @@ const LoginPage = () => {
                                         handleBlur,
                                         handleSubmit,
                                         isSubmitting,
-                                    }) => (
-                                        <Form noValidate onSubmit={handleSubmit}>
-                                            <Form.Group className="mb-3" controlId="email">
-                                                <Form.Label>Email address</Form.Label>
-                                                <Form.Control
-                                                    type="email"
-                                                    placeholder="name@example.com"
-                                                    name="email"
-                                                    value={values.email}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    isInvalid={touched.email && errors.email}
-                                                />
-                                                <Form.Control.Feedback type="invalid">
-                                                    {errors.email}
-                                                </Form.Control.Feedback>
-                                            </Form.Group>
-
-                                            <Form.Group className="mb-3" controlId="password">
-                                                <Form.Label>Password</Form.Label>
-                                                <Form.Control
-                                                    type="password"
-                                                    placeholder="Enter your password"
-                                                    name="password"
-                                                    value={values.password}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    isInvalid={touched.password && errors.password}
-                                                />
-                                                <Form.Control.Feedback type="invalid">
-                                                    {errors.password}
-                                                </Form.Control.Feedback>
-                                            </Form.Group>
-
-                                            <div className="d-flex justify-content-between align-items-center mb-3">
-                                                <Form.Check
-                                                    type="checkbox"
-                                                    id="rememberMe"
-                                                    label="Remember me"
-                                                />
-                                                <Link to="/forgot-password" className="text-decoration-none">
-                                                    Forgot Password?
-                                                </Link>
-                                            </div>
-
-                                            <div className="d-grid gap-2">
-                                                <Button
-                                                    variant="primary"
-                                                    type="submit"
-                                                    disabled={loading || isSubmitting}
-                                                >
-                                                    {loading ? (
-                                                        <>
-                                                            <Spinner animation="border" size="sm" className="me-2" />
-                                                            Signing In...
-                                                        </>
-                                                    ) : (
-                                                        'Sign In'
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        </Form>
-                                    )}
+                                    }) => {
+                    // Debug logs
+                    console.log('Login form values:', values);
+                    console.log('Login form errors:', errors);
+                    console.log('Login form touched:', touched);
+                    
+                    return (
+                                          <Form noValidate onSubmit={handleSubmit}>
+                                              <Form.Group className="mb-3" controlId="email">
+                                                  <Form.Label>Email address</Form.Label>
+                                                  <Form.Control
+                                                      type="email"
+                                                      placeholder="name@example.com"
+                                                      name="email"
+                                                      value={values.email}
+                                                      onChange={handleChange}
+                                                      onBlur={handleBlur}
+                                                      isInvalid={touched.email && errors.email}
+                                                  />
+                                                  <Form.Control.Feedback type="invalid">
+                                                      {errors.email}
+                                                  </Form.Control.Feedback>
+                                              </Form.Group>
+  
+                                              <Form.Group className="mb-3" controlId="password">
+                                                  <Form.Label>Password</Form.Label>
+                                                  <Form.Control
+                                                      type="password"
+                                                      placeholder="Enter your password"
+                                                      name="password"
+                                                      value={values.password}
+                                                      onChange={handleChange}
+                                                      onBlur={handleBlur}
+                                                      isInvalid={touched.password && errors.password}
+                                                  />
+                                                  <Form.Control.Feedback type="invalid">
+                                                      {errors.password}
+                                                  </Form.Control.Feedback>
+                                              </Form.Group>
+  
+                                              <div className="d-flex justify-content-between align-items-center mb-3">
+                                                  <Form.Check
+                                                      type="checkbox"
+                                                      id="rememberMe"
+                                                      label="Remember me"
+                                                  />
+                                                  <Link to="/forgot-password" className="text-decoration-none">
+                                                      Forgot Password?
+                                                  </Link>
+                                              </div>
+  
+                                              <div className="d-grid gap-2">
+                                                  <Button
+                                                      variant="primary"
+                                                      type="submit"
+                                                      disabled={loading || isSubmitting}
+                                                  >
+                                                      {loading ? (
+                                                          <>
+                                                              <Spinner animation="border" size="sm" className="me-2" />
+                                                              Signing In...
+                                                          </>
+                                                      ) : (
+                                                          'Sign In'
+                                                      )}
+                                                  </Button>
+                                              </div>
+                                          </Form>
+                                      );
+                  }}
                                 </Formik>
 
                                 <div className="auth-divider my-4">

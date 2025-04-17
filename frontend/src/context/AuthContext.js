@@ -1,7 +1,5 @@
-// src/context/AuthContext.js
-
-import React, { createContext, useState, useEffect } from "react";
-import axios from "axios";
+import React, { createContext, useState, useEffect } from 'react';
+import axios from 'axios';
 
 // Create context
 export const AuthContext = createContext();
@@ -11,18 +9,16 @@ const API_URL = "http://localhost:3000"; // Update this with your actual backend
 
 // Provider component
 export const AuthProvider = ({ children }) => {
-	// Initialize user from localStorage if available
-	const storedUser = localStorage.getItem("currentUser")
-		? JSON.parse(localStorage.getItem("currentUser"))
-		: null;
-
-	const [currentUser, setCurrentUser] = useState(storedUser);
-	const [token, setToken] = useState(
-		localStorage.getItem("token") || null
-	);
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState(null);
-	const [isAuthenticated, setIsAuthenticated] = useState(!!token);
+  // Initialize user from localStorage if available
+  const storedUser = localStorage.getItem('currentUser') 
+    ? JSON.parse(localStorage.getItem('currentUser')) 
+    : null;
+    
+  const [currentUser, setCurrentUser] = useState(storedUser);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!token);
 
 	// Check if user is already logged in (on initial load)
 	useEffect(() => {

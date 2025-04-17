@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
+
 const chatbotRoutes = require("./routes/chatbotRoutes");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
@@ -48,6 +49,12 @@ app.use((err, req, res, next) => {
 	console.error(err.stack);
 	res.status(500).json({ error: "Server error" });
 });
+
+// Add this line with your other route imports in server.js
+const adminRoutes = require("./routes/adminRoutes");
+
+// Then add this line with your other app.use routes
+app.use("/admin", adminRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;
