@@ -7,6 +7,7 @@ const authRoutes = require("./routes/authRoutes");
 const chatbotRoutes = require("./routes/chatbotRoutes");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
+const stockRoutes = require("./routes/stockRoutes");
 //const swaggerDocument = YAML.load("./swagger/swagger.yaml");
 
 // Load environment variables
@@ -48,6 +49,12 @@ app.use((err, req, res, next) => {
 	console.error(err.stack);
 	res.status(500).json({ error: "Server error" });
 });
+// backend/server.js
+// Add this to your existing server.js imports
+const marketRoutes = require('./routes/marketRoutes');
+
+// Add this line with your other routes
+app.use('/api/market', marketRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;

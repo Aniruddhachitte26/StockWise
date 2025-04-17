@@ -131,6 +131,58 @@ body {
   color: var(--secondary-color);
 }
 
+/* Stock Ticker CSS */
+.stock-ticker-container {
+  width: 100%;
+  overflow: hidden;
+  background-color: #212529;
+  color: white;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.ticker-wrap {
+  width: 100%;
+  padding: 0;
+  overflow: hidden;
+}
+
+.ticker {
+  display: inline-block;
+  white-space: nowrap;
+  animation: ticker 60s linear infinite;
+}
+
+.ticker-item {
+  margin: 0 30px;
+}
+
+.ticker-symbol {
+  font-weight: bold;
+}
+
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-100%);
+  }
+}
+
+/* For a static ticker with scrollbar instead of animation */
+.static-ticker {
+  display: flex;
+  overflow-x: auto;
+  white-space: nowrap;
+  padding: 10px 0;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.static-ticker::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
 /* Responsive Adjustments */
 @media (max-width: 992px) {
   .navbar .nav-link {
