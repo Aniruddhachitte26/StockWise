@@ -4,6 +4,7 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
+const marketRoutes = require("./routes/marketRoutes")
 
 const chatbotRoutes = require("./routes/chatbotRoutes");
 const swaggerUi = require("swagger-ui-express");
@@ -39,6 +40,7 @@ app.use("/images", express.static("uploads/images"));
 app.use("/user", userRoutes);
 app.use("/auth", authRoutes);
 app.use("/summary", chatbotRoutes);
+app.use("/market", marketRoutes);
 
 // Default route
 app.get("/", (req, res) => {
@@ -52,10 +54,6 @@ app.use((err, req, res, next) => {
 });
 // backend/server.js
 // Add this to your existing server.js imports
-const marketRoutes = require('./routes/marketRoutes');
-
-// Add this line with your other routes
-app.use('/api/market', marketRoutes);
 
 // Add this line with your other route imports in server.js
 const adminRoutes = require("./routes/adminRoutes");
