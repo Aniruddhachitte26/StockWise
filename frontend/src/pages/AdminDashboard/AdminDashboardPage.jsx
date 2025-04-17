@@ -7,6 +7,9 @@ import AdminNavbar from './../../components/admin/AdminNavbar';
 import Loader from './../../components/common/Loader';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useTheme } from './../../components/common/themeProvider';
+// import StockTable from '././';
+// import UserTable from './UserTable';
+// import TransactionTable from './TransactionTable';
 
 const AdminDashboardPage = () => {
   const [loading, setLoading] = useState(true);

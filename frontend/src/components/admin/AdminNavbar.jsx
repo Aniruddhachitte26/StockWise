@@ -6,6 +6,14 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from './../../components/common/themeProvider';
 import useAuth from './../../hooks/useAuth';
 
+const NavbarStyles = {
+  darkBg: { backgroundColor: 'var(--neutralBg)', borderBottom: '1px solid var(--border)' },
+  lightBg: { backgroundColor: 'var(--card)', borderBottom: '1px solid var(--border)' },
+  darkText: { color: 'var(--textPrimary)' },
+  navLink: { color: 'var(--textSecondary)' },
+  navLinkActive: { color: 'var(--primary)' },
+  logoStyle: { color: 'var(--primary)', fontWeight: 'bold' }
+};
 const AdminNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
