@@ -1,8 +1,10 @@
-
 import { useContext } from 'react';
 import AuthContext from '../context/AuthContext';
 
-// Custom hook to use auth context
+/**
+ * Custom hook to use auth context
+ * @returns {Object} Auth context values and methods
+ */
 const useAuth = () => {
   const context = useContext(AuthContext);
   

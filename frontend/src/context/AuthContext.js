@@ -1,5 +1,3 @@
-// src/context/AuthContext.js
-
 import React, { createContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -18,7 +16,7 @@ export const AuthProvider = ({ children }) => {
     
   const [currentUser, setCurrentUser] = useState(storedUser);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [isAuthenticated, setIsAuthenticated] = useState(!!token);
 
@@ -43,7 +41,6 @@ export const AuthProvider = ({ children }) => {
             setCurrentUser(null);
             setIsAuthenticated(false);
           }
-          setLoading(false);
         } catch (error) {
           // If token is invalid or expired, clear everything
           console.error("Auth check error:", error);
@@ -53,10 +50,7 @@ export const AuthProvider = ({ children }) => {
           setToken(null);
           setCurrentUser(null);
           setIsAuthenticated(false);
-          setLoading(false);
         }
-      } else {
-        setLoading(false);
       }
     };
 
@@ -78,19 +72,31 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
+      console.log('Registering with data:', userData);
       const response = await axios.post(`${API_URL}/auth/register`, userData);
       
-      // After registration, automatically log in the user
-      if (response.data) {
+      console.log('Registration response:', response.data);
+      
+      // After registration, automatically log in the user (optional)
+      if (response.data.success || response.status === 201) {
+        // Auto-login if desired
         await login({
           email: userData.email,
           password: userData.password
         });
       }
       
+      setLoading(false);
       return response.data;
     } catch (error) {
-      setError(error.response?.data?.error || 'Registration failed. Please try again.');
+      console.error('Registration error details:', error);
+      
+      // Get the specific error message from the response if available
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.message || 
+                          'Registration failed. Please try again.';
+      
+      setError(errorMessage);
       setLoading(false);
       throw error;
     }
@@ -102,7 +108,10 @@ export const AuthProvider = ({ children }) => {
     setError(null);
     
     try {
+      console.log('Logging in with credentials:', credentials);
       const response = await axios.post(`${API_URL}/auth/login`, credentials);
+      
+      console.log('Login response:', response.data);
       
       // Save token to localStorage
       localStorage.setItem('token', response.data.token);
@@ -122,7 +131,14 @@ export const AuthProvider = ({ children }) => {
       
       return response.data;
     } catch (error) {
-      setError(error.response?.data?.error || 'Login failed. Please check your credentials.');
+      console.error('Login error details:', error);
+      
+      // Get the specific error message from the response if available
+      const errorMessage = error.response?.data?.error || 
+                          error.response?.data?.message || 
+                          'Login failed. Please check your credentials.';
+      
+      setError(errorMessage);
       setLoading(false);
       throw error;
     }
