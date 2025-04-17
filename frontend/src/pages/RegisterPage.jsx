@@ -1,71 +1,105 @@
+// frontend/src/pages/RegisterPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { Formik } from 'formik';
 import { registerSchema } from '../validations/schemas';
-import useAuth from '../hooks/useAuth';
+// Removed: import useAuth from '../hooks/useAuth';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
 import PasswordStrengthMeter from '../components/common/PasswordStrengthMeter';
-import GoogleLoginButton from '../components/common/GoogleLoginButton';
+import GoogleLoginButton from '../components/common/GoogleLoginButton'; // Ensure this uses Redux dispatch
+
+// --- Redux Imports ---
+import { useDispatch, useSelector } from 'react-redux';
+import { registerUser, loginUser, clearError, googleLoginHandler } from '../redux/features/authSlice'; // Import relevant actions/thunks
 
 const RegisterPage = () => {
-    const [errorMessage, setErrorMessage] = useState('');
-
-    const { register, loading, error, isAuthenticated, clearError } = useAuth();
+    const dispatch = useDispatch();
     const navigate = useNavigate();
 
-    // Redirect if already authenticated
+    // --- Select state from Redux store ---
+    const { status, error, isAuthenticated, currentUser } = useSelector(state => state.auth);
+    const loading = status === 'loading';
+
+    // --- Redirect Effect ---
     useEffect(() => {
         if (isAuthenticated) {
-            navigate('/dashboard');
+            if (currentUser?.type === 'admin') {
+                navigate('/admin/dashboard', { replace: true });
+            } else {
+                navigate('/dashboard', { replace: true }); // Default dashboard after register/login
+            }
         }
-    }, [isAuthenticated, navigate]);
+    }, [isAuthenticated, navigate, currentUser]);
 
-    // Set error message when auth context error changes
+    // --- Clear Redux error on mount/unmount ---
     useEffect(() => {
-        if (error) {
-            setErrorMessage(error);
-        }
-
+        dispatch(clearError());
         return () => {
-            clearError();
+            dispatch(clearError());
         };
-    }, [error, clearError]);
+    }, [dispatch]);
 
+    // --- Form Submission Handler ---
     const handleSubmit = async (values, { setSubmitting }) => {
-        setErrorMessage('');
-
+        console.log('Attempting registration with:', values);
         try {
-            await register({
+            // Dispatch the registerUser async thunk
+            const resultAction = await dispatch(registerUser({
                 fullName: values.fullName,
                 email: values.email,
                 password: values.password
-            });
-            // Successful registration will trigger the useEffect above
-        } catch (err) {
-            // Error is handled by the auth context
+                // Note: type is usually handled by backend or defaults to 'user'
+            })).unwrap(); // .unwrap() throws error on rejection, returns payload on success
+
+            // If registration was successful (no error thrown by unwrap)
+            console.log("Registration successful:", resultAction); // Log the success message from backend
+            // Optionally, automatically log the user in
+            console.log("Attempting auto-login after registration...");
+            await dispatch(loginUser({ email: values.email, password: values.password })).unwrap();
+            // Redirection will happen via the useEffect hook watching isAuthenticated
+
+        } catch (rejectedValueOrSerializedError) {
+            // Error is already set in Redux state by the rejected thunk
+            console.error('Registration or auto-login failed:', rejectedValueOrSerializedError);
+            // Optionally set a local error message if needed, but usually rely on Redux state 'error'
+        } finally {
             setSubmitting(false);
         }
+    };
+
+    // --- Google Login Integration ---
+    // Similar to LoginPage, ensure GoogleLoginButton dispatches googleLoginHandler
+    // Or handle it via a callback temporarily
+    const handleGoogleSuccess = (tokenResponse) => {
+        dispatch(googleLoginHandler({ idToken: tokenResponse.access_token }));
+    };
+
+
+    // --- Error Alert Close Handler ---
+    const handleAlertClose = () => {
+        dispatch(clearError());
     };
 
     return (
         <>
             <Navbar />
 
-            <Container className="py-5">
+            <Container className="py-5" style={{ minHeight: 'calc(100vh - 120px)' }}>
                 <Row className="justify-content-center">
                     <Col md={8} lg={6}>
-                        <Card className="auth-card">
-                            <Card.Body>
+                        <Card className="auth-card shadow-lg border-0">
+                            <Card.Body className="p-4 p-md-5">
                                 <div className="text-center mb-4">
-                                    <h2>Create Your Account</h2>
+                                    <h2 className="fw-bold">Create Your Account</h2>
                                     <p className="text-muted">Join StockWise Trading today</p>
                                 </div>
 
-                                {errorMessage && (
-                                    <Alert variant="danger" dismissible onClose={() => setErrorMessage('')}>
-                                        {errorMessage}
+                                {error && (
+                                    <Alert variant="danger" dismissible onClose={handleAlertClose} className="d-flex align-items-center">
+                                        <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                        {error}
                                     </Alert>
                                 )}
 
@@ -86,126 +120,137 @@ const RegisterPage = () => {
                                         touched,
                                         handleChange,
                                         handleBlur,
-                                        handleSubmit,
+                                        handleSubmit: formikSubmit,
                                         isSubmitting,
-                                    }) => (
-                                        <Form noValidate onSubmit={handleSubmit}>
-                                            <Form.Group className="mb-3" controlId="fullName">
-                                                <Form.Label>Full Name</Form.Label>
-                                                <Form.Control
-                                                    type="text"
-                                                    name="fullName"
-                                                    placeholder="Enter your full name"
-                                                    value={values.fullName}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    isInvalid={touched.fullName && errors.fullName}
-                                                />
-                                                <Form.Control.Feedback type="invalid">
-                                                    {errors.fullName}
-                                                </Form.Control.Feedback>
-                                            </Form.Group>
+                                    }) => {
+                                        // Function to handle input changes and clear Redux error
+                                        const handleInputChange = (e) => {
+                                            handleChange(e);
+                                            if (error) {
+                                                dispatch(clearError());
+                                            }
+                                        };
+                                        return (
+                                            <Form noValidate onSubmit={formikSubmit}>
+                                                {/* Full Name */}
+                                                <Form.Group className="mb-3 position-relative" controlId="regFullName">
+                                                    <Form.Label>Full Name</Form.Label>
+                                                    <Form.Control
+                                                        type="text"
+                                                        name="fullName"
+                                                        placeholder="Enter your full name"
+                                                        value={values.fullName}
+                                                        onChange={handleInputChange}
+                                                        onBlur={handleBlur}
+                                                        isInvalid={touched.fullName && !!errors.fullName}
+                                                    />
+                                                    <Form.Control.Feedback type="invalid" tooltip>
+                                                        {errors.fullName}
+                                                    </Form.Control.Feedback>
+                                                </Form.Group>
 
-                                            <Form.Group className="mb-3" controlId="email">
-                                                <Form.Label>Email address</Form.Label>
-                                                <Form.Control
-                                                    type="email"
-                                                    name="email"
-                                                    placeholder="name@example.com"
-                                                    value={values.email}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    isInvalid={touched.email && errors.email}
-                                                />
-                                                <Form.Control.Feedback type="invalid">
-                                                    {errors.email}
-                                                </Form.Control.Feedback>
-                                            </Form.Group>
+                                                {/* Email */}
+                                                <Form.Group className="mb-3 position-relative" controlId="regEmail">
+                                                    <Form.Label>Email address</Form.Label>
+                                                    <Form.Control
+                                                        type="email"
+                                                        name="email"
+                                                        placeholder="name@example.com"
+                                                        value={values.email}
+                                                        onChange={handleInputChange}
+                                                        onBlur={handleBlur}
+                                                        isInvalid={touched.email && !!errors.email}
+                                                    />
+                                                    <Form.Control.Feedback type="invalid" tooltip>
+                                                        {errors.email}
+                                                    </Form.Control.Feedback>
+                                                </Form.Group>
 
-                                            <Form.Group className="mb-3" controlId="password">
-                                                <Form.Label>Password</Form.Label>
-                                                <Form.Control
-                                                    type="password"
-                                                    name="password"
-                                                    placeholder="Create a password"
-                                                    value={values.password}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    isInvalid={touched.password && errors.password}
-                                                />
-                                                <Form.Control.Feedback type="invalid">
-                                                    {errors.password}
-                                                </Form.Control.Feedback>
-
-                                                {/* Password Strength Meter */}
-                                                {values.password && (
+                                                {/* Password */}
+                                                <Form.Group className="mb-3 position-relative" controlId="regPassword">
+                                                    <Form.Label>Password</Form.Label>
+                                                    <Form.Control
+                                                        type="password"
+                                                        name="password"
+                                                        placeholder="Create a password"
+                                                        value={values.password}
+                                                        onChange={handleInputChange}
+                                                        onBlur={handleBlur}
+                                                        isInvalid={touched.password && !!errors.password}
+                                                    />
+                                                    <Form.Control.Feedback type="invalid" tooltip>
+                                                        {errors.password}
+                                                    </Form.Control.Feedback>
                                                     <PasswordStrengthMeter password={values.password} />
-                                                )}
+                                                    <Form.Text className="text-muted d-block mt-1">
+                                                        Min 8 chars, incl. uppercase, lowercase, number, symbol.
+                                                    </Form.Text>
+                                                </Form.Group>
 
-                                                <Form.Text className="text-muted">
-                                                    Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.
-                                                </Form.Text>
-                                            </Form.Group>
+                                                {/* Confirm Password */}
+                                                <Form.Group className="mb-3 position-relative" controlId="regConfirmPassword">
+                                                    <Form.Label>Confirm Password</Form.Label>
+                                                    <Form.Control
+                                                        type="password"
+                                                        name="confirmPassword"
+                                                        placeholder="Confirm your password"
+                                                        value={values.confirmPassword}
+                                                        onChange={handleInputChange}
+                                                        onBlur={handleBlur}
+                                                        isInvalid={touched.confirmPassword && !!errors.confirmPassword}
+                                                    />
+                                                    <Form.Control.Feedback type="invalid" tooltip>
+                                                        {errors.confirmPassword}
+                                                    </Form.Control.Feedback>
+                                                </Form.Group>
 
-                                            <Form.Group className="mb-3" controlId="confirmPassword">
-                                                <Form.Label>Confirm Password</Form.Label>
-                                                <Form.Control
-                                                    type="password"
-                                                    name="confirmPassword"
-                                                    placeholder="Confirm your password"
-                                                    value={values.confirmPassword}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    isInvalid={touched.confirmPassword && errors.confirmPassword}
-                                                />
-                                                <Form.Control.Feedback type="invalid">
-                                                    {errors.confirmPassword}
-                                                </Form.Control.Feedback>
-                                            </Form.Group>
+                                                {/* Terms */}
+                                                <Form.Group className="mb-4" controlId="regTerms">
+                                                    <Form.Check
+                                                        type="checkbox"
+                                                        name="terms"
+                                                        checked={values.terms}
+                                                        onChange={handleInputChange}
+                                                        onBlur={handleBlur}
+                                                        isInvalid={touched.terms && !!errors.terms}
+                                                        feedback={errors.terms}
+                                                        feedbackType="invalid"
+                                                        label={
+                                                            <span className="small">
+                                                                I agree to the{' '}
+                                                                <Link to="/terms" target="_blank" className="text-decoration-none">
+                                                                    Terms of Service
+                                                                </Link>{' '}
+                                                                and{' '}
+                                                                <Link to="/privacy" target="_blank" className="text-decoration-none">
+                                                                    Privacy Policy
+                                                                </Link>
+                                                            </span>
+                                                        }
+                                                    />
+                                                </Form.Group>
 
-                                            <Form.Group className="mb-3" controlId="terms">
-                                                <Form.Check
-                                                    type="checkbox"
-                                                    name="terms"
-                                                    checked={values.terms}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    isInvalid={touched.terms && errors.terms}
-                                                    feedback={errors.terms}
-                                                    feedbackType="invalid"
-                                                    label={
-                                                        <span>
-                                                            I agree to the{' '}
-                                                            <Link to="/terms" target="_blank" className="text-decoration-none">
-                                                                Terms of Service
-                                                            </Link>{' '}
-                                                            and{' '}
-                                                            <Link to="/privacy" target="_blank" className="text-decoration-none">
-                                                                Privacy Policy
-                                                            </Link>
-                                                        </span>
-                                                    }
-                                                />
-                                            </Form.Group>
-
-                                            <div className="d-grid gap-2">
-                                                <Button
-                                                    variant="primary"
-                                                    type="submit"
-                                                    disabled={loading || isSubmitting}
-                                                >
-                                                    {loading ? (
-                                                        <>
-                                                            <Spinner animation="border" size="sm" className="me-2" />
-                                                            Creating Account...
-                                                        </>
-                                                    ) : (
-                                                        'Create Account'
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        </Form>
-                                    )}
+                                                {/* Submit Button */}
+                                                <div className="d-grid gap-2">
+                                                    <Button
+                                                        variant="primary"
+                                                        type="submit"
+                                                        disabled={loading || isSubmitting}
+                                                        size="lg"
+                                                    >
+                                                        {loading ? (
+                                                            <>
+                                                                <Spinner animation="border" size="sm" className="me-2" />
+                                                                Creating Account...
+                                                            </>
+                                                        ) : (
+                                                            'Create Account'
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </Form>
+                                        );
+                                    }}
                                 </Formik>
 
                                 <div className="auth-divider my-4">
@@ -213,13 +258,14 @@ const RegisterPage = () => {
                                 </div>
 
                                 <div className="d-grid gap-2 mb-4">
-                                    <GoogleLoginButton  isRegistration={true} />
+                                    {/* Ensure GoogleLoginButton is updated or passes success/error back */}
+                                    <GoogleLoginButton isRegistration={true} /* onSuccess={handleGoogleSuccess} onError={handleGoogleError} */ />
                                 </div>
 
                                 <div className="text-center">
-                                    <p className="mb-0">
+                                    <p className="mb-0 text-muted">
                                         Already have an account?{' '}
-                                        <Link to="/login" className="text-decoration-none">
+                                        <Link to="/login" className="text-decoration-none fw-medium">
                                             Sign in
                                         </Link>
                                     </p>

@@ -1,117 +1,207 @@
-import axios from 'axios';
+// frontend/src/services/authService.js
+import axios from "axios";
 
-// API URL
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000'; 
+// API URL - Ensure this is correctly pointing to your backend
+const API_URL = "http://localhost:3000";
 
-// Set up axios default headers
+// --- Axios Default Header Setup ---
+// This function should ideally be called ONCE when the token changes,
+// typically within the Redux slice/thunk after a successful login/token refresh.
+// Keeping it here might be okay, but centralizing in the slice is often cleaner.
 const setAuthToken = (token) => {
-  if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-  } else {
-    delete axios.defaults.headers.common['Authorization'];
-  }
+	if (token) {
+		axios.defaults.headers.common[
+			"Authorization"
+		] = `Bearer ${token}`;
+		console.log("Axios header set with token.");
+	} else {
+		delete axios.defaults.headers.common["Authorization"];
+		console.log("Axios header cleared.");
+	}
 };
+
+// --- API Error Handling ---
+// Centralized error handling for API calls from this service
+const handleApiError = (error, context = "API Call") => {
+	console.error(
+		`${context} Error:`,
+		error.response || error.message || error
+	);
+	// If the error has a response from the server
+	if (error.response) {
+		// Extract the error message, prioritize 'error' field, then 'message'
+		const serverError =
+			error.response.data?.error ||
+			error.response.data?.message ||
+			error.response.statusText || // Fallback to status text
+			"An unexpected server error occurred.";
+		// Return an Error object with the server message
+		return new Error(serverError);
+	} else if (error.request) {
+		// Network error (no response received)
+		return new Error(
+			"Network error. Could not reach server. Please check connection."
+		);
+	} else {
+		// Other errors (e.g., setup error)
+		return new Error(
+			error.message || "An unexpected error occurred."
+		);
+	}
+};
+
+// --- Service Functions ---
 
 // Register a new user
 const register = async (userData) => {
-  try {
-    console.log('Registration API call with data:', userData);
-    const response = await axios.post(`${API_URL}/auth/register`, userData);
-    console.log('Registration API response:', response);
-    return response.data;
-  } catch (error) {
-    console.error('Registration API error:', error.response || error);
-    throw handleApiError(error);
-  }
+	try {
+		console.log(
+			"AuthService: Calling POST /auth/register",
+			userData
+		);
+		// Only make the API call and return the data (or throw error)
+		const response = await axios.post(
+			`${API_URL}/auth/register`,
+			userData
+		);
+		console.log(
+			"AuthService: Registration Response:",
+			response.data
+		);
+		// Expected backend response: { message: 'User created successfully.' }
+		return response.data;
+	} catch (error) {
+		throw handleApiError(error, "Registration");
+	}
 };
 
 // Login user
 const login = async (credentials) => {
-  try {
-    console.log('Login API call with credentials:', credentials);
-    const response = await axios.post(`${API_URL}/auth/login`, credentials);
-    console.log('Login API response:', response);
-    
-    // Store the token in localStorage
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      setAuthToken(response.data.token);
-    }
-    
-    return response.data;
-  } catch (error) {
-    console.error('Login API error:', error.response || error);
-    throw handleApiError(error);
-  }
+	try {
+		console.log(
+			"AuthService: Calling POST /auth/login",
+			credentials
+		);
+		const response = await axios.post(
+			`${API_URL}/auth/login`,
+			credentials
+		);
+		console.log("AuthService: Login Response:", response.data);
+
+		// --- Token/User Handling (Could be moved entirely to slice/thunk) ---
+		// It's okay here, but ensures consistency if handled where state is managed.
+		// If kept here, ensure the slice doesn't duplicate this logic.
+		if (response.data && response.data.token) {
+			localStorage.setItem("token", response.data.token);
+			setAuthToken(response.data.token); // Set header immediately
+		} else {
+			console.warn(
+				"AuthService: Token missing in login response."
+			);
+			localStorage.removeItem("token"); // Clear potentially stale token
+			setAuthToken(null);
+		}
+		if (response.data && response.data.user) {
+			localStorage.setItem(
+				"currentUser",
+				JSON.stringify(response.data.user)
+			);
+		} else {
+			console.warn(
+				"AuthService: User object missing in login response."
+			);
+			localStorage.removeItem("currentUser"); // Clear potentially stale user
+		}
+		// --- End Token/User Handling ---
+
+		// Return the full payload for the Redux slice
+		// Expected backend response: { message: '...', user: {...}, token: '...' }
+        console.log('AuthService: Login Response Data Received:', response.data);
+		return response.data;
+	} catch (error) {
+		// Clear tokens/user on login failure before throwing
+		localStorage.removeItem("token");
+		localStorage.removeItem("currentUser");
+		setAuthToken(null);
+		throw handleApiError(error, "Login");
+	}
 };
 
-// Logout user
+// Google Login - Backend Call
+// Note: The `googleLoginHandler` thunk in authSlice now calls this directly via axios.
+// This function might become redundant unless called from elsewhere.
+// If keeping it, it should just make the API call.
+const googleLogin = async (tokenData) => {
+	try {
+		console.log(
+			"AuthService: Calling POST /auth/google",
+			tokenData
+		);
+		const response = await axios.post(
+			`${API_URL}/auth/google`,
+			tokenData
+		);
+		console.log(
+			"AuthService: Google Login Response:",
+			response.data
+		);
+		// Token/User handling should ideally happen in the thunk after this call returns successfully
+		return response.data; // Expected: { user: {...}, token: '...' }
+	} catch (error) {
+		throw handleApiError(error, "Google Login");
+	}
+};
+
+// Logout user (clears local state)
 const logout = () => {
-  // Remove token from localStorage
-  localStorage.removeItem('token');
-  setAuthToken(null);
+	console.log(
+		"AuthService: Clearing local storage and Axios header for logout."
+	);
+	localStorage.removeItem("token");
+	localStorage.removeItem("currentUser");
+	setAuthToken(null);
+	// Note: Redux state clearing happens in the slice reducer.
 };
 
-// Check if user is logged in
+// Check if user is logged in (based on local storage)
 const isAuthenticated = () => {
-  const token = localStorage.getItem('token');
-  return !!token; // Returns true if token exists, false otherwise
+	const token = localStorage.getItem("token");
+	// Maybe add token expiration check here in the future
+	return !!token;
 };
 
-// Get current user token
+// Get current user token from local storage
 const getToken = () => {
-  return localStorage.getItem('token');
+	return localStorage.getItem("token");
 };
 
-// Get current user (requires backend endpoint)
-const getCurrentUser = async () => {
-  try {
-    const token = getToken();
-    if (!token) return null;
-    
-    setAuthToken(token);
-    // Make sure to create this endpoint in your backend
-    const response = await axios.get(`${API_URL}/auth/me`);
-    return response.data.user;
-  } catch (error) {
-    console.error('Get current user error:', error.response || error);
-    logout(); // If token is invalid, logout user
-    return null;
-  }
+// Get current user from local storage (simple version)
+// A version calling the backend `/auth/me` might be needed for validation/fresh data
+const getCurrentUserFromStorage = () => {
+	const userStr = localStorage.getItem("currentUser");
+	try {
+		return userStr ? JSON.parse(userStr) : null;
+	} catch (e) {
+		console.error(
+			"Failed to parse currentUser from localStorage",
+			e
+		);
+		localStorage.removeItem("currentUser"); // Clear corrupted data
+		return null;
+	}
 };
 
-/**
- * Handle API error responses
- * @param {Error} error - Error object from axios
- * @returns {Error} Formatted error
- */
-const handleApiError = (error) => {
-  // If the error has a response from the server
-  if (error.response) {
-    // Extract the error message from the response
-    console.log('Full error response:', error.response);
-    
-    // Try to get detailed error message
-    const serverError = error.response.data.error || 
-                        error.response.data.message ||
-                        error.response.statusText ||
-                        'Something went wrong';
-                        
-    return new Error(serverError);
-  }
-  
-  // Network error or other issues
-  return new Error('Network error. Please check your connection and try again.');
-};
-
+// Export functions that are needed by the thunks or components
 const authService = {
-  register,
-  login,
-  logout,
-  isAuthenticated,
-  getToken,
-  getCurrentUser,
-  setAuthToken
+	register,
+	login,
+	// googleLogin, // The thunk calls axios directly now, this might be unused
+	logout, // The slice calls this, or handles the logic directly
+	isAuthenticated, // Useful for initial checks maybe? Redux state is primary source
+	getToken, // Useful for initial header setup maybe? Redux state is primary source
+	getCurrentUserFromStorage, // Might be useful for initial state hydration
+	setAuthToken, // Export if called directly from slice/thunk (recommended)
+	API_URL, // Export API_URL if needed elsewhere (e.g., in googleLoginHandler thunk)
 };
 
 export default authService;
