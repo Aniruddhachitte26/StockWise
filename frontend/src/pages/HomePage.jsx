@@ -10,6 +10,7 @@ import Footer from '../components/common/Footer';
 import StockCard from '../components/common/StockCard';
 import Loader from '../components/common/Loader';
 import Error from '../components/common/Error';
+import StockTicker from '../components/common/StockTicker';
 
 import useStock from '../hooks/useStock';
 
@@ -31,6 +32,12 @@ const styles = {
     position: 'relative',
     overflow: 'hidden',
     width: '100%'
+  },
+  tickerSection: {
+    width: '100%',
+    overflowX: 'hidden',
+    backgroundColor: '#212529',
+    color: 'white'
   }
 };
 
@@ -75,6 +82,9 @@ const HomePage = () => {
   return (
     <div className="homepage">
       <Navbar />
+      
+      {/* Stock Ticker */}
+      <StockTicker />
       
       {error && (
         <div style={styles.fullWidth}>
@@ -185,32 +195,41 @@ const HomePage = () => {
         </div>
       </div>
 
-      {/* Top Stocks Section */}
-      <div style={styles.fullWidthSection}>
-        <div style={styles.fullWidth}>
-          <h2 className="text-center mb-4">Top Stocks</h2>
-          {topStocks && topStocks.length > 0 ? (
-            <>
-              <Row>
-                {topStocks.map(stock => (
-                  <Col key={stock.symbol} lg={4} md={6} className="mb-4">
-                    <StockCard stock={stock} />
-                  </Col>
-                ))}
-              </Row>
-              <div className="text-center mt-4">
-                <Link to="/stocks">
-                  <Button variant="primary">View All Stocks</Button>
-                </Link>
-              </div>
-            </>
-          ) : (
-            <div className="text-center py-5">
-              <Loader />
-            </div>
-          )}
-        </div>
+{/* Top Stocks Section */}
+<div style={styles.fullWidthSection}>
+  <div style={styles.fullWidth}>
+    <h2 className="text-center mb-4">Top Stocks</h2>
+    {loading && !topStocks.length ? (
+      <div className="text-center py-5">
+        <Loader />
+        <p className="mt-3">Loading top stocks data...</p>
       </div>
+    ) : error && !topStocks.length ? (
+      <Alert variant="warning" className="mb-4">
+        {error}
+      </Alert>
+    ) : topStocks && topStocks.length > 0 ? (
+      <>
+        <Row>
+          {topStocks.map(stock => (
+            <Col key={stock.symbol} lg={4} md={6} className="mb-4">
+              <StockCard stock={stock} />
+            </Col>
+          ))}
+        </Row>
+        <div className="text-center mt-4">
+          <Link to="/stocks">
+            <Button variant="primary">View All Stocks</Button>
+          </Link>
+        </div>
+      </>
+    ) : (
+      <div className="text-center py-5">
+        <p>No stock data available.</p>
+      </div>
+    )}
+  </div>
+</div>
 
       {/* Features Section */}
       <div style={{...styles.fullWidthSection, background: "#f8f9fa"}}>

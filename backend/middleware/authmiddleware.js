@@ -44,44 +44,46 @@ const authenticateUser = (req, res, next) => {
 	}
 };
 
+// In backend/middleware/authmiddleware.js (update the authorizeAdmin function)
+
 // Middleware to authorize admin users
 const authorizeAdmin = async (req, res, next) => {
 	try {
-		// First make sure the user is authenticated
-		if (!req.user) {
-			return res
-				.status(401)
-				.json({ error: "Authentication required." });
-		}
-
-		// Get the user ID from the token
-		const userId = req.user.id;
-
-		// Find the user in the database to get their type
-		const user = await User.findById(userId);
-
-		if (!user) {
-			return res
-				.status(404)
-				.json({ error: "User not found." });
-		}
-
-		// Check if the user is an admin
-		if (user.type !== "admin") {
-			return res.status(403).json({
-				error: "Access denied. Admin privileges required.",
-			});
-		}
-
-		// User is authenticated and authorized as admin
-		next();
-	} catch (error) {
-		console.error("Error authorizing admin:", error);
+	  // First make sure the user is authenticated
+	  if (!req.user) {
 		return res
-			.status(500)
-			.json({ error: "Server error during authorization." });
+		  .status(401)
+		  .json({ error: "Authentication required." });
+	  }
+  
+	  // Get the user ID from the token
+	  const userId = req.user.id;
+  
+	  // Find the user in the database to get their type
+	  const user = await User.findById(userId);
+  
+	  if (!user) {
+		return res
+		  .status(404)
+		  .json({ error: "User not found." });
+	  }
+  
+	  // Check if the user is an admin
+	  if (user.type !== "admin") {
+		return res.status(403).json({
+		  error: "Access denied. Admin privileges required.",
+		});
+	  }
+  
+	  // User is authenticated and authorized as admin
+	  next();
+	} catch (error) {
+	  console.error("Error authorizing admin:", error);
+	  return res
+		.status(500)
+		.json({ error: "Server error during authorization." });
 	}
-};
+  };
 
 // Middleware to authorize employee users
 const authorizeEmployee = async (req, res, next) => {

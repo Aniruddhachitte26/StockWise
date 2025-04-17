@@ -1,10 +1,21 @@
-// src/components/StockCard.jsx
+// src/components/common/StockCard.jsx
 
 import React from 'react';
 import { Card, Badge } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 
 const StockCard = ({ stock }) => {
+  // Handle undefined or null stock data
+  if (!stock) {
+    return (
+      <Card className="h-100 shadow-sm">
+        <Card.Body>
+          <p className="text-center text-muted">Stock data unavailable</p>
+        </Card.Body>
+      </Card>
+    );
+  }
+  
   const { id, symbol, name, price, change, percentChange } = stock;
   const isPositive = percentChange >= 0;
 
@@ -24,9 +35,9 @@ const StockCard = ({ stock }) => {
         
         <div className="d-flex justify-content-between align-items-end">
           <div>
-            <div className="fs-4 fw-bold stock-price">${price.toFixed(2)}</div>
+            <div className="fs-4 fw-bold stock-price">${typeof price === 'number' ? price.toFixed(2) : 'N/A'}</div>
             <div className={`small ${isPositive ? 'text-success' : 'text-danger'}`}>
-              {isPositive ? '+' : ''}{change.toFixed(2)}
+              {isPositive ? '+' : ''}{typeof change === 'number' ? change.toFixed(2) : 'N/A'}
             </div>
           </div>
           <Link to={`/stocks/${symbol}`} className="btn btn-sm btn-outline-primary">

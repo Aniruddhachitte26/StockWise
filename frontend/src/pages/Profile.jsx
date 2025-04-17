@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import AppNavbar from '../components/common/Navbar';
 
 const styles = {
   root: {
@@ -161,6 +162,8 @@ function ProfileComponent() {
   };
 
   return (
+    <div>
+    <AppNavbar />
     <div style={styles.root} className="container py-5">
       <div className="row">
         {/* Left Column */}
@@ -526,6 +529,7 @@ function ProfileComponent() {
           )}
         </div>
       </div>
+    </div>
     </div>
   );
 }

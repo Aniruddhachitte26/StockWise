@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// API URL - replace with your actual backend URL
-const API_URL = 'http://localhost:3000'; 
+// API URL
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3000'; 
 
 // Set up axios default headers
 const setAuthToken = (token) => {
@@ -15,17 +15,22 @@ const setAuthToken = (token) => {
 // Register a new user
 const register = async (userData) => {
   try {
+    console.log('Registration API call with data:', userData);
     const response = await axios.post(`${API_URL}/auth/register`, userData);
+    console.log('Registration API response:', response);
     return response.data;
   } catch (error) {
-    throw error.response?.data || { error: 'Registration failed' };
+    console.error('Registration API error:', error.response || error);
+    throw handleApiError(error);
   }
 };
 
 // Login user
 const login = async (credentials) => {
   try {
+    console.log('Login API call with credentials:', credentials);
     const response = await axios.post(`${API_URL}/auth/login`, credentials);
+    console.log('Login API response:', response);
     
     // Store the token in localStorage
     if (response.data.token) {
@@ -35,7 +40,8 @@ const login = async (credentials) => {
     
     return response.data;
   } catch (error) {
-    throw error.response?.data || { error: 'Login failed' };
+    console.error('Login API error:', error.response || error);
+    throw handleApiError(error);
   }
 };
 
@@ -68,9 +74,34 @@ const getCurrentUser = async () => {
     const response = await axios.get(`${API_URL}/auth/me`);
     return response.data.user;
   } catch (error) {
+    console.error('Get current user error:', error.response || error);
     logout(); // If token is invalid, logout user
     return null;
   }
+};
+
+/**
+ * Handle API error responses
+ * @param {Error} error - Error object from axios
+ * @returns {Error} Formatted error
+ */
+const handleApiError = (error) => {
+  // If the error has a response from the server
+  if (error.response) {
+    // Extract the error message from the response
+    console.log('Full error response:', error.response);
+    
+    // Try to get detailed error message
+    const serverError = error.response.data.error || 
+                        error.response.data.message ||
+                        error.response.statusText ||
+                        'Something went wrong';
+                        
+    return new Error(serverError);
+  }
+  
+  // Network error or other issues
+  return new Error('Network error. Please check your connection and try again.');
 };
 
 const authService = {
