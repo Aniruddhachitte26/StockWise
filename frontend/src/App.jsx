@@ -146,6 +146,9 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import MarketOverview from "./components/dashboard/MarketOverview"
+import ProfilePage  from  "./pages/Profile"
+import About from "./components/dashboard/About"
 import StockDetailPage from './pages/StockDetailPage';
 
 // Admin Pages - Based on your folder structure
@@ -155,6 +158,7 @@ import UserVerificationPage from './components/admin/UserVerificationPage';
 import StocksManagementPage from './components/admin/StocksManagementPage';
 import { initTheme } from './config/themeConfig';
 import useAuth from './hooks/useAuth';
+import Chat from './pages/Chat';
 import './App.css';
 import './assets/styles/theme.css'; // Import our theme CSS
 
@@ -211,6 +215,24 @@ const AppRoutes = () => {
           </ProtectedRoute>
         } 
       />
+
+        <Route 
+          path="/news" 
+          element={
+            <ProtectedRoute>
+              <MarketOverview />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="/about" element={<About />} />
       
       {/* Admin Routes */}
       <Route 
