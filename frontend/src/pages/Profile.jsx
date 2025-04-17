@@ -1,5 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import AppNavbar from '../components/common/Navbar';
+import axios from 'axios';
+
 
 const styles = {
   root: {
@@ -117,20 +119,7 @@ function ProfileComponent() {
   const [activeSection, setActiveSection] = useState('personal');
   const [isEditing, setIsEditing] = useState(false);
   
-  const [userData, setUserData] = useState({
-    firstName: 'Jessica',
-    lastName: 'Williams',
-    email: 'jessica.williams@example.com',
-    phone: '+1 (555) 123-4567',
-    address: '123 Main Street, Apt 4B, New York, NY 10001',
-    oldPassword: '',
-    newPassword: '',
-    confirmPassword: '',
-    documents: [
-      { id: 1, name: 'ID_Card.pdf', type: 'Identity', verified: true },
-      { id: 2, name: 'Address_Proof.pdf', type: 'Address', verified: false }
-    ]
-  });
+  const [userData, setUserData] = useState({});
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -140,25 +129,108 @@ function ProfileComponent() {
     }));
   };
 
-  const handlePasswordChange = () => {
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      const storedUser = localStorage.getItem('currentUser');
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+  
+      console.log("currentUser is", currentUser?.id);
+  
+      if (!currentUser?.id) {
+        console.warn("No user ID found in localStorage.");
+        setLoading(false);
+        return;
+      }
+  
+      try {
+        const response = await axios.get(`http://localhost:3000/user/${currentUser.id}`);
+        console.log("response", response);
+        setUserData(response.data);
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+  
+    fetchUserDetails();
+  }, []);
+  
+
+  const handlePasswordChange = async() => {
     // Password change logic would go here
-    console.log('Password change requested');
-    setUserData(prev => ({
-      ...prev,
-      oldPassword: '',
-      newPassword: '',
-      confirmPassword: ''
-    }));
+    // console.log('Password change requested');
+    // setUserData(prev => ({
+    //   ...prev,
+    //   oldPassword: '',
+    //   newPassword: '',
+    //   confirmPassword: ''
+    // }));
+
+    // await axios.patch(
+    //     "http://localhost:3000/auth/change-password",
+    //     {
+    //       currentPassword,
+    //       newPassword,
+    //       confirmPassword,
+    //     },
+    //     {
+    //       headers: {
+    //         Authorization: `Bearer ${localStorage.getItem('token')}`,
+    //       },
+    //     }
+    // );
   };
+
+    const fileInputRef = useRef(null);
+
+    const handleSelectFileClick = () => {
+    if (fileInputRef.current) {
+        fileInputRef.current.click();
+    }
+    };
+
+    const handleFileChange = async(event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+      
+        const formData = new FormData();
+        formData.append("proof", file); // assuming you're calling it 'proof'
+      
+        // try {
+        //   const response = await axios.post("http://localhost:3000/user/upload-proof", formData, {
+        //     headers: {
+        //       "Content-Type": "multipart/form-data",
+        //       Authorization: `Bearer ${localStorage.getItem("token")}`,
+        //     },
+        //   });
+      
+        //   console.log("File uploaded:", response.data);
+        // } catch (error) {
+        //   console.error("Upload failed:", error);
+        // }
+    };
 
   const toggleEdit = () => {
     setIsEditing(!isEditing);
   };
 
-  const saveChanges = () => {
-    // Save changes logic would go here
+  const saveChanges = async() => {
     console.log('Saving user data:', userData);
-    setIsEditing(false);
+    try {
+        const res = await axios.patch(
+          "http://localhost:3000/user/update-profile",
+          userData,
+          {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          }
+        );
+  
+        console.log("Updated user:", res.data.user);
+        setIsEditing(false);
+      } catch (err) {
+        console.error("Error updating profile", err);
+      }
   };
 
   return (
@@ -174,7 +246,7 @@ function ProfileComponent() {
             <div className="card-body text-center pt-0">
               <div style={styles.profileImgContainer} className="d-inline-block">
                 <img 
-                  src="https://via.placeholder.com/150" 
+                  src={userData.imagePath}
                   className="rounded-circle" 
                   alt="Profile" 
                   style={styles.profileImg}
@@ -185,7 +257,7 @@ function ProfileComponent() {
               </div>
               <h4 style={styles.heading} className="mt-3 mb-1">{userData.firstName} {userData.lastName}</h4>
               <p className="text-secondary mb-2">
-                <i className="bi bi-geo-alt-fill me-1"></i>New York, USA
+                <i className="bi bi-geo-alt-fill me-1"></i>{userData.address}
               </p>
               <div className="mb-3">
                 <span style={styles.verifiedBadge}>
@@ -281,19 +353,19 @@ function ProfileComponent() {
                 <form>
                   <div className="row g-3 mb-3">
                     <div className="col-md-6">
-                      <label htmlFor="firstName" style={styles.formLabel}>First Name</label>
+                      <label htmlFor="fullName" style={styles.formLabel}>Full Name</label>
                       <input 
                         type="text" 
                         className="form-control" 
-                        id="firstName"
-                        name="firstName"
-                        value={userData.firstName}
+                        id="fullName"
+                        name="fullName"
+                        value={userData.fullName}
                         onChange={handleChange}
                         disabled={!isEditing}
                         style={styles.formControl}
                       />
                     </div>
-                    <div className="col-md-6">
+                    {/* <div className="col-md-6">
                       <label htmlFor="lastName" style={styles.formLabel}>Last Name</label>
                       <input 
                         type="text" 
@@ -305,7 +377,7 @@ function ProfileComponent() {
                         disabled={!isEditing}
                         style={styles.formControl}
                       />
-                    </div>
+                    </div> */}
                   </div>
 
                   <div className="row g-3 mb-3">
@@ -439,94 +511,112 @@ function ProfileComponent() {
             </div>
           )}
 
-          {/* Documents Section */}
-          {activeSection === 'documents' && (
-            <div style={styles.card} className="card mb-4">
-              <div className="card-body p-4">
-                <h4 style={styles.heading} className="card-title mb-4">
-                  <i className="bi bi-file-earmark-text-fill me-2 text-primary"></i>
-                  Uploaded Documents
-                </h4>
-                
-                <div className="row mb-4">
-                  {userData.documents.map(doc => (
-                    <div className="col-md-6 mb-3" key={doc.id}>
-                      <div className="card h-100">
-                        <div className="card-body">
-                          <div className="d-flex align-items-center">
-                            <div className="me-3" style={{
-                              width: '40px',
-                              height: '40px',
-                              backgroundColor: 'rgba(30, 136, 229, 0.1)',
-                              borderRadius: '8px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                            }}>
-                              <i className="bi bi-file-pdf fs-4 text-primary"></i>
-                            </div>
-                            <div>
-                              <h6 className="mb-0">{doc.name}</h6>
-                              <small className="text-secondary">{doc.type} Document</small>
-                            </div>
-                          </div>
-                          <div className="mt-3 d-flex justify-content-between align-items-center">
-                            {doc.verified ? (
-                              <span className="badge" style={{
-                                backgroundColor: 'var(--accent-light)',
-                                color: 'var(--accent)',
-                              }}>
-                                <i className="bi bi-check-circle-fill me-1"></i>
-                                Verified
-                              </span>
-                            ) : (
-                              <span className="badge bg-warning text-dark">
-                                <i className="bi bi-hourglass-split me-1"></i>
-                                Pending
-                              </span>
-                            )}
-                            <button className="btn btn-sm btn-outline-secondary">
-                              <i className="bi bi-download"></i>
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  <div className="col-md-6 mb-3">
-                    <div className="card h-100 border-dashed" style={{borderStyle: 'dashed', borderColor: 'var(--border)'}}>
-                      <div className="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
-                        <div style={{
-                          width: '60px',
-                          height: '60px',
-                          backgroundColor: 'rgba(30, 136, 229, 0.1)',
-                          borderRadius: '50%',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          marginBottom: '1rem'
-                        }}>
-                          <i className="bi bi-upload fs-4 text-primary"></i>
-                        </div>
-                        <h6 style={styles.heading}>Upload New Document</h6>
-                        <p className="text-secondary small mb-3">
-                          Supported formats: PDF, JPG, PNG (Max: 5MB)
-                        </p>
-                        <button 
-                          className="btn btn-primary"
-                          style={styles.primaryBtn}
-                        >
-                          <i className="bi bi-plus-lg me-2"></i>
-                          Select File
-                        </button>
-                      </div>
-                    </div>
+{activeSection === 'documents' && (
+  <div style={styles.card} className="card mb-4">
+    <div className="card-body p-4">
+      <h4 style={styles.heading} className="card-title mb-4">
+        <i className="bi bi-file-earmark-text-fill me-2 text-primary"></i>
+        Uploaded Documents
+      </h4>
+
+      <div className="row mb-4">
+
+        {/* Uploaded Document Card (Only One) */}
+        {userData.proof && (
+          <div className="col-md-6 mb-3">
+            <div className="card h-100">
+              <div className="card-body">
+                <div className="d-flex align-items-center">
+                  <div
+                    className="me-3"
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <i className="bi bi-file-pdf fs-4 text-primary"></i>
                   </div>
+                  <div>
+                    {/* <h6 className="mb-0">{doc.name}</h6> */}
+                    <small className="text-secondary">{userData.proofType} Document</small>
+                  </div>
+                </div>
+                <div className="mt-3 d-flex justify-content-between align-items-center">
+                  {/* {doc.verified ? (
+                    <span
+                      className="badge"
+                      style={{
+                        backgroundColor: 'var(--accent-light)',
+                        color: 'var(--accent)',
+                      }}
+                    >
+                      <i className="bi bi-check-circle-fill me-1"></i>
+                      Verified
+                    </span>
+                  ) : (
+                    <span className="badge bg-warning text-dark">
+                      <i className="bi bi-hourglass-split me-1"></i>
+                      Pending
+                    </span>
+                  )} */}
+                  <button className="btn btn-sm btn-outline-secondary">
+                    <i className="bi bi-download"></i>
+                  </button>
                 </div>
               </div>
             </div>
-          )}
+          </div>
+        )}
+
+        {/* Upload New Document */}
+        <div className="col-md-6 mb-3">
+          <div
+            className="card h-100 border-dashed"
+            style={{ borderStyle: 'dashed', borderColor: 'var(--border)' }}
+          >
+            <div className="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
+              <div
+                style={{
+                  width: '60px',
+                  height: '60px',
+                  backgroundColor: 'rgba(30, 136, 229, 0.1)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginBottom: '1rem',
+                }}
+              >
+                <i className="bi bi-upload fs-4 text-primary"></i>
+              </div>
+              <h6 style={styles.heading}>Upload New Document</h6>
+              <p className="text-secondary small mb-3">
+                Supported formats: PDF, JPG, PNG (Max: 5MB)
+              </p>
+              <button className="btn btn-primary" style={styles.primaryBtn} onClick={handleSelectFileClick}>
+                <i className="bi bi-plus-lg me-2"></i>
+                Select File
+              </button>
+                <input
+                    type="file"
+                    accept=".pdf,.jpg,.jpeg,.png"
+                    ref={fileInputRef}
+                    style={{ display: "none" }}
+                    onChange={handleFileChange}
+                />
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
         </div>
       </div>
     </div>

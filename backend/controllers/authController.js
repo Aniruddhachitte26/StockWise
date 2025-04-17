@@ -197,8 +197,44 @@ const googleLogin = async (req, res) => {
 	}
 };
 
+
+const resetPassword = async(req, res) =>{
+	const { currentPassword, newPassword, confirmPassword } = req.body;
+
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ message: "User not found" });
+
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Incorrect current password" });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "New passwords do not match" });
+    }
+
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    if (!passwordRegex.test(newPassword)) {
+      return res.status(400).json({
+        message: "Password must be at least 8 characters and include letters, numbers, and symbols",
+      });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (err) {
+    console.error("Password change error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+}
+
 module.exports = {
 	loginUser,
 	registerUser,
 	googleLogin,
+	resetPassword
 };
