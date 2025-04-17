@@ -199,6 +199,7 @@ const AdminRoute = ({ children }) => {
 
 const AppRoutes = () => {
   return (
+  <div>
     <Routes>
       {/* Public Routes */}
       <Route path="/" element={<HomePage />} />
@@ -277,6 +278,8 @@ const AppRoutes = () => {
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" />} />
     </Routes>
+    <Chat />
+  </div>
   );
 };
 

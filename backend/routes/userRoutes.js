@@ -36,6 +36,9 @@ router.get(
 	userController.getAllUsers
 );
 
+router.get("/:id", userController.getUserDetails);
+router.patch("/update-profile", userController.updateUserDetails)
+
 // Upload image - any authenticated user
 router.post(
 	"/uploadImage",
