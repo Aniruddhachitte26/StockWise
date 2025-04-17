@@ -1,4 +1,4 @@
-const Watchlist = require('../models/Watchlist');
+const Watchlist = require('../models/watchlistModel');
 
 const getWatchlist = async (req, res) => {
   const { userId } = req.params;

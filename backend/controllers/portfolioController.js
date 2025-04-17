@@ -1,4 +1,4 @@
-const Portfolio = require('../models/Portfolio');
+const Portfolio = require('../models/portfolioModel');
 
 const getPortfolio = async (req, res) => {
   const { userId } = req.params;
