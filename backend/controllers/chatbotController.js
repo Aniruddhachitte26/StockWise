@@ -6,7 +6,7 @@ dotenv.config();
 const sessions = new Map();
 
 const isStockRelated = (text) => {
-    return /stock|share|price|market|nasdaq|portfolio|equity|finance|AAPL|MSFT|ticker|chart|trading/i.test(text);
+    return /stock|share|price|market|nasdaq|portfolio|equity|finance|AAPL|MSFT|ticker|chart|trading|investment|recommendations/i.test(text);
 };
 
 const formatHistoricalData = (data, symbol, shortName, exchange) => {
@@ -52,8 +52,8 @@ async function callOpenRouter(prompt) {
 const summarizeWithLLM = async(req, res) => {
   try {
     const data = await yahooFinance.historical('AAPL', {
-      period1: new Date('2025-01-01'),
-      period2: new Date('2025-04-01')
+      period1: new Date(),
+      period2: new Date()
     });
 
     const formatted = formatHistoricalData(data, "AAPL", "Apple Inc.", "NasdaqGS");
@@ -78,6 +78,8 @@ const chatWithStockBot = async (req, res) => {
     if (!isStockRelated(message)) {
       return res.json({ reply: "Please ask only stock-related questions." });
     }
+
+    console.log("message", message);
   
     if (!sessions.has(sessionId)) {
       sessions.set(sessionId, [

@@ -1,5 +1,6 @@
 // MarketOverview.jsx
 import React, { useState, useEffect } from 'react';
+import AppNavbar from "../common/Navbar"
 
 const MarketOverview = () => {
   const [marketData, setMarketData] = useState({
@@ -47,54 +48,67 @@ const MarketOverview = () => {
 
   return (
     <div>
-      {marketData.isLoading ? (
-        <div className="flex justify-center items-center h-48">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+    <AppNavbar /> 
+    {marketData.isLoading ? (
+      <div className="d-flex justify-content-center align-items-center" style={{ height: "12rem" }}>
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
         </div>
-      ) : (
-        <div className="space-y-6">
-          <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-3">Major Indices</h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {marketData.indices.map((index) => (
-                <div key={index.id} className="bg-gray-50 rounded-lg p-4 shadow-sm">
-                  <div className="flex justify-between items-start mb-2">
-                    <span className="text-sm font-medium text-gray-600">{index.name}</span>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
-                      index.change >= 0 ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}>
-                      {index.change >= 0 ? '+' : ''}{index.changePercent.toFixed(2)}%
-                    </span>
-                  </div>
-                  <div className="text-xl font-bold text-gray-800">{index.value.toLocaleString()}</div>
-                  <div className="text-sm text-gray-500">
-                    {index.change >= 0 ? '+' : ''}{index.change.toFixed(2)} pts
+      </div>
+    ) : (
+      <div className="mb-4">
+        <div className="mb-4">
+          <h3 className="h5 fw-medium text-dark mb-3">Major Indices</h3>
+          <div className="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4">
+            {marketData.indices.map((index) => (
+              <div key={index.id} className="col">
+                <div className="card h-100 bg-light border-0 shadow-sm">
+                  <div className="card-body p-3">
+                    <div className="d-flex justify-content-between align-items-start mb-2">
+                      <span className="fs-6 fw-medium text-secondary">{index.name}</span>
+                      <span className={`badge ${
+                        index.change >= 0 ? 'bg-success bg-opacity-10 text-success' : 'bg-danger bg-opacity-10 text-danger'
+                      }`}>
+                        {index.change >= 0 ? '+' : ''}{index.changePercent.toFixed(2)}%
+                      </span>
+                    </div>
+                    <div className="fs-4 fw-bold text-dark">{index.value.toLocaleString()}</div>
+                    <div className="small text-secondary">
+                      {index.change >= 0 ? '+' : ''}{index.change.toFixed(2)} pts
+                    </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
+        </div>
 
-          <div>
-            <h3 className="text-lg font-medium text-gray-700 mb-3">Sector Performance</h3>
-            <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-              {marketData.sectors.map((sector) => (
-                <div key={sector.id} className="flex items-center p-3 border-b border-gray-100 last:border-b-0">
-                  <div className="w-1/3 text-sm font-medium text-gray-700">{sector.name}</div>
-                  <div className="w-2/3">
-                    <div className="flex items-center">
-                      <div className="w-full bg-gray-200 rounded-full h-2.5 mr-2">
+        <div>
+          <h3 className="h5 fw-medium text-dark mb-3">Sector Performance</h3>
+          <div className="card border-0 shadow-sm">
+            <div className="card-body p-0">
+              {marketData.sectors.map((sector, index) => (
+                <div key={sector.id} className={`d-flex align-items-center p-3 ${
+                  index < marketData.sectors.length - 1 ? 'border-bottom' : ''
+                }`}>
+                  <div className="col-4 fs-6 fw-medium text-secondary">{sector.name}</div>
+                  <div className="col-8">
+                    <div className="d-flex align-items-center">
+                      <div className="progress flex-grow-1 me-2" style={{ height: "0.625rem" }}>
                         <div 
-                          className={`h-2.5 rounded-full ${sector.performance >= 0 ? 'bg-green-500' : 'bg-red-500'}`}
+                          className={`progress-bar ${sector.performance >= 0 ? 'bg-success' : 'bg-danger'}`}
                           style={{ 
                             width: `${Math.min(Math.abs(sector.performance) * 10, 100)}%`,
                             marginLeft: sector.performance < 0 ? 'auto' : '0'
                           }}
+                          aria-valuenow={Math.abs(sector.performance) * 10}
+                          aria-valuemin="0"
+                          aria-valuemax="100"
                         >
                         </div>
                       </div>
-                      <span className={`text-sm font-medium ${
-                        sector.performance >= 0 ? 'text-green-600' : 'text-red-600'
+                      <span className={`small fw-medium ${
+                        sector.performance >= 0 ? 'text-success' : 'text-danger'
                       }`}>
                         {sector.performance >= 0 ? '+' : ''}{sector.performance.toFixed(2)}%
                       </span>
@@ -105,8 +119,9 @@ const MarketOverview = () => {
             </div>
           </div>
         </div>
-      )}
-    </div>
+      </div>
+    )}
+  </div>
   );
 };
 

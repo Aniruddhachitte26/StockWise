@@ -6,6 +6,9 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import MarketOverview from "./components/dashboard/MarketOverview"
+import ProfilePage  from  "./pages/Profile"
+import About from "./components/dashboard/About"
 import StockDetailPage from './pages/StockDetailPage';
 import useAuth from './hooks/useAuth';
 import Chat from './pages/Chat';
@@ -50,6 +53,23 @@ const AppRoutes = () => {
             </ProtectedRoute>
           } 
         />
+         <Route 
+          path="/news" 
+          element={
+            <ProtectedRoute>
+              <MarketOverview />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <ProfilePage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route path="/about" element={<About />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <ProtectedRoute>
