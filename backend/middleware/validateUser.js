@@ -132,6 +132,7 @@ const validateEmail = (email) => {
 	validateUserCreate,
 	validateUserUpdate,
 	validateUserType,
+    validatePassword,
 	validateEmail,
 	validateFullName,
 	validatePassword,

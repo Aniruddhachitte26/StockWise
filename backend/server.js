@@ -8,6 +8,7 @@ const marketRoutes = require("./routes/marketRoutes");
 const brokerRoutes = require("./routes/brokerRoutes");
 const mailRoutes = require('./routes/mailRoutes');
 const adminRoutes = require("./routes/adminRoutes");
+const { connectRedis, getRedisClient } = require('./config/redisClient'); 
 
 const chatbotRoutes = require("./routes/chatbotRoutes");
 const swaggerUi = require("swagger-ui-express");
@@ -27,6 +28,7 @@ const app = express();
 
 // Connect to MongoDB
 connectDB();
+connectRedis();
 
 // Middleware
 app.use(cors());

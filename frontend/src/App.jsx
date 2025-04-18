@@ -19,6 +19,8 @@ import About from "./components/dashboard/About";
 import StockDetailPage from './pages/StockDetailPage';
 import Chat from './pages/Chat';
 import StockListingPage from './pages/StockListingPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 
 // --- Admin Page Imports ---
 import AdminDashboardPage from './pages/AdminDashboard/AdminDashboardPage';
@@ -140,6 +142,9 @@ const AppRoutes = () => {
                 <Route path="/broker-register" element={<BrokerRegisterPage />} />
                 <Route path="/stocks/:symbol" element={<StockDetailPage />} />
                 <Route path="/about" element={<About />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                {/* Note: We don't need :token in the route for OTP */}
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                 {/* New Stock Analysis Pages */}
                 <Route path="/stock-analysis" element={<StockAnalysisPage />} />
