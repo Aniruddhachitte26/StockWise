@@ -19,19 +19,19 @@ const RegisterPage = () => {
     const navigate = useNavigate();
 
     // --- Select state from Redux store ---
-    const { status, error, isAuthenticated, currentUser } = useSelector(state => state.auth);
+    const { status, error, isAuthenticated, user } = useSelector(state => state.auth);
     const loading = status === 'loading';
 
     // --- Redirect Effect ---
     useEffect(() => {
         if (isAuthenticated) {
-            if (currentUser?.type === 'admin') {
+            if (user?.type === 'admin') {
                 navigate('/admin/dashboard', { replace: true });
             } else {
                 navigate('/dashboard', { replace: true }); // Default dashboard after register/login
             }
         }
-    }, [isAuthenticated, navigate, currentUser]);
+    }, [isAuthenticated, navigate, user]);
 
     // --- Clear Redux error on mount/unmount ---
     useEffect(() => {
