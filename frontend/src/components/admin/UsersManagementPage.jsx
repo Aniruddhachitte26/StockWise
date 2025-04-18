@@ -8,7 +8,7 @@ import Error from '../../components/common/Error';
 import Pagination from '../../components/common/Pagination';
 import UserDetailsModal from '../../components/admin/UserDetailsModal';
 import axios from 'axios';
-import { useTheme } from '../../components/common/themeProvider';
+import { useTheme } from '../../components/common/ThemeProvider';
 
 
   

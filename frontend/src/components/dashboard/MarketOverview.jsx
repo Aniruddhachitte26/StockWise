@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Row, Col, Badge, Dropdown, Button, Spinner } from 'react-bootstrap';
 import axios from "axios";
+import AppNavbar from '../common/Navbar';
 
 const MarketOverview = ({ newsData = [], isLoading = false }) => {
   const [filter, setFilter] = useState('all');
@@ -344,6 +345,8 @@ const MarketOverview = ({ newsData = [], isLoading = false }) => {
   const [hoveredCard, setHoveredCard] = useState(null);
   
   return (
+    <>
+    <AppNavbar />
     <div style={styles.container}>
       {/* Header with filtering and sorting options */}
       <div className="d-flex justify-content-between align-items-center mb-4">
@@ -675,6 +678,7 @@ const MarketOverview = ({ newsData = [], isLoading = false }) => {
         </div>
       )}
     </div>
+  </>
   );
 };
 

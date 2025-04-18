@@ -2,6 +2,7 @@
 import React from 'react';
 import { Navbar, Nav, Container, Button } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTheme } from '../common/ThemeProvider';
 import useAuth from './../../hooks/useAuth';
 
 const navbarStyles = {
