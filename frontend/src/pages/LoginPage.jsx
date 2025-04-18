@@ -21,7 +21,7 @@ const LoginPage = () => {
 
     // --- Select state from Redux store ---
     // state.auth should match the key used in your store.js reducer object
-    const { status, error, isAuthenticated, currentUser } = useSelector(state => state.auth);
+    const { status, error, isAuthenticated, user } = useSelector(state => state.auth);
     const loading = status === 'loading'; // Derive loading state from status
 
     // Determine where to redirect after login
@@ -31,7 +31,7 @@ const LoginPage = () => {
     // Redirects user if already authenticated, handles admin/user roles
     useEffect(() => {
         if (isAuthenticated) {
-            if (currentUser?.type === 'admin') {
+            if (user?.type === 'admin') {
                 console.log("Admin detected, redirecting to /admin/dashboard");
                 navigate('/admin/dashboard', { replace: true });
             } else {
@@ -39,7 +39,7 @@ const LoginPage = () => {
                 navigate(from, { replace: true });
             }
         }
-    }, [isAuthenticated, navigate, from, currentUser]);
+    }, [isAuthenticated, navigate, from, user]);
 
     // --- Clear Redux error ---
     // Clears any previous error when the component mounts or the location changes

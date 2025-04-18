@@ -2,13 +2,13 @@
 const axios = require('axios');
 
 // Keep API key secure in backend
-const FINNHUB_API_KEY = 'your_finnhub_api_key_here'; // Replace with your actual API key
-const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
+const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY; // Replace with your actual API key
+const FINNHUB_BASE_URL = process.env.FINNHUB_API_URL;
 
 // Get market news
 const getMarketNews = async (req, res) => {
     try {
-        console.log('Fetching market news from Finnhub API...');
+        console.log('Fetching market news from Finnhub API...',`${FINNHUB_BASE_URL}/news` );
         
         const response = await axios.get(`${FINNHUB_BASE_URL}/news`, {
             params: {

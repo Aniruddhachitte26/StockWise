@@ -80,7 +80,7 @@ const getAllUsers = async (req, res) => {
 	try {
 		// Update the select method to exclude the password field by using "-password"
 		const users = await User.find({}).select(
-			"fullName email type imagePath"
+			"fullName email type imagePath address phone dateOfBirth proof proofType verified createdAt updatedAt"
 		);
 
 		return res.status(200).json({ users });
@@ -110,45 +110,97 @@ const getUserDetails = async (req, res) => {
 };
 
 
-const updateUserDetails = async(req, res) =>{
-  console.log("req", req);
-  const { fullName, email, phone, address } = req.body;
-
-  try {
-    const user = await User.findById(req.body._id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-
-    if (fullName !== undefined) user.fullName = fullName;
-    if (email !== undefined && email !== user.email) {
-    
-      const existingUser = await User.findOne({ email });
-      if (existingUser && existingUser._id.toString() !== user._id.toString()) {
-        return res.status(400).json({ message: "Email already in use" });
-      }
-      user.email = email;
-    }
-    if (phone !== undefined) user.phone = phone;
-    if (address !== undefined) user.address = address;
-
-    await user.save();
-
-    res.status(200).json({
-      message: "Profile updated successfully",
-      user: {
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        updatedAt: user.updatedAt,
-      },
-    });
-  } catch (error) {
-    console.error("Error updating profile:", error);
-    res.status(500).json({ message: "Internal server error" });
+// backend/controllers/userController.js - Update the updateUserDetails function
+const updateUserDetails = async(req, res) => {
+	// Enhanced logging
+	console.log("=====================================================");
+	console.log("🔍 updateUserDetails called with req.body:", JSON.stringify(req.body, null, 2));
+	console.log("=====================================================");
+	
+	const { fullName, email, phone, address, _id, verified } = req.body;
+  
+	try {
+	  // Find the user
+	  const user = await User.findById(_id);
+	  if (!user) {
+		console.log("❌ User not found with ID:", _id);
+		return res.status(404).json({ message: "User not found" });
+	  }
+	  
+	  console.log("✅ Found user:", user.fullName, "Current verification status:", user.verified);
+  
+	  // Update fields
+	  let updates = [];
+	  
+	  if (fullName !== undefined && fullName !== user.fullName) {
+		user.fullName = fullName;
+		updates.push(`fullName: ${user.fullName}`);
+	  }
+	  
+	  if (email !== undefined && email !== user.email) {
+		// Check if email is already in use
+		const existingUser = await User.findOne({ email });
+		if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+		  console.log("❌ Email already in use:", email);
+		  return res.status(400).json({ message: "Email already in use" });
+		}
+		user.email = email;
+		updates.push(`email: ${user.email}`);
+	  }
+	  
+	  if (phone !== undefined && phone !== user.phone) {
+		user.phone = phone;
+		updates.push(`phone: ${user.phone}`);
+	  }
+	  
+	  if (address !== undefined && address !== user.address) {
+		user.address = address;
+		updates.push(`address: ${user.address}`);
+	  }
+	  
+	  // Handle verification status update - now using string values
+	  if (verified !== undefined && verified !== user.verified) {
+		// Make sure verified is one of the allowed values
+		if (["pending", "approved", "rejected"].includes(verified)) {
+		  console.log(`🔄 Updating verification status from ${user.verified} to ${verified}`);
+		  user.verified = verified;
+		  updates.push(`verified: ${user.verified}`);
+		} else {
+		  console.log(`❌ Invalid verification status: ${verified}`);
+		  return res.status(400).json({ 
+			message: "Invalid verification status. Must be 'pending', 'approved', or 'rejected'." 
+		  });
+		}
+	  }
+	  
+	  if (updates.length === 0) {
+		console.log("⚠️ No changes detected");
+	  } else {
+		console.log(`🔄 Updates to be applied:`, updates.join(', '));
+	  }
+  
+	  // Save user changes
+	  const savedUser = await user.save();
+	  console.log("✅ User saved successfully. New verification status:", savedUser.verified);
+  
+	  // Send response
+	  res.status(200).json({
+		message: "Profile updated successfully",
+		user: {
+		  _id: savedUser._id,
+		  fullName: savedUser.fullName,
+		  email: savedUser.email,
+		  phone: savedUser.phone,
+		  address: savedUser.address,
+		  verified: savedUser.verified,
+		  updatedAt: savedUser.updatedAt,
+		},
+	  });
+	} catch (error) {
+	  console.error("❌ Error updating profile:", error);
+	  res.status(500).json({ message: "Internal server error" });
+	}
   }
-}
-
 module.exports = {
 	updateUser,
 	deleteUser,

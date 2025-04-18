@@ -1,177 +1,288 @@
 // src/components/admin/UserDetailsModal.jsx
 
-import React from 'react';
-import { Modal, Button, Table, Badge, Row, Col, Card } from 'react-bootstrap';
+import React, { useState } from 'react';
+import { Modal, Button, Badge, Row, Col, Table, Form } from 'react-bootstrap';
+import { useTheme } from '../common/themeProvider';
 
-const UserDetailsModal = ({ user, show, onHide }) => {
+const UserDetailsModal = ({ 
+  user, 
+  show, 
+  onHide, 
+  onApprove = null,
+  onReject = null,
+  onReverify = null
+}) => {
+  const { currentTheme } = useTheme();
+  const [verificationNote, setVerificationNote] = useState('');
+  
+  React.useEffect(() => {
+    // Reset verification note when modal opens/closes
+    if (!show) {
+      setVerificationNote('');
+    }
+  }, [show]);
+  
   if (!user) return null;
   
   // Format date for display
   const formatDate = (dateString) => {
-    if (!dateString) return 'Not available';
+    if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
+  
+  // Get badge properties based on verification status
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'approved':
+        return {
+          bg: 'success',
+          text: 'Approved',
+          style: { backgroundColor: 'var(--accent)' }
+        };
+      case 'rejected':
+        return {
+          bg: 'danger',
+          text: 'Rejected',
+          style: { backgroundColor: 'var(--danger)' }
+        };
+      case 'pending':
+      default:
+        return {
+          bg: 'warning',
+          text: 'Pending',
+          style: { backgroundColor: 'var(--warning, #ffc107)' }
+        };
+    }
+  };
+  
+  const badge = getStatusBadge(user.verified);
   
   return (
     <Modal
       show={show}
       onHide={onHide}
       size="lg"
-      aria-labelledby="user-details-modal"
       centered
     >
-      <Modal.Header closeButton>
-        <Modal.Title id="user-details-modal">
+      <Modal.Header 
+        closeButton
+        style={{ 
+          backgroundColor: 'var(--card)', 
+          color: 'var(--textPrimary)', 
+          borderBottom: '1px solid var(--border)'
+        }}
+      >
+        <Modal.Title style={{ color: 'var(--textPrimary)' }}>
           User Details
         </Modal.Title>
       </Modal.Header>
-      <Modal.Body>
-        <Row className="mb-4">
-          <Col md={6}>
-            <h5>{user.fullName}</h5>
-            <p className="text-muted mb-2">{user.email}</p>
-            <div className="d-flex align-items-center mb-3">
-              <Badge bg={user.type === 'admin' ? 'danger' : 'primary'} className="me-2">
-                {user.type}
-              </Badge>
-              <Badge bg={
-                user.status === 'active' ? 'success' : 
-                user.status === 'pending' ? 'warning' :
-                'danger'
-              }>
-                {user.status}
-              </Badge>
-            </div>
-            <p className="mb-1"><strong>ID:</strong> {user.id}</p>
-            <p className="mb-1">
-              <strong>Registered:</strong> {formatDate(user.createdAt)}
-            </p>
-            <p className="mb-0">
-              <strong>Last Login:</strong> {user.lastLogin ? formatDate(user.lastLogin) : 'Never logged in'}
-            </p>
-          </Col>
-          
-          <Col md={6}>
+      
+      <Modal.Body
+        style={{ 
+          backgroundColor: 'var(--card)', 
+          color: 'var(--textPrimary)',
+          padding: '1.5rem'
+        }}
+      >
+        <Row>
+          <Col md={3} className="text-center mb-4">
             {user.imagePath ? (
-              <div className="text-center">
-                <img 
-                  src={user.imagePath} 
-                  alt={user.fullName} 
-                  className="img-fluid rounded"
-                  style={{ maxHeight: '150px' }}
-                />
-              </div>
+              <img 
+                src={user.imagePath} 
+                alt={user.fullName} 
+                className="img-fluid rounded" 
+                style={{ maxWidth: '120px' }}
+              />
             ) : (
-              <div className="text-center">
-                <div 
-                  className="d-flex align-items-center justify-content-center bg-light rounded"
-                  style={{ height: '150px' }}
-                >
-                  <i className="bi bi-person display-1 text-secondary"></i>
-                </div>
-                <p className="text-muted mt-2">No profile image</p>
+              <div 
+                className="d-flex align-items-center justify-content-center mx-auto"
+                style={{ 
+                  width: '120px', 
+                  height: '120px', 
+                  backgroundColor: 'green',
+                  color: 'white',
+                  fontSize: '3.5rem',
+                  borderRadius: '4px'
+                }}
+              >
+                {user.fullName.charAt(0).toUpperCase()}
               </div>
             )}
+            <h4 className="mt-3 mb-1" style={{ color: 'var(--textPrimary)' }}>{user.fullName}</h4>
+            <Badge 
+              pill
+              bg={badge.bg}
+              style={badge.style}
+            >
+              {badge.text}
+            </Badge>
+          </Col>
+          
+          <Col md={9}>
+            <h5 style={{ color: 'var(--textPrimary)', marginBottom: '1.2rem' }}>Personal Information</h5>
+            
+            <Table bordered style={{ color: 'var(--textPrimary)' }}>
+              <tbody>
+                <tr>
+                  <td width="30%" style={{ fontWeight: 'bold' }}>Email</td>
+                  <td>{user.email}</td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 'bold' }}>Phone</td>
+                  <td>{user.phone || 'Not provided'}</td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 'bold' }}>Address</td>
+                  <td>{user.address || 'Not provided'}</td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 'bold' }}>Account Type</td>
+                  <td>{user.type}</td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 'bold' }}>Registered On</td>
+                  <td>{formatDate(user.createdAt)}</td>
+                </tr>
+                <tr>
+                  <td style={{ fontWeight: 'bold' }}>Auth Provider</td>
+                  <td>{user.authProvider || 'local'}</td>
+                </tr>
+                {user.dateOfBirth && (
+                  <tr>
+                    <td style={{ fontWeight: 'bold' }}>Date of Birth</td>
+                    <td>{formatDate(user.dateOfBirth)}</td>
+                  </tr>
+                )}
+              </tbody>
+            </Table>
           </Col>
         </Row>
         
-        {/* Verification Information (if available) */}
-        {user.verificationDetails && (
-          <Card className="mb-4">
-            <Card.Header>
-              <h6 className="mb-0">Verification Information</h6>
-            </Card.Header>
-            <Card.Body>
-              <Table striped bordered hover size="sm" className="mb-0">
-                <tbody>
-                  <tr>
-                    <td width="30%"><strong>Reason for Joining</strong></td>
-                    <td>{user.verificationDetails.reason || 'Not provided'}</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Trading Experience</strong></td>
-                    <td>
-                      <Badge bg={
-                        user.verificationDetails.experience === 'beginner' ? 'info' :
-                        user.verificationDetails.experience === 'intermediate' ? 'primary' :
-                        'success'
-                      }>
-                        {user.verificationDetails.experience || 'Not specified'}
-                      </Badge>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td><strong>Income Range</strong></td>
-                    <td>{user.verificationDetails.income || 'Not provided'}</td>
-                  </tr>
-                  <tr>
-                    <td><strong>ID Document</strong></td>
-                    <td>
-                      {user.verificationDetails.documentPath ? (
-                        <Button variant="link" size="sm" className="p-0">
-                          View Document
-                        </Button>
-                      ) : (
-                        'Not uploaded'
-                      )}
-                    </td>
-                  </tr>
-                  {user.verificationDetails.verifiedAt && (
-                    <>
-                      <tr>
-                        <td><strong>Verified At</strong></td>
-                        <td>{formatDate(user.verificationDetails.verifiedAt)}</td>
-                      </tr>
-                      <tr>
-                        <td><strong>Verification Note</strong></td>
-                        <td>{user.verificationDetails.verificationNote || 'No notes'}</td>
-                      </tr>
-                    </>
-                  )}
-                </tbody>
-              </Table>
-            </Card.Body>
-          </Card>
+        {/* Verification Documents Section */}
+        {user.proof && (
+          <div 
+            className="mt-4 p-3 rounded"
+            style={{
+              backgroundColor: currentTheme === 'dark' ? '#1a1a1a' : '#f8f9fa',
+              border: '1px solid var(--border)'
+            }}
+          >
+            <h5 style={{ color: 'var(--textPrimary)' }}>Verification Documents</h5>
+            <Row>
+              <Col md={6}>
+                <p style={{ color: 'var(--textPrimary)', marginBottom: '0.5rem' }}>
+                  <strong>Document Type:</strong> {user.proofType || 'Not specified'}
+                </p>
+              </Col>
+              <Col md={6}>
+                <p style={{ color: 'var(--textPrimary)', marginBottom: '0.5rem' }}>
+                  <Button 
+                    variant="link" 
+                    style={{ color: 'var(--primary)' }}
+                    onClick={() => window.open(`/uploads/images/${user.proof}`, '_blank')}
+                  >
+                    <i className="bi bi-file-earmark-text me-1"></i>
+                    View Document
+                  </Button>
+                </p>
+              </Col>
+            </Row>
+          </div>
         )}
         
-        {/* Account Activity */}
-        <Card>
-          <Card.Header>
-            <h6 className="mb-0">Account Activity</h6>
-          </Card.Header>
-          <Card.Body>
-            {/* In a real application, you would display actual account activity data here */}
-            <p className="text-muted text-center">No recent activity to display</p>
-          </Card.Body>
-        </Card>
+        {/* Verification Actions Section - Only show for pending users */}
+        {user.verified === 'pending' && (
+          <>
+            <h5 
+              style={{ 
+                color: 'var(--textPrimary)', 
+                marginTop: '1.5rem', 
+                marginBottom: '1rem', 
+                borderTop: '1px solid var(--border)', 
+                paddingTop: '1.5rem' 
+              }}
+            >
+              Verification Actions
+            </h5>
+            
+            <Form.Group className="mb-3">
+              <Form.Label style={{ color: 'var(--textPrimary)' }}>Verification Notes (Optional)</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={4}
+                placeholder="Add any notes about this verification decision..."
+                value={verificationNote}
+                onChange={(e) => setVerificationNote(e.target.value)}
+                style={{ 
+                  backgroundColor: currentTheme === 'dark' ? '#2a2a2a' : '#fff',
+                  color: 'var(--textPrimary)',
+                  borderColor: 'var(--border)'
+                }}
+              />
+            </Form.Group>
+          </>
+        )}
       </Modal.Body>
-      <Modal.Footer>
-        <Button variant="secondary" onClick={onHide}>
+      
+      <Modal.Footer
+        style={{ 
+          backgroundColor: 'var(--card)', 
+          borderTop: '1px solid var(--border)' 
+        }}
+      >
+        <Button 
+          variant="secondary" 
+          onClick={onHide}
+          style={{ 
+            backgroundColor: currentTheme === 'dark' ? '#4a4a4a' : '#6c757d',
+            borderColor: currentTheme === 'dark' ? '#4a4a4a' : '#6c757d'
+          }}
+        >
           Close
         </Button>
         
-        {/* Add action buttons based on user status */}
-        {user.status === 'pending' && (
-          <>
-            <Button variant="success">
-              Approve User
-            </Button>
-            <Button variant="danger">
-              Reject User
-            </Button>
-          </>
-        )}
-        
-        {user.status === 'active' && (
-          <Button variant="danger">
-            Suspend User
+        {/* Show approve/reject buttons only for pending users */}
+        {user.verified === 'pending' && onApprove && (
+          <Button 
+            variant="success"
+            onClick={() => onApprove(verificationNote)}
+            style={{ 
+              backgroundColor: 'var(--accent)',
+              borderColor: 'var(--accent)'
+            }}
+          >
+            <i className="bi bi-check-circle me-1"></i>
+            Approve User
           </Button>
         )}
         
-        {user.status === 'rejected' && (
-          <Button variant="success">
-            Activate User
+        {user.verified === 'pending' && onReject && (
+          <Button 
+            variant="danger"
+            onClick={() => onReject(verificationNote)}
+            style={{ 
+              backgroundColor: 'var(--danger)',
+              borderColor: 'var(--danger)'
+            }}
+          >
+            <i className="bi bi-x-circle me-1"></i>
+            Reject User
+          </Button>
+        )}
+        
+        {/* Show reset button for non-pending users */}
+        {user.verified !== 'pending' && onReverify && (
+          <Button 
+            variant="primary"
+            onClick={onReverify}
+            style={{ 
+              backgroundColor: 'var(--primary)',
+              borderColor: 'var(--primary)'
+            }}
+          >
+            <i className="bi bi-arrow-repeat me-1"></i>
+            Reset to Pending
           </Button>
         )}
       </Modal.Footer>

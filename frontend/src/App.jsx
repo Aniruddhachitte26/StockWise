@@ -4,8 +4,9 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { AuthProvider } from './context/AuthContext'; // Keep AuthProvider temporarily if components still rely on it, but aim to remove
 import ThemeProvider from './components/common/themeProvider'; // Your Theme Provider
 
-// --- Redux Imports for Routes ---
-import { useSelector } from 'react-redux'; // Needed for Protected/Admin Routes
+// --- Redux Imports ---
+import { useDispatch, useSelector } from 'react-redux';
+import { verifyAuth } from './redux/features/authSlice';// Needed for Protected/Admin Routes
 
 // --- Page Imports ---
 import HomePage from './pages/HomePage';
@@ -27,9 +28,9 @@ import UserVerificationPage from './components/admin/UserVerificationPage';
 import StocksManagementPage from './components/admin/StocksManagementPage';
 
 // Stock Analysis Pages
-import StockAnalysisPage, { 
-  StockAnalysisTabsPage, 
-  StockAnalysisCustomPage 
+import StockAnalysisPage, {
+    StockAnalysisTabsPage,
+    StockAnalysisCustomPage
 } from './pages/StockAnalysisPage';
 
 import { initTheme } from './config/themeConfig';
@@ -63,10 +64,10 @@ const ProtectedRoute = ({ children }) => {
 
 // Admin route component with role check
 const AdminRoute = ({ children }) => {
-    const { isAuthenticated, status, currentUser } = useSelector(state => state.auth);
+    const { isAuthenticated, status, user } = useSelector(state => state.auth);
     const location = useLocation();
 
-    console.log(`AdminRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${currentUser?.type}`);
+    console.log(`AdminRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${user?.type}`);
 
     // Handle loading state
     if (status === 'idle' || status === 'loading') {
@@ -81,7 +82,7 @@ const AdminRoute = ({ children }) => {
     }
 
     // Check if the authenticated user is an admin
-    if (currentUser?.type !== 'admin') {
+    if (user?.type !== 'admin') {
         console.log("AdminRoute: User is not admin, redirecting to user dashboard.");
         return <Navigate to="/dashboard" replace />; // Redirect non-admins
     }
@@ -203,11 +204,29 @@ const AppRoutes = () => {
 
 // --- Main App Component ---
 const App = () => {
-  // Initialize theme on app load
-  useEffect(() => {
-    // Call initTheme directly
-    initTheme();
-  }, []);
+
+    const dispatch = useDispatch();
+    // Select the token from the initial state to decide if verification is needed
+    const token = useSelector(state => state.auth.token); // Read token directly
+
+
+    // Initialize theme on app load
+    useEffect(() => {
+        // Call initTheme directly
+        initTheme();
+    }, []);
+
+    // Verify authentication token on initial app load if a token exists
+    useEffect(() => {
+        if (token) {
+            console.log("App Mount: Token exists in initial state, dispatching verifyAuth.");
+            dispatch(verifyAuth());
+        } else {
+            console.log("App Mount: No token in initial state, skipping verification.");
+            // No need to dispatch anything, initial state is already { isAuthenticated: false, status: 'idle' }
+        }
+        // Run only once on mount, or if dispatch/token changes (token shouldn't change here after init)
+    }, [dispatch, token]); // Depend on token presence from initial state load
 
     return (
         // AuthProvider might still be needed if some components haven't been refactored yet

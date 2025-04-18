@@ -3,6 +3,7 @@
 const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
+const userController = require("../controllers/userController");
 const { 
   authenticateUser, 
   authorizeAdmin 
@@ -18,7 +19,8 @@ router.get("/stats", adminController.getDashboardStats);
 router.get("/users", adminController.getAllUsers);
 router.get("/pending-users", adminController.getPendingUsers);
 router.post("/verify-user", adminController.verifyUser);
-router.put("/update-user-status", adminController.updateUserStatus);
+//router.put("/update-user-status", adminController.updateUserStatus);
+router.put("/update-user-status", userController.updateUserDetails); // Assuming userController is imported
 
 // Recent users
 router.get("/recent-users", adminController.getRecentUsers);

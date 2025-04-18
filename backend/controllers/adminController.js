@@ -159,7 +159,6 @@ const getPendingUsers = async (req, res) => {
   }
 };
 
-// Verify a user (approve or reject)
 const verifyUser = async (req, res) => {
   try {
     const { userId, action, note } = req.body;
@@ -185,15 +184,14 @@ const verifyUser = async (req, res) => {
       });
     }
     
-    // Update user status based on action
-    user.status = action === "approve" ? "active" : "rejected";
+    // Update user verification status based on action
+    user.verified = action === "approve";
     
-    // Update verification details
-    user.verificationDetails.verifiedAt = new Date();
-    user.verificationDetails.verifiedBy = req.user.id; // Admin user ID from auth middleware
-    
+    // Save verification note if provided
     if (note) {
-      user.verificationDetails.verificationNote = note;
+      // In a real application, you might want to store notes in a separate field
+      // For now, just log it
+      console.log(`Verification note for user ${userId}: ${note}`);
     }
     
     await user.save();
@@ -204,7 +202,7 @@ const verifyUser = async (req, res) => {
         id: user._id,
         fullName: user.fullName,
         email: user.email,
-        status: user.status
+        verified: user.verified
       }
     });
   } catch (error) {
@@ -215,61 +213,6 @@ const verifyUser = async (req, res) => {
   }
 };
 
-// Update user status
-const updateUserStatus = async (req, res) => {
-  try {
-    const { userId, status } = req.body;
-    
-    if (!userId || !status) {
-      return res.status(400).json({
-        error: "User ID and status are required."
-      });
-    }
-    
-    if (!["active", "pending", "rejected"].includes(status)) {
-      return res.status(400).json({
-        error: "Invalid status. Must be 'active', 'pending', or 'rejected'."
-      });
-    }
-    
-    // Find the user
-    const user = await User.findById(userId);
-    
-    if (!user) {
-      return res.status(404).json({
-        error: "User not found."
-      });
-    }
-    
-    // Update user status
-    user.status = status;
-    
-    // If activating or rejecting, update verification details
-    if (status === "active" || status === "rejected") {
-      user.verificationDetails.verifiedAt = new Date();
-      user.verificationDetails.verifiedBy = req.user.id; // Admin user ID from auth middleware
-    }
-    
-    await user.save();
-    
-    return res.status(200).json({
-      message: `User status updated to ${status} successfully.`,
-      user: {
-        id: user._id,
-        fullName: user.fullName,
-        email: user.email,
-        status: user.status
-      }
-    });
-  } catch (error) {
-    console.error("Error updating user status:", error);
-    return res.status(500).json({
-      error: "Server error. Failed to update user status."
-    });
-  }
-};
-
-// Get recent users
 const getRecentUsers = async (req, res) => {
   try {
     const { limit = 5 } = req.query;
@@ -296,6 +239,5 @@ module.exports = {
   getAllUsers,
   getPendingUsers,
   verifyUser,
-  updateUserStatus,
   getRecentUsers
 };

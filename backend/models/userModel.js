@@ -60,8 +60,9 @@ const userSchema = new mongoose.Schema(
             enum: ["driving license", "passport", null],
         },
         verified: {
-            type: Boolean,
-            default: false,
+			type: String,
+            default: "pending",
+            enum: ["pending", "approved", "rejected"],
         },
 	},
 	{
