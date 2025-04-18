@@ -783,7 +783,7 @@ const UserVerificationPage = () => {
       let fetchedUsers = response.data.users || [];
       
       console.log("Raw fetched users:", fetchedUsers);
-      
+      fetchedUsers = fetchedUsers.filter(user => user.type !== 'admin');
       // Apply filter based on verification status
       let filteredUsers;
       if (filter === 'all') {
