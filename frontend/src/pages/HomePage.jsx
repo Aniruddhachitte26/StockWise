@@ -151,7 +151,7 @@ const HomePage = () => {
                     <Card.Title className="d-flex justify-content-between align-items-center">
                       S&P 500 
                       <span className={marketSummary.indices.SP500.change >= 0 ? "text-success" : "text-danger"}>
-                        {marketSummary.indices.SP500.change >= 0 ? "+" : ""}{marketSummary.indices.SP500.percentChange.toFixed(2)}%
+                        {marketSummary.indices.SP500.change >= 0 ? "+" : ""}{marketSummary.indices.SP500.percentChange?.toFixed(2)}%
                       </span>
                     </Card.Title>
                     <Card.Text className="fs-2 fw-bold">{marketSummary.indices.SP500.price?.toFixed(2)}</Card.Text>
@@ -179,10 +179,10 @@ const HomePage = () => {
                     <Card.Title className="d-flex justify-content-between align-items-center">
                       DOW JONES 
                       <span className={marketSummary.indices.DOW.change >= 0 ? "text-success" : "text-danger"}>
-                        {marketSummary.indices.DOW.change >= 0 ? "+" : ""}{marketSummary.indices.DOW.percentChange.toFixed(2)}%
+                        {marketSummary.indices.DOW.change >= 0 ? "+" : ""}{marketSummary.indices.DOW.percentChange?.toFixed(2)}%
                       </span>
                     </Card.Title>
-                    <Card.Text className="fs-2 fw-bold">{marketSummary.indices.DOW.price.toFixed(2)}</Card.Text>
+                    <Card.Text className="fs-2 fw-bold">{marketSummary.indices.DOW.price?.toFixed(2)}</Card.Text>
                     <div className="small text-muted">Last updated: {marketSummary.lastUpdated}</div>
                   </Card.Body>
                 </Card>

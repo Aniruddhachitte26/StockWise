@@ -6,7 +6,7 @@ import AdminNavbar from '../../components/admin/AdminNavbar';
 import Loader from '../../components/common/Loader';
 import Error from '../../components/common/Error';
 import Pagination from '../../components/common/Pagination';
-import { useTheme } from '../common/themeProvider';
+import { useTheme } from '../common/ThemeProvider';
 
 const StocksManagementPage = () => {
   const [stocks, setStocks] = useState([]);

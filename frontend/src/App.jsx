@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext'; // Keep AuthProvider temporarily if components still rely on it, but aim to remove
-import ThemeProvider from './components/common/themeProvider'; // Your Theme Provider
+import ThemeProvider from './components/common/ThemeProvider'; // Your Theme Provider
 
 // --- Redux Imports ---
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,6 +14,8 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import MarketOverview from "./components/dashboard/MarketOverview";
+import WatchlistPreview from "./components/dashboard/WatchlistPreview/WatchlistPreview"
+import PortfolioSummary from './components/dashboard/Portfolio/PortfolioSummary';
 import ProfilePage from "./pages/Profile";
 import About from "./components/dashboard/About";
 import StockDetailPage from './pages/StockDetailPage';
@@ -138,7 +140,6 @@ const AppRoutes = () => {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
-                <Route path="/broker-register" element={<BrokerRegisterPage />} />
                 <Route path="/stocks/:symbol" element={<StockDetailPage />} />
                 <Route path="/about" element={<About />} />
 
@@ -218,42 +219,10 @@ const AppRoutes = () => {
                     }
                 />
 
-                {/* Broker Routes */}
-                <Route
-                    path="/broker/dashboard"
-                    element={
-                        <BrokerRoute>
-                            <BrokerDashboardPage />
-                        </BrokerRoute>
-                    }
-                />
-                <Route
-                    path="/broker/clients"
-                    element={
-                        <BrokerRoute>
-                            <ClientsManagementPage />
-                        </BrokerRoute>
-                    }
-                />
-                <Route
-                    path="/broker/transactions"
-                    element={
-                        <BrokerRoute>
-                            <TransactionsPage />
-                        </BrokerRoute>
-                    }
-                />
-
                 {/* Redirect to admin dashboard if admin accesses /dashboard */}
                 <Route
                     path="/admin"
                     element={<Navigate to="/admin/dashboard" replace />}
-                />
-
-                {/* Redirect to broker dashboard if broker accesses /broker */}
-                <Route
-                    path="/broker"
-                    element={<Navigate to="/broker/dashboard" replace />}
                 />
 
                 {/* Fallback */}

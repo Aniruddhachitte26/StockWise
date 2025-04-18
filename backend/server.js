@@ -4,9 +4,10 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
-const marketRoutes = require("./routes/marketRoutes")
+const marketRoutes = require("./routes/marketRoutes");
 const brokerRoutes = require("./routes/brokerRoutes");
-
+const mailRoutes = require('./routes/mailRoutes');
+const adminRoutes = require("./routes/adminRoutes");
 
 const chatbotRoutes = require("./routes/chatbotRoutes");
 const swaggerUi = require("swagger-ui-express");
@@ -17,8 +18,8 @@ const stockRoutes = require("./routes/stockRoutes");
 // Load environment variables
 dotenv.config();
 if (!process.env.JWT_SECRET) {
-	console.error("FATAL ERROR: JWT_SECRET is not defined.");
-	process.exit(1);
+    console.error("FATAL ERROR: JWT_SECRET is not defined.");
+    process.exit(1);
 }
 
 // Initialize express app
@@ -45,37 +46,27 @@ app.use("/summary", chatbotRoutes);
 app.use("/market", marketRoutes);
 app.use("/stocks", stockRoutes);
 app.use("/broker", brokerRoutes);
+app.use('/mail', mailRoutes);
+app.use("/admin", adminRoutes);
+
 // Default route
 app.get("/", (req, res) => {
-	res.send("Hello from the server...!");
+    res.send("Hello from the server...!");
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
-	console.error(err.stack);
-	res.status(500).json({ error: "Server error" });
+    console.error(err.stack);
+    res.status(500).json({ error: "Server error" });
 });
-
-// Add this line with your other route imports in server.js
-
-// Then add this line with your other app.use routes
-
-// backend/server.js
-// Add this to your existing server.js imports
-
-// Add this line with your other route imports in server.js
-const adminRoutes = require("./routes/adminRoutes");
-
-// Then add this line with your other app.use routes
-app.use("/admin", adminRoutes);
 
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-	console.log(`Server running on port ${PORT}`);
-	console.log(
-		`Swagger documentation available at http://localhost:${PORT}/api-docs`
-	);
+    console.log(`Server running on port ${PORT}`);
+    console.log(
+        `Swagger documentation available at http://localhost:${PORT}/api-docs`
+    );
 });
 
 module.exports = app;
