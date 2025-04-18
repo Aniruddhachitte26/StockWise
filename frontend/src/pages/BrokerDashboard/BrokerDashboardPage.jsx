@@ -7,7 +7,7 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, L
 
 import BrokerNavbar from '../../components/broker/BrokerNavbar';
 import Loader from '../../components/common/Loader';
-import { useTheme } from '../../components/common/themeProvider';
+import { useTheme } from '../../components/common/ThemeProvider';
 import axios from 'axios';
 
 const BrokerDashboardPage = () => {
