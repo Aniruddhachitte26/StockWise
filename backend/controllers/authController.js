@@ -7,6 +7,10 @@ const axios = require("axios");
 const jwt = require("jsonwebtoken");
 const { OAuth2Client } = require("google-auth-library");
 const bcrypt = require("bcrypt");
+const { generateOtp } = require("../utils/otpUtils"); // Import OTP generator
+const { sendOtpEmail } = require("../controllers/mailController"); // Import OTP email sender
+const { getRedisClient, isRedisReady } = require("../config/redisClient"); // Import Redis client getter
+const { validatePassword } = require("../middleware/validateUser");
 
 // User login
 const loginUser = async (req, res) => {
@@ -198,37 +202,240 @@ const googleLogin = async (req, res) => {
 	}
 };
 
-
 const resetPassword = async (req, res) => {
 	const { currentPassword, newPassword, confirmPassword } = req.body;
-  
-	try {
-	  const user = await User.findById(req.params.id);
 
-	  if (!user) return res.status(404).json({ message: "User not found" });
-  
-	  console.log(req.body)
-	  if (!currentPassword || !user.password) {
-		return res.status(400).json({ message: "Missing password data" });
-	  }
-  
-	  const isMatch = await bcrypt.compare(currentPassword, user.password);
-	  if (!isMatch) {
-		return res.status(401).json({ message: "Incorrect current password" });
-	  }
-  
-	  if (newPassword !== confirmPassword) {
-		return res.status(400).json({ message: "New passwords do not match" });
-	  }
-  
-	  const salt = await bcrypt.genSalt(10);
-	  user.password = await bcrypt.hash(newPassword, salt);
-	  await user.save();
-  
-	  res.status(200).json({ message: "Password changed successfully" });
+	try {
+		const user = await User.findById(req.params.id);
+
+		if (!user)
+			return res
+				.status(404)
+				.json({ message: "User not found" });
+
+		console.log(req.body);
+		if (!currentPassword || !user.password) {
+			return res
+				.status(400)
+				.json({ message: "Missing password data" });
+		}
+
+		const isMatch = await bcrypt.compare(
+			currentPassword,
+			user.password
+		);
+		if (!isMatch) {
+			return res.status(401).json({
+				message: "Incorrect current password",
+			});
+		}
+
+		if (newPassword !== confirmPassword) {
+			return res.status(400).json({
+				message: "New passwords do not match",
+			});
+		}
+
+		const salt = await bcrypt.genSalt(10);
+		user.password = await bcrypt.hash(newPassword, salt);
+		await user.save();
+
+		res.status(200).json({
+			message: "Password changed successfully",
+		});
 	} catch (err) {
-	  console.error("Password change error:", err);
-	  res.status(500).json({ message: "Server error" });
+		console.error("Password change error:", err);
+		res.status(500).json({ message: "Server error" });
+	}
+};
+
+// --- Request Password Reset OTP ---
+const requestPasswordResetOtp = async (req, res) => {
+	const { email } = req.body;
+	const otpExpireTimeSeconds = 600; // 10 minutes - Consider making this an env variable
+
+	if (!email) {
+		return res
+			.status(400)
+			.json({ error: "Email address is required." });
+	}
+
+	try {
+		// 1. Find user by email
+		const user = await User.findOne({ email });
+
+		// 2. SECURITY: Always send a generic success response, even if user not found
+		// This prevents attackers from discovering registered emails.
+		if (!user) {
+			console.log(
+				`Password reset request for non-existent email: ${email}`
+			);
+			return res
+				.status(200)
+				.json({
+					message: "If an account with that email exists, a password reset OTP has been sent.",
+				});
+		}
+
+		// 3. Check if Redis is ready
+		if (!isRedisReady()) {
+			console.error(
+				"Redis client not ready during password reset request."
+			);
+			// Send generic success, but log the internal error
+			return res
+				.status(200)
+				.json({
+					message: "Password reset request received. Please check your email.",
+				});
+			// Or optionally return 503: return res.status(503).json({ error: "OTP service temporarily unavailable." });
+		}
+		const redisClient = getRedisClient();
+
+		// 4. Generate OTP
+		const otp = generateOtp(6); // Generate a 6-digit OTP
+		const redisKey = `otp:${email}`;
+
+		// 5. Store OTP in Redis with expiration
+		await redisClient.set(redisKey, otp, {
+			EX: otpExpireTimeSeconds, // Set expiration in seconds
+			NX: false, // Allow overwriting if an OTP request was just made
+		});
+		console.log(
+			`Stored OTP for ${email} in Redis. Key: ${redisKey}`
+		);
+
+		// 6. Send OTP email (don't await if you want faster response to user, but handle potential errors)
+		sendOtpEmail(email, otp)
+			.then((result) => {
+				if (!result.success) {
+					console.error(
+						`Failed to send OTP email to ${email}: ${result.error}`
+					);
+					// Log this error, but don't expose failure details to the frontend here
+				}
+			})
+			.catch((err) => {
+				console.error(
+					`Unhandled error sending OTP email to ${email}: ${err.message}`
+				);
+			});
+
+		// 7. Send generic success response
+		console.log(
+			`Sent password reset OTP request success response for ${email}`
+		);
+		return res
+			.status(200)
+			.json({
+				message: "If an account with that email exists, a password reset OTP has been sent.",
+			});
+	} catch (error) {
+		console.error("Error in requestPasswordResetOtp:", error);
+		// Send generic success response even on internal errors during the process
+		return res
+			.status(200)
+			.json({
+				message: "Password reset request received. Please check your email.",
+			});
+		// Or for debugging: return res.status(500).json({ error: "Server error during password reset request." });
+	}
+};
+
+// --- Reset Password using OTP ---
+const resetPasswordWithOtp = async (req, res) => {
+	const { email, otp, password, confirmPassword } = req.body;
+
+	// 1. Basic Validation
+	if (!email || !otp || !password || !confirmPassword) {
+		return res
+			.status(400)
+			.json({
+				error: "Email, OTP, new password, and confirmation are required.",
+			});
+	}
+
+	if (password !== confirmPassword) {
+		return res
+			.status(400)
+			.json({ error: "New passwords do not match." });
+	}
+
+	// 2. Password Strength Validation (Reuse existing logic if available)
+	// Example: Assuming validatePassword checks strength and returns true/false
+	const isPasswordStrong = validatePassword(password); // Use your actual validation function
+	if (!isPasswordStrong) {
+		return res
+			.status(400)
+			.json({
+				error: "Password does not meet strength requirements (min 8 chars, upper, lower, number, symbol).",
+			});
+	}
+
+	try {
+		// 3. Check Redis Readiness
+		if (!isRedisReady()) {
+			console.error(
+				"Redis client not ready during password reset attempt."
+			);
+			return res
+				.status(503)
+				.json({
+					error: "Verification service temporarily unavailable. Please try again later.",
+				});
+		}
+		const redisClient = getRedisClient();
+		const redisKey = `otp:${email}`;
+
+		// 4. Retrieve OTP from Redis
+		const storedOtp = await redisClient.get(redisKey);
+
+		// 5. Verify OTP
+		if (!storedOtp || storedOtp !== otp) {
+			console.log(
+				`Invalid or expired OTP attempt for email: ${email}. Provided: ${otp}, Stored: ${storedOtp}`
+			);
+			return res
+				.status(400)
+				.json({ error: "Invalid or expired OTP." });
+		}
+
+		// 6. OTP is valid, find user in MongoDB
+		const user = await User.findOne({ email });
+		if (!user) {
+			// Should ideally not happen if OTP was valid, but check anyway
+			console.error(
+				`User not found for email ${email} after OTP verification.`
+			);
+			return res
+				.status(400)
+				.json({ error: "Invalid request." }); // Generic error
+		}
+
+		// 7. Hash the new password
+		const hashedPassword = await hashPassword(password);
+
+		// 8. Update user's password in MongoDB
+		user.password = hashedPassword;
+		await user.save();
+
+		// 9. Delete OTP from Redis (important!)
+		await redisClient.del(redisKey);
+		console.log(
+			`Successfully reset password for ${email} and deleted OTP.`
+		);
+
+		// 10. Send success response
+		return res
+			.status(200)
+			.json({
+				message: "Password has been reset successfully.",
+			});
+	} catch (error) {
+		console.error("Error in resetPasswordWithOtp:", error);
+		return res
+			.status(500)
+			.json({ error: "Server error during password reset." });
 	}
 };
 
@@ -236,5 +443,7 @@ module.exports = {
 	loginUser,
 	registerUser,
 	googleLogin,
-	resetPassword
+	resetPassword,
+    requestPasswordResetOtp, // Add new function
+    resetPasswordWithOtp, 
 };

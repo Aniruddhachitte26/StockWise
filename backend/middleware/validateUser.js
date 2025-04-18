@@ -95,4 +95,5 @@ module.exports = {
 	validateUserCreate,
 	validateUserUpdate,
 	validateUserType,
+    validatePassword,
 };
