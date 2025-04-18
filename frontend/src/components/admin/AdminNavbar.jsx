@@ -2,7 +2,10 @@
 import React from 'react';
 import { Navbar, Nav, Container, Button } from 'react-bootstrap';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { useTheme } from '../common/ThemeProvider';
 import useAuth from './../../hooks/useAuth';
+import { useDispatch } from 'react-redux'; // Import useDispatch
+import { logout } from '../../redux/features/authSlice';
 
 const navbarStyles = {
   container: {
@@ -18,10 +21,13 @@ const navbarStyles = {
 const AdminNavbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout } = useAuth();
+  const dispatch = useDispatch();
+  //const { logout } = useAuth();
   
   const handleLogout = () => {
-    logout();
+    console.log("AdminNavbar: Dispatching logout action."); // Add log
+    dispatch(logout());
+    //logout();
     navigate('/');
   };
 

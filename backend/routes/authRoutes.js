@@ -10,5 +10,9 @@ router.post("/login", authController.loginUser);
 // Add Google authentication route
 router.post("/google", authController.googleLogin);
 router.patch("/change-password/:id", authController.resetPassword)
+// In backend/routes/authRoutes.js - Add a new route for broker registration
+// router.post("/broker-register", validateUserCreate, authController.registerBroker);
+router.post("/broker-register", authController.registerBroker);
+
 
 module.exports = router;
