@@ -13,6 +13,7 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import MarketOverview from "./components/dashboard/MarketOverview";
+import WatchlistPreview from "./components/dashboard/WatchlistPreview/WatchlistPreview"
 import ProfilePage from "./pages/Profile";
 import About from "./components/dashboard/About";
 import StockDetailPage from './pages/StockDetailPage';
@@ -140,6 +141,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <StockListingPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/watchlist" 
+        element={
+          <ProtectedRoute>
+            <WatchlistPreview />
           </ProtectedRoute>
         } 
       />
