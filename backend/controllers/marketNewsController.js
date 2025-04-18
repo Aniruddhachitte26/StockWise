@@ -8,7 +8,7 @@ const FINNHUB_BASE_URL = process.env.FINNHUB_API_URL;
 // Get market news
 const getMarketNews = async (req, res) => {
     try {
-        console.log('Fetching market news from Finnhub API...');
+        console.log('Fetching market news from Finnhub API...',`${FINNHUB_BASE_URL}/news` );
         
         const response = await axios.get(`${FINNHUB_BASE_URL}/news`, {
             params: {

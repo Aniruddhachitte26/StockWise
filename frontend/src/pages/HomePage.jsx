@@ -149,7 +149,7 @@ const HomePage = () => {
                         {marketSummary.indices.SP500.change >= 0 ? "+" : ""}{marketSummary.indices.SP500.percentChange.toFixed(2)}%
                       </span>
                     </Card.Title>
-                    <Card.Text className="fs-2 fw-bold">{marketSummary.indices.SP500.price.toFixed(2)}</Card.Text>
+                    <Card.Text className="fs-2 fw-bold">{marketSummary.indices.SP500.price?.toFixed(2)}</Card.Text>
                     <div className="small text-muted">Last updated: {marketSummary.lastUpdated}</div>
                   </Card.Body>
                 </Card>
@@ -160,10 +160,10 @@ const HomePage = () => {
                     <Card.Title className="d-flex justify-content-between align-items-center">
                       NASDAQ 
                       <span className={marketSummary.indices.NASDAQ.change >= 0 ? "text-success" : "text-danger"}>
-                        {marketSummary.indices.NASDAQ.change >= 0 ? "+" : ""}{marketSummary.indices.NASDAQ.percentChange.toFixed(2)}%
+                        {marketSummary.indices.NASDAQ.change >= 0 ? "+" : ""}{marketSummary.indices.NASDAQ.percentChange?.toFixed(2)}%
                       </span>
                     </Card.Title>
-                    <Card.Text className="fs-2 fw-bold">{marketSummary.indices.NASDAQ.price.toFixed(2)}</Card.Text>
+                    <Card.Text className="fs-2 fw-bold">{marketSummary.indices.NASDAQ.price?.toFixed(2)}</Card.Text>
                     <div className="small text-muted">Last updated: {marketSummary.lastUpdated}</div>
                   </Card.Body>
                 </Card>
