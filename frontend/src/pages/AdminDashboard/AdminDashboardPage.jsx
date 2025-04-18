@@ -19,17 +19,40 @@ const AdminDashboardPage = () => {
   const [recentUsers, setRecentUsers] = useState([]);
   const [pendingCount, setPendingCount] = useState(0);
   const { currentTheme } = useTheme();
-  
+
   // Color configuration based on theme
   const getChartColors = () => {
     return currentTheme === 'dark' 
-      ? ['#90CAF9', '#80DEEA', '#A5D6A7', '#EF9A9A', '#CE93D8'] 
-      : ['#1E88E5', '#00ACC1', '#43A047', '#E53935', '#8E24AA'];
+      ? ['#4dabf7', '#63e6be', '#ffd43b', '#ff6b6b', '#da77f2'] // Brighter colors for dark mode
+      : ['#1E88E5', '#00ACC1', '#43A047', '#E53935', '#8E24AA']; // Original colors for light mode
   };
   
+  // Add a function to get stat card styling based on theme
+  const getStatCardStyle = (colorType) => {
+    // Base styles for the card
+    const baseStyle = {
+      height: '100%',
+      backgroundColor: currentTheme === 'dark' ? '#1e1e1e' : 'white',
+      color: 'var(--textPrimary)'
+    };
+    
+    // Color mapping for the number display
+    const colorMap = {
+      primary: 'var(--primary)',
+      accent: 'var(--accent)',
+      warning: 'var(--warning)',
+      danger: 'var(--danger)'
+    };
+    
+    return {
+      card: baseStyle,
+      number: { color: colorMap[colorType] }
+    };
+  };
+
   // Function to get badge color based on status
   const getStatusBadgeProps = (status) => {
-    switch(status) {
+    switch (status) {
       case 'approved':
         return {
           bg: 'success',
@@ -48,14 +71,14 @@ const AdminDashboardPage = () => {
         };
     }
   };
-  
+
   // Fetch dashboard data from backend
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Get JWT token from localStorage
         const token = localStorage.getItem('token');
         if (!token) {
@@ -63,48 +86,48 @@ const AdminDashboardPage = () => {
           setLoading(false);
           return;
         }
-        
+
         // Fetch dashboard stats
         const statsResponse = await axios.get(`${API_URL}/admin/stats`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
+
         console.log('Dashboard stats response:', statsResponse.data);
         setStats(statsResponse.data);
-        
+
         // Fetch recent users
         const recentUsersResponse = await axios.get(`${API_URL}/admin/recent-users?limit=5`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
+
         console.log('Recent users response:', recentUsersResponse.data);
         setRecentUsers(recentUsersResponse.data.recentUsers || []);
-        
+
         // Fetch pending users count
         const pendingUsersResponse = await axios.get(`${API_URL}/user/getAll`, {
           headers: { Authorization: `Bearer ${token}` }
         });
-        
+
         // Count users with verified === 'pending'
         const pendingUsers = (pendingUsersResponse.data.users || []).filter(
           user => user.verified === 'pending'
         );
         setPendingCount(pendingUsers.length);
-        
+
         setLoading(false);
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         setError('Failed to fetch dashboard data. Please try again.');
         setLoading(false);
-        
+
         // Set fallback data for development/testing
         setFallbackData();
       }
     };
-    
+
     fetchDashboardData();
   }, []);
-  
+
   // Set fallback data if API calls fail
   const setFallbackData = () => {
     // Fallback statistics
@@ -141,37 +164,37 @@ const AdminDashboardPage = () => {
         { name: 'Jul', value: 0 }
       ]
     };
-    
+
     setStats(fallbackStats);
     setRecentUsers([]);
     setPendingCount(0);
   };
-  
+
   // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
     const date = new Date(dateString);
     return date.toLocaleDateString();
   };
-  
+
   // Process data for charts if needed
   const processChartData = () => {
     if (!stats) return null;
-    
+
     // Create data for user status pie chart
     const userStatusData = [
       { name: 'Approved', value: stats.activeUsers },
       { name: 'Pending', value: stats.pendingUsers },
       { name: 'Rejected', value: stats.rejectedUsers }
     ];
-    
+
     return {
       userStatusData
     };
   };
-  
+
   const chartData = processChartData();
-  
+
   if (loading) {
     return (
       <>
@@ -182,21 +205,21 @@ const AdminDashboardPage = () => {
       </>
     );
   }
-  
+
   return (
     <>
       <AdminNavbar />
-      
+
       <Container className="py-4">
         <h2 className="mb-4">Admin Dashboard</h2>
-        
+
         {error && (
           <Alert variant="danger" className="mb-4">
             <i className="bi bi-exclamation-circle-fill me-2"></i>
             {error}
           </Alert>
         )}
-        
+
         {/* Alert for pending approvals */}
         {pendingCount > 0 && (
           <Alert variant="warning" className="d-flex justify-content-between align-items-center mb-4">
@@ -209,46 +232,46 @@ const AdminDashboardPage = () => {
             </Link>
           </Alert>
         )}
-        
+
         {/* Stats Cards */}
         <Row className="mb-4">
           <Col md={3} className="mb-3 mb-md-0">
-            <Card className="stockwise-card h-100">
+            <Card className="stockwise-card h-100" style={getStatCardStyle('primary').card}>
               <Card.Body className="text-center">
-                <div className="display-4 fw-bold" style={{ color: 'var(--primary)' }}>
+                <div className="display-4 fw-bold" style={getStatCardStyle('primary').number}>
                   {stats?.totalUsers || 0}
                 </div>
                 <p className="mb-0">Total Users</p>
               </Card.Body>
             </Card>
           </Col>
-          
+
           <Col md={3} className="mb-3 mb-md-0">
-            <Card className="stockwise-card h-100">
+            <Card className="stockwise-card h-100" style={getStatCardStyle('accent').card}>
               <Card.Body className="text-center">
-                <div className="display-4 fw-bold" style={{ color: 'var(--accent)' }}>
+                <div className="display-4 fw-bold" style={getStatCardStyle('accent').number}>
                   {stats?.activeUsers || 0}
                 </div>
                 <p className="mb-0">Approved Users</p>
               </Card.Body>
             </Card>
           </Col>
-          
+
           <Col md={3} className="mb-3 mb-md-0">
-            <Card className="stockwise-card h-100">
+            <Card className="stockwise-card h-100" style={getStatCardStyle('warning').card}>
               <Card.Body className="text-center">
-                <div className="display-4 fw-bold" style={{ color: 'var(--warning)' }}>
+                <div className="display-4 fw-bold" style={getStatCardStyle('warning').number}>
                   {stats?.pendingUsers || 0}
                 </div>
                 <p className="mb-0">Pending Users</p>
               </Card.Body>
             </Card>
           </Col>
-          
+
           <Col md={3} className="mb-3 mb-md-0">
-            <Card className="stockwise-card h-100">
+            <Card className="stockwise-card h-100" style={getStatCardStyle('danger').card}>
               <Card.Body className="text-center">
-                <div className="display-4 fw-bold" style={{ color: 'var(--danger)' }}>
+                <div className="display-4 fw-bold" style={getStatCardStyle('danger').number}>
                   {stats?.rejectedUsers || 0}
                 </div>
                 <p className="mb-0">Rejected Users</p>
@@ -256,7 +279,7 @@ const AdminDashboardPage = () => {
             </Card>
           </Col>
         </Row>
-        
+
         {/* Charts */}
         <Row className="mb-4">
           <Col lg={8} className="mb-4 mb-lg-0">
@@ -265,7 +288,7 @@ const AdminDashboardPage = () => {
                 <h5 className="mb-3">User Registrations (Last 7 Days)</h5>
                 <ResponsiveContainer width="100%" height={300}>
                   <BarChart data={stats?.weeklyRegistrations || []}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
+                    <CartesianGrid strokeDasharray="3 3" stroke={currentTheme === 'dark' ? '#444' : '#eee'} />
                     <XAxis dataKey="day" stroke="var(--textSecondary)" />
                     <YAxis stroke="var(--textSecondary)" />
                     <Tooltip
@@ -276,13 +299,13 @@ const AdminDashboardPage = () => {
                         color: 'var(--textPrimary)'
                       }}
                     />
-                    <Bar dataKey="count" fill="var(--primary)" />
+                    <Bar dataKey="count" fill={currentTheme === 'dark' ? '#4dabf7' : 'var(--primary)'} />
                   </BarChart>
                 </ResponsiveContainer>
               </Card.Body>
             </Card>
           </Col>
-          
+
           <Col lg={4}>
             <Card className="stockwise-card h-100">
               <Card.Body>
@@ -303,8 +326,8 @@ const AdminDashboardPage = () => {
                         <Cell key={`cell-${index}`} fill={getChartColors()[index % getChartColors().length]} />
                       ))}
                     </Pie>
-                    <Tooltip 
-                      formatter={(value) => [`${value} users`, 'Count']} 
+                    <Tooltip
+                      formatter={(value) => [`${value} users`, 'Count']}
                       contentStyle={{
                         backgroundColor: 'var(--card)',
                         border: '1px solid var(--border)',
@@ -318,7 +341,7 @@ const AdminDashboardPage = () => {
             </Card>
           </Col>
         </Row>
-        
+
         {/* Recent Users Table */}
         <Card className="stockwise-card">
           <Card.Body>
@@ -328,7 +351,7 @@ const AdminDashboardPage = () => {
                 View All Users
               </Link>
             </div>
-            
+
             {recentUsers.length === 0 ? (
               <Alert variant="info">
                 No recent user registrations to display.
