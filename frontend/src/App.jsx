@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext'; // Keep AuthProvider temporarily if components still rely on it, but aim to remove
-import ThemeProvider from './components/common/themeProvider'; // Your Theme Provider
+import ThemeProvider from './components/common/ThemeProvider'; // Your Theme Provider
 
 // --- Redux Imports ---
 import { useDispatch, useSelector } from 'react-redux';

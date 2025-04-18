@@ -39,12 +39,12 @@ const AppNavbar = () => {
     // Get username to display - handle null case
     const displayName = user?.fullName || "My Account";
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        if (searchQuery.trim()) {
-            navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-        }
-    };
+    // const handleSearch = (e) => {
+    //     e.preventDefault();
+    //     if (searchQuery.trim()) {
+    //         navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    //     }
+    // };
 
     const handleLogout = () => {
         dispatch(logout()); // Dispatch the logout action
@@ -88,23 +88,7 @@ const AppNavbar = () => {
                         <Nav.Link as={Link} to="/contact">Contact</Nav.Link>
                     </Nav>
 
-                    {/* Search Bar */}
-                    <div style={navbarStyles.searchContainer} className="mx-lg-2 my-2 my-lg-0">
-                        <Form className="d-flex" onSubmit={handleSearch}>
-                            <InputGroup>
-                                <Form.Control
-                                    type="search"
-                                    placeholder="Search stocks..."
-                                    aria-label="Search"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                                <Button variant="outline-primary" type="submit">
-                                    <i className="bi bi-search"></i>
-                                </Button>
-                            </InputGroup>
-                        </Form>
-                    </div>
+                   
 
                     {/* Auth Links / User Dropdown */}
                     {isAuthenticated ? (
