@@ -62,10 +62,10 @@ const ProtectedRoute = ({ children }) => {
 
 // Admin route component with role check
 const AdminRoute = ({ children }) => {
-    const { isAuthenticated, status, currentUser } = useSelector(state => state.auth);
+    const { isAuthenticated, status, user } = useSelector(state => state.auth);
     const location = useLocation();
 
-    console.log(`AdminRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${currentUser?.type}`);
+    console.log(`AdminRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${user?.type}`);
 
     // Handle loading state
     if (status === 'idle' || status === 'loading') {
@@ -80,7 +80,7 @@ const AdminRoute = ({ children }) => {
     }
 
     // Check if the authenticated user is an admin
-    if (currentUser?.type !== 'admin') {
+    if (user?.type !== 'admin') {
         console.log("AdminRoute: User is not admin, redirecting to user dashboard.");
         return <Navigate to="/dashboard" replace />; // Redirect non-admins
     }
