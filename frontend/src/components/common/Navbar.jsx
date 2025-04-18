@@ -68,7 +68,7 @@ const AppNavbar = () => {
                 <Navbar.Brand as={Link} to="/" style={navbarStyles.brand}>
                     {/* ... (logo and brand name) ... */}
                     <img
-                        src="/vite.svg" // Using vite logo as placeholder
+                        src="/logo.png" // Using vite logo as placeholder
                         width="30"
                         height="30"
                         className="d-inline-block align-top me-2"
