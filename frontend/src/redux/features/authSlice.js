@@ -91,6 +91,69 @@ export const googleLoginHandler = createAsyncThunk(
 	}
 );
 
+// Thunk to verify token / fetch user data on app load
+export const verifyAuth = createAsyncThunk(
+	"auth/verifyAuth",
+	async (_, { getState, rejectWithValue }) => {
+		const { token } = getState().auth; // Get token from existing state
+		if (!token) {
+			return rejectWithValue("No token found"); // Not logged in
+		}
+		try {
+			// Option 1: Call a dedicated backend endpoint like /auth/me or /auth/verify
+			// console.log("AuthSlice: Verifying token via /auth/me");
+			// authService.setAuthToken(token); // Ensure header is set for the request
+			// const response = await axios.get(
+			// 	`${
+			// 		authService.API_URL ||
+			// 		"http://localhost:3000"
+			// 	}/auth/me`
+			// ); // Replace with your actual endpoint
+			// console.log(
+			// 	"AuthSlice: /auth/me response:",
+			// 	response.data
+			// );
+			// // Backend should return the user object if token is valid
+			// if (response.data && response.data.user) {
+			// 	// Update localStorage just in case data was refreshed
+			// 	localStorage.setItem(
+			// 		"currentUser",
+			// 		JSON.stringify(response.data.user)
+			// 	);
+			// 	return { user: response.data.user }; // Return payload for fulfilled case
+			// } else {
+			// 	throw new Error(
+			// 		"Invalid user data received from verification endpoint."
+			// 	);
+			// }
+
+			//Option 2: If no backend endpoint, just assume token is valid if it exists
+			//This is less secure as the token could be expired/invalidated on the backend
+			console.log(
+				"AuthSlice: Assuming token is valid (no backend check)"
+			);
+			const userFromStorage =
+				authService.getCurrentUserFromStorage();
+			if (userFromStorage) {
+				return { user: userFromStorage };
+			} else {
+				throw new Error(
+					"Token exists but no user data in storage."
+				);
+			}
+		} catch (error) {
+			console.error("Auth verification failed:", error);
+			// Clear invalid token/user data if verification fails
+			localStorage.removeItem("token");
+			localStorage.removeItem("currentUser");
+			authService.setAuthToken(null);
+			return rejectWithValue(
+				error.message || "Token verification failed"
+			);
+		}
+	}
+);
+
 // --- Slice Definition ---
 const authSlice = createSlice({
 	name: "auth",
@@ -254,7 +317,30 @@ const authSlice = createSlice({
 					state.user = null;
 					state.token = null;
 				}
-			);
+			)
+			.addCase(verifyAuth.pending, (state) => {
+				// If already idle, go to loading, otherwise might keep existing status
+				if (state.status === "idle") {
+					state.status = "loading";
+				}
+				state.error = null;
+			})
+			.addCase(verifyAuth.fulfilled, (state, action) => {
+				// Verification successful, ensure state reflects logged-in status
+				state.status = "succeeded";
+				state.isAuthenticated = true;
+				state.user = action.payload.user; // Update user data potentially refreshed from backend
+				state.error = null;
+			})
+			.addCase(verifyAuth.rejected, (state, action) => {
+				// Verification failed (invalid token, expired, network error etc.)
+				state.status = "failed";
+				state.error = action.payload; // Error message
+				state.isAuthenticated = false;
+				state.user = null;
+				state.token = null;
+				// localStorage/header cleared within the thunk's catch block
+			});
 	},
 });
 
