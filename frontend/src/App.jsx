@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext'; // Keep AuthProvider temporarily if components still rely on it, but aim to remove
-import ThemeProvider from './components/common/ThemeProvider'; // Your Theme Provider
+import ThemeProvider from './components/common/themeProvider'; // Your Theme Provider
 
 // --- Redux Imports ---
 import { useDispatch, useSelector } from 'react-redux';
@@ -14,8 +14,6 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import MarketOverview from "./components/dashboard/MarketOverview";
-import WatchlistPreview from "./components/dashboard/WatchlistPreview/WatchlistPreview"
-import PortfolioSummary from './components/dashboard/Portfolio/PortfolioSummary';
 import ProfilePage from "./pages/Profile";
 import About from "./components/dashboard/About";
 import StockDetailPage from './pages/StockDetailPage';
@@ -100,18 +98,16 @@ const AdminRoute = ({ children }) => {
 };
 
 // Broker route component with role check
-// BrokerRoute component with context-based auth
 const BrokerRoute = ({ children }) => {
-    // Use your context-based auth hook instead of Redux
-    const { isAuthenticated, currentUser, loading } = useAuth();
+    const { isAuthenticated, status, user } = useSelector(state => state.auth);
     const location = useLocation();
 
-    console.log(`BrokerRoute Check: Loading=${loading}, IsAuth=${isAuthenticated}, UserType=${currentUser?.type}`);
+    console.log(`BrokerRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${user?.type}`);
 
-    // Handle loading state from context
-    if (loading) {
-        console.log("BrokerRoute: Auth status loading");
-        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>;
+    // Handle loading state
+    if (status === 'idle' || status === 'loading') {
+        console.log("BrokerRoute: Auth status loading/idle");
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>; // Replace with Loader component if desired
     }
 
     // If not authenticated, redirect to login
@@ -121,9 +117,9 @@ const BrokerRoute = ({ children }) => {
     }
 
     // Check if the authenticated user is a broker
-    if (currentUser?.type !== 'broker') {
+    if (user?.type !== 'broker') {
         console.log("BrokerRoute: User is not broker, redirecting to user dashboard.");
-        return <Navigate to="/dashboard" replace />;
+        return <Navigate to="/dashboard" replace />; // Redirect non-brokers
     }
 
     // If authenticated and is a broker, render the child component
@@ -140,6 +136,7 @@ const AppRoutes = () => {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/broker-register" element={<BrokerRegisterPage />} />
                 <Route path="/stocks/:symbol" element={<StockDetailPage />} />
                 <Route path="/about" element={<About />} />
 
@@ -219,10 +216,42 @@ const AppRoutes = () => {
                     }
                 />
 
+                {/* Broker Routes */}
+                <Route
+                    path="/broker/dashboard"
+                    element={
+                        <BrokerRoute>
+                            <BrokerDashboardPage />
+                        </BrokerRoute>
+                    }
+                />
+                <Route
+                    path="/broker/clients"
+                    element={
+                        <BrokerRoute>
+                            <ClientsManagementPage />
+                        </BrokerRoute>
+                    }
+                />
+                <Route
+                    path="/broker/transactions"
+                    element={
+                        <BrokerRoute>
+                            <TransactionsPage />
+                        </BrokerRoute>
+                    }
+                />
+
                 {/* Redirect to admin dashboard if admin accesses /dashboard */}
                 <Route
                     path="/admin"
                     element={<Navigate to="/admin/dashboard" replace />}
+                />
+                
+                {/* Redirect to broker dashboard if broker accesses /broker */}
+                <Route
+                    path="/broker"
+                    element={<Navigate to="/broker/dashboard" replace />}
                 />
 
                 {/* Fallback */}
