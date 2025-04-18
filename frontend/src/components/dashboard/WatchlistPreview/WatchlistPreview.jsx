@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 
 import "./WatchlistPreview.css";
 import AppNavbar from "../../common/Navbar";
+import { useNavigate } from 'react-router-dom';
 
 const WatchlistPreview = () => {
   const [watchlist, setWatchlist] = useState([]);
@@ -11,9 +12,15 @@ const WatchlistPreview = () => {
   const [selectedStock, setSelectedStock] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [sellPrice, setSellPrice] = useState(0);
+  const navigate = useNavigate();
+
 
   const formatPrice = (price) => {
     return price.toFixed(2);
+  };
+
+  const handleBuyStock = (symbol) => {
+    navigate(`/stock-analysis/${symbol}?symbol=${symbol}`);
   };
 
   const formatPercentChange = (percent) => {
@@ -238,7 +245,7 @@ const WatchlistPreview = () => {
                       </div>
                       <div className="col-12 col-md-3 mt-2 mt-md-0">
                         <div className="d-flex flex-column gap-2 action-buttons">
-                          <button className="custom-btn-primary btn py-2 fw-medium font-inter w-100">
+                          <button className="custom-btn-primary btn py-2 fw-medium font-inter w-100" onClick={() => handleBuyStock(stock.symbol)}>
                             <i className="bi bi-eye me-1"></i> View Details
                           </button>
                           <div className="d-flex gap-2">

@@ -16,5 +16,9 @@ router.post("/forgot-password", authController.requestPasswordResetOtp);
 
 // Route to reset password using the OTP received via email
 router.post("/reset-password-otp", authController.resetPasswordWithOtp);
+// In backend/routes/authRoutes.js - Add a new route for broker registration
+// router.post("/broker-register", validateUserCreate, authController.registerBroker);
+router.post("/broker-register", authController.registerBroker);
+
 
 module.exports = router;

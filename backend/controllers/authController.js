@@ -113,6 +113,75 @@ const registerUser = async (req, res) => {
 	}
 };
 
+const registerBroker = async (req, res) => {
+	try {
+		console.log("Broker registration request received:", req.body);
+		const { fullName, email, password, phone, company } = req.body;
+
+		// Check if user already exists
+		const existingUser = await User.findOne({ email });
+		if (existingUser) {
+			return res.status(400).json({
+				error: "User with this email already exists.",
+			});
+		}
+		console.log(company);
+
+		// Hash password
+		const hashedPassword = await hashPassword(password);
+
+		// Create a more complete broker user object
+		const brokerUser = {
+			fullName,
+			email,
+			password: hashedPassword,
+			phone,
+			company,
+			type: "broker",
+			verified: "pending",
+			// Add default values for potentially required broker fields
+			licenseNumber: "PENDING-" + Date.now(),
+			licenseExpiry: new Date(
+				Date.now() + 30 * 24 * 60 * 60 * 1000
+			), // 30 days from now
+			specialization: "general",
+			yearsOfExperience: 0,
+			commission: 0.0,
+		};
+
+		console.log("Creating broker with data:", brokerUser);
+
+		// Create new broker user
+		const user = new User(brokerUser);
+
+		// Save with error handling
+		const savedUser = await user.save();
+		console.log("Broker saved successfully:", savedUser._id);
+
+		return res
+			.status(201)
+			.json({
+				message: "Broker registered successfully. Your account is pending approval.",
+			});
+	} catch (error) {
+		console.error("Error creating broker:", error);
+		// Return the specific validation error if available
+		if (error.name === "ValidationError") {
+			const errorMessages = Object.values(error.errors).map(
+				(err) => err.message
+			);
+			return res.status(400).json({
+				error: `Validation error: ${errorMessages.join(
+					", "
+				)}`,
+			});
+		}
+		return res.status(500).json({
+			error: "Broker registration failed. Please try again.",
+		});
+	}
+};
+
 // Initialize the Google OAuth client
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -270,11 +339,9 @@ const requestPasswordResetOtp = async (req, res) => {
 			console.log(
 				`Password reset request for non-existent email: ${email}`
 			);
-			return res
-				.status(200)
-				.json({
-					message: "If an account with that email exists, a password reset OTP has been sent.",
-				});
+			return res.status(200).json({
+				message: "If an account with that email exists, a password reset OTP has been sent.",
+			});
 		}
 
 		// 3. Check if Redis is ready
@@ -283,11 +350,9 @@ const requestPasswordResetOtp = async (req, res) => {
 				"Redis client not ready during password reset request."
 			);
 			// Send generic success, but log the internal error
-			return res
-				.status(200)
-				.json({
-					message: "Password reset request received. Please check your email.",
-				});
+			return res.status(200).json({
+				message: "Password reset request received. Please check your email.",
+			});
 			// Or optionally return 503: return res.status(503).json({ error: "OTP service temporarily unavailable." });
 		}
 		const redisClient = getRedisClient();
@@ -325,19 +390,15 @@ const requestPasswordResetOtp = async (req, res) => {
 		console.log(
 			`Sent password reset OTP request success response for ${email}`
 		);
-		return res
-			.status(200)
-			.json({
-				message: "If an account with that email exists, a password reset OTP has been sent.",
-			});
+		return res.status(200).json({
+			message: "If an account with that email exists, a password reset OTP has been sent.",
+		});
 	} catch (error) {
 		console.error("Error in requestPasswordResetOtp:", error);
 		// Send generic success response even on internal errors during the process
-		return res
-			.status(200)
-			.json({
-				message: "Password reset request received. Please check your email.",
-			});
+		return res.status(200).json({
+			message: "Password reset request received. Please check your email.",
+		});
 		// Or for debugging: return res.status(500).json({ error: "Server error during password reset request." });
 	}
 };
@@ -348,11 +409,9 @@ const resetPasswordWithOtp = async (req, res) => {
 
 	// 1. Basic Validation
 	if (!email || !otp || !password || !confirmPassword) {
-		return res
-			.status(400)
-			.json({
-				error: "Email, OTP, new password, and confirmation are required.",
-			});
+		return res.status(400).json({
+			error: "Email, OTP, new password, and confirmation are required.",
+		});
 	}
 
 	if (password !== confirmPassword) {
@@ -365,11 +424,9 @@ const resetPasswordWithOtp = async (req, res) => {
 	// Example: Assuming validatePassword checks strength and returns true/false
 	const isPasswordStrong = validatePassword(password); // Use your actual validation function
 	if (!isPasswordStrong) {
-		return res
-			.status(400)
-			.json({
-				error: "Password does not meet strength requirements (min 8 chars, upper, lower, number, symbol).",
-			});
+		return res.status(400).json({
+			error: "Password does not meet strength requirements (min 8 chars, upper, lower, number, symbol).",
+		});
 	}
 
 	try {
@@ -378,11 +435,9 @@ const resetPasswordWithOtp = async (req, res) => {
 			console.error(
 				"Redis client not ready during password reset attempt."
 			);
-			return res
-				.status(503)
-				.json({
-					error: "Verification service temporarily unavailable. Please try again later.",
-				});
+			return res.status(503).json({
+				error: "Verification service temporarily unavailable. Please try again later.",
+			});
 		}
 		const redisClient = getRedisClient();
 		const redisKey = `otp:${email}`;
@@ -426,11 +481,9 @@ const resetPasswordWithOtp = async (req, res) => {
 		);
 
 		// 10. Send success response
-		return res
-			.status(200)
-			.json({
-				message: "Password has been reset successfully.",
-			});
+		return res.status(200).json({
+			message: "Password has been reset successfully.",
+		});
 	} catch (error) {
 		console.error("Error in resetPasswordWithOtp:", error);
 		return res
@@ -444,6 +497,7 @@ module.exports = {
 	registerUser,
 	googleLogin,
 	resetPassword,
-    requestPasswordResetOtp, // Add new function
-    resetPasswordWithOtp, 
+	requestPasswordResetOtp, // Add new function
+	resetPasswordWithOtp,
+	registerBroker,
 };

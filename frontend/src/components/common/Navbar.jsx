@@ -2,13 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Button, Form, InputGroup, NavDropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
-// Removed: import useAuth from '../../hooks/useAuth';
 
 // --- Redux Imports ---
 import { useDispatch, useSelector } from 'react-redux';
 import { logout } from '../../redux/features/authSlice'; // Import the logout action
 
-// (Keep navbarStyles as they were)
+// Custom styles for navbar
 const navbarStyles = {
     container: {
         maxWidth: '100%',
@@ -31,20 +30,21 @@ const AppNavbar = () => {
 
     // --- Select state from Redux store ---
     const authState = useSelector(state => state.auth);
-    const { isAuthenticated, user,  } = useSelector(state => state.auth);
+    const { isAuthenticated, user } = useSelector(state => state.auth);
 
-    // Check if user is admin
+    // Check if user is admin or broker
     const isAdmin = user?.type === 'admin';
+    const isBroker = user?.type === 'broker';
 
     // Get username to display - handle null case
     const displayName = user?.fullName || "My Account";
 
-    const handleSearch = (e) => {
-        e.preventDefault();
-        if (searchQuery.trim()) {
-            navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
-        }
-    };
+    // const handleSearch = (e) => {
+    //     e.preventDefault();
+    //     if (searchQuery.trim()) {
+    //         navigate(`/search?q=${encodeURIComponent(searchQuery)}`);
+    //     }
+    // };
 
     const handleLogout = () => {
         dispatch(logout()); // Dispatch the logout action
@@ -66,7 +66,6 @@ const AppNavbar = () => {
             <div style={navbarStyles.container} className="d-flex w-100 justify-content-between">
                 {/* Brand */}
                 <Navbar.Brand as={Link} to="/" style={navbarStyles.brand}>
-                    {/* ... (logo and brand name) ... */}
                     <img
                         src="/logo.png" // Using vite logo as placeholder
                         width="30"
@@ -89,40 +88,43 @@ const AppNavbar = () => {
                         <Nav.Link as={Link} to="/contact">Contact</Nav.Link>
                     </Nav>
 
-                    {/* Search Bar */}
-                    <div style={navbarStyles.searchContainer} className="mx-lg-2 my-2 my-lg-0">
-                        <Form className="d-flex" onSubmit={handleSearch}>
-                            <InputGroup>
-                                <Form.Control
-                                    type="search"
-                                    placeholder="Search stocks..."
-                                    aria-label="Search"
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                />
-                                <Button variant="outline-primary" type="submit">
-                                    <i className="bi bi-search"></i>
-                                </Button>
-                            </InputGroup>
-                        </Form>
-                    </div>
+                   
 
                     {/* Auth Links / User Dropdown */}
                     {isAuthenticated ? (
                         <Nav>
                             <NavDropdown title={displayName} id="user-nav-dropdown" align="end">
-                                <NavDropdown.Item as={Link} to="/dashboard">Dashboard</NavDropdown.Item>
-                                <NavDropdown.Item as={Link} to="/portfolio">Portfolio</NavDropdown.Item>
-                                <NavDropdown.Item as={Link} to="/watchlist">Watchlist</NavDropdown.Item>
-                                <NavDropdown.Item as={Link} to="/transactions">Transactions</NavDropdown.Item>
-                                <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
-                                {/* Admin Panel Link */}
-                                {isAdmin && (
+                                {/* Regular User Links */}
+                                {!isAdmin && !isBroker && (
                                     <>
-                                        <NavDropdown.Divider />
-                                        <NavDropdown.Item as={Link} to="/admin/dashboard">Admin Panel</NavDropdown.Item>
+                                        <NavDropdown.Item as={Link} to="/dashboard">Dashboard</NavDropdown.Item>
+                                        <NavDropdown.Item as={Link} to="/portfolio">Portfolio</NavDropdown.Item>
+                                        <NavDropdown.Item as={Link} to="/watchlist">Watchlist</NavDropdown.Item>
+                                        <NavDropdown.Item as={Link} to="/transactions">Transactions</NavDropdown.Item>
                                     </>
                                 )}
+                                
+                                {/* Broker Links */}
+                                {isBroker && (
+                                    <>
+                                        <NavDropdown.Item as={Link} to="/broker/dashboard">Broker Dashboard</NavDropdown.Item>
+                                        <NavDropdown.Item as={Link} to="/broker/clients">Manage Clients</NavDropdown.Item>
+                                        <NavDropdown.Item as={Link} to="/broker/transactions">Transactions</NavDropdown.Item>
+                                    </>
+                                )}
+                                
+                                {/* Admin Links */}
+                                {isAdmin && (
+                                    <>
+                                        <NavDropdown.Item as={Link} to="/admin/dashboard">Admin Dashboard</NavDropdown.Item>
+                                        <NavDropdown.Item as={Link} to="/admin/users">Manage Users</NavDropdown.Item>
+                                        <NavDropdown.Item as={Link} to="/admin/stocks">Manage Stocks</NavDropdown.Item>
+                                        <NavDropdown.Item as={Link} to="/admin/verify-users">Verify Users</NavDropdown.Item>
+                                    </>
+                                )}
+                                
+                                {/* Common Links */}
+                                <NavDropdown.Item as={Link} to="/profile">Profile</NavDropdown.Item>
                                 <NavDropdown.Divider />
                                 <NavDropdown.Item onClick={handleLogout}>
                                     <i className="bi bi-box-arrow-right me-2"></i>Logout
@@ -134,9 +136,16 @@ const AppNavbar = () => {
                             <Nav.Link as={Link} to="/login" className="me-lg-2 mb-2 mb-lg-0">
                                 <Button variant="outline-primary" className="w-100">Log In</Button>
                             </Nav.Link>
-                            <Nav.Link as={Link} to="/register">
-                                <Button variant="primary" className="w-100">Sign Up</Button>
-                            </Nav.Link>
+                            <NavDropdown title="Register" id="register-dropdown" align="end">
+                                <NavDropdown.Item as={Link} to="/register">
+                                    <i className="bi bi-person-plus me-2"></i>
+                                    User Account
+                                </NavDropdown.Item>
+                                <NavDropdown.Item as={Link} to="/broker-register">
+                                    <i className="bi bi-building me-2"></i>
+                                    Broker Account
+                                </NavDropdown.Item>
+                            </NavDropdown>
                         </Nav>
                     )}
                 </Navbar.Collapse>
