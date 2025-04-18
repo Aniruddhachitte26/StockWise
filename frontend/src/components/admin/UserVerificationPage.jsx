@@ -54,7 +54,7 @@ const UserVerificationPage = () => {
             let fetchedUsers = response.data.users || [];
 
             console.log("Raw fetched users:", fetchedUsers);
-
+fetchedUsers = fetchedUsers.filter(user => user.type !== 'admin');
             // Apply filter based on verification status
             let filteredUsers;
             if (filter === 'all') {
@@ -87,6 +87,29 @@ const UserVerificationPage = () => {
         fetchUsers();
     }, [fetchUsers, refreshTrigger]); // Add refreshTrigger to dependencies
 
+  const getTableStyles = () => {
+    return {
+      table: {
+        color: 'var(--textPrimary)',
+        '--bs-table-hover-bg': currentTheme === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.02)'
+      },
+      tableHeader: {
+        color: 'var(--textSecondary)',
+        backgroundColor: currentTheme === 'dark' ? '#1e1e1e' : 'var(--card)',
+        borderBottom: '1px solid var(--border)'
+      },
+      tableRow: {
+        borderColor: 'var(--border)'
+      },
+      avatarCircle: {
+        width: '32px',
+        height: '32px',
+        backgroundColor: currentTheme === 'dark' ? '#2c7a4d' : 'green',
+        color: 'white',
+        fontSize: '18px'
+      }
+    };
+  };
     // Format date for display
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';

@@ -5,22 +5,34 @@ const User = require("../models/userModel");
 // Get admin dashboard statistics
 const getDashboardStats = async (req, res) => {
   try {
-    // Get total users count
-    const totalUsers = await User.countDocuments();
+    // Get total users count (excluding admins)
+    const totalUsers = await User.countDocuments({ type: { $ne: "admin" } });
     
-    // Get users by status
-    const activeUsers = await User.countDocuments({ status: "active" });
-    const pendingUsers = await User.countDocuments({ status: "pending" });
-    const rejectedUsers = await User.countDocuments({ status: "rejected" });
+    // Get users by verification status (excluding admins)
+    const activeUsers = await User.countDocuments({ 
+      verified: "approved", 
+      type: { $ne: "admin" } 
+    });
     
-    // Get user registrations for the last 7 days
+    const pendingUsers = await User.countDocuments({ 
+      verified: "pending", 
+      type: { $ne: "admin" } 
+    });
+    
+    const rejectedUsers = await User.countDocuments({ 
+      verified: "rejected", 
+      type: { $ne: "admin" } 
+    });
+    
+    // Get user registrations for the last 7 days (excluding admins)
     const sevenDaysAgo = new Date();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
     
     const weeklyRegistrations = await User.aggregate([
       {
         $match: {
-          createdAt: { $gte: sevenDaysAgo }
+          createdAt: { $gte: sevenDaysAgo },
+          type: { $ne: "admin" }  // Exclude admins
         }
       },
       {
@@ -40,25 +52,61 @@ const getDashboardStats = async (req, res) => {
       count: item.count
     }));
     
-    // Get user types distribution
-    const adminUsers = await User.countDocuments({ type: "admin" });
-    const regularUsers = await User.countDocuments({ type: "user" });
+    // Fill in missing days with zero counts
+    const daysOfWeek = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const currentDay = new Date().getDay(); // 0 = Sunday, 1 = Monday, etc.
+    
+    const completeWeeklyData = [];
+    for (let i = 6; i >= 0; i--) {
+      const dayIndex = (currentDay - i + 7) % 7; // Ensure positive index
+      const day = daysOfWeek[dayIndex];
+      
+      // Find if we have data for this day
+      const existingData = formattedWeeklyRegistrations.find(item => item.day === day);
+      
+      if (existingData) {
+        completeWeeklyData.push(existingData);
+      } else {
+        completeWeeklyData.push({ day, count: 0 });
+      }
+    }
+    
+    // We're only getting regular users
+    const regularUsers = totalUsers;
+    
+    // Create data for charts
+    const userStatuses = [
+      { name: "Approved", value: activeUsers },
+      { name: "Pending", value: pendingUsers },
+      { name: "Rejected", value: rejectedUsers }
+    ];
+    
+    // Just include regular users count - remove admin data
+    const userTypes = [
+      { name: "Regular Users", value: regularUsers }
+    ];
+    
+    // Get some mock stock performance data for now
+    // In a real app, this would come from your stock data API
+    const stockPerformance = [
+      { name: 'Jan', value: 1000 },
+      { name: 'Feb', value: 1200 },
+      { name: 'Mar', value: 1100 },
+      { name: 'Apr', value: 1300 },
+      { name: 'May', value: 1600 },
+      { name: 'Jun', value: 1500 },
+      { name: 'Jul', value: 1800 }
+    ];
     
     return res.status(200).json({
       totalUsers,
       activeUsers,
       pendingUsers,
       rejectedUsers,
-      weeklyRegistrations: formattedWeeklyRegistrations,
-      userStatuses: [
-        { name: "Active", value: activeUsers },
-        { name: "Pending", value: pendingUsers },
-        { name: "Rejected", value: rejectedUsers }
-      ],
-      userTypes: [
-        { name: "Regular Users", value: regularUsers },
-        { name: "Admin", value: adminUsers }
-      ]
+      weeklyRegistrations: completeWeeklyData,
+      userStatuses,
+      userTypes,
+      stockPerformance
     });
   } catch (error) {
     console.error("Error getting dashboard stats:", error);
