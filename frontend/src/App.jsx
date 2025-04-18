@@ -15,6 +15,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import MarketOverview from "./components/dashboard/MarketOverview";
 import WatchlistPreview from "./components/dashboard/WatchlistPreview/WatchlistPreview"
+import PortfolioSummary from './components/dashboard/Portfolio/PortfolioSummary';
 import ProfilePage from "./pages/Profile";
 import About from "./components/dashboard/About";
 import StockDetailPage from './pages/StockDetailPage';
@@ -150,6 +151,14 @@ const AppRoutes = () => {
         element={
           <ProtectedRoute>
             <WatchlistPreview />
+          </ProtectedRoute>
+        } 
+      />
+       <Route 
+        path="/portfolio" 
+        element={
+          <ProtectedRoute>
+            <PortfolioSummary />
           </ProtectedRoute>
         } 
       />
