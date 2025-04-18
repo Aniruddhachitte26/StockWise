@@ -7,7 +7,7 @@ import Loader from '../../components/common/Loader';
 import Error from '../../components/common/Error';
 import Pagination from '../../components/common/Pagination';
 import axios from 'axios';
-import { useTheme } from '../../components/common/themeProvider';
+import { useTheme } from '../../components/common/ThemeProvider';
 
 const TransactionsPage = () => {
   const [transactions, setTransactions] = useState([]);

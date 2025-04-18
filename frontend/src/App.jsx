@@ -2,7 +2,7 @@
 import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext'; // Keep AuthProvider temporarily if components still rely on it, but aim to remove
-import ThemeProvider from './components/common/themeProvider'; // Your Theme Provider
+import ThemeProvider from './components/common/ThemeProvider'; // Your Theme Provider
 
 // --- Redux Imports ---
 import { useDispatch, useSelector } from 'react-redux';
@@ -99,15 +99,16 @@ const AdminRoute = ({ children }) => {
 
 // Broker route component with role check
 const BrokerRoute = ({ children }) => {
-    const { isAuthenticated, status, user } = useSelector(state => state.auth);
+    // Use context-based auth hook instead of Redux
+    const { isAuthenticated, currentUser, loading } = useAuth();
     const location = useLocation();
 
-    console.log(`BrokerRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${user?.type}`);
+    console.log(`BrokerRoute Check: Loading=${loading}, IsAuth=${isAuthenticated}, UserType=${currentUser?.type}`);
 
-    // Handle loading state
-    if (status === 'idle' || status === 'loading') {
-        console.log("BrokerRoute: Auth status loading/idle");
-        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>; // Replace with Loader component if desired
+    // Handle loading state from context
+    if (loading) {
+        console.log("BrokerRoute: Auth status loading");
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>;
     }
 
     // If not authenticated, redirect to login
@@ -117,9 +118,9 @@ const BrokerRoute = ({ children }) => {
     }
 
     // Check if the authenticated user is a broker
-    if (user?.type !== 'broker') {
+    if (currentUser?.type !== 'broker') {
         console.log("BrokerRoute: User is not broker, redirecting to user dashboard.");
-        return <Navigate to="/dashboard" replace />; // Redirect non-brokers
+        return <Navigate to="/dashboard" replace />;
     }
 
     // If authenticated and is a broker, render the child component
@@ -247,7 +248,7 @@ const AppRoutes = () => {
                     path="/admin"
                     element={<Navigate to="/admin/dashboard" replace />}
                 />
-                
+
                 {/* Redirect to broker dashboard if broker accesses /broker */}
                 <Route
                     path="/broker"
