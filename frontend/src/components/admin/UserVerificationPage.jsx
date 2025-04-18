@@ -7,7 +7,7 @@ import Error from '../common/Error';
 import Pagination from '../common/Pagination';
 import UserDetailsModal from './UserDetailsModal';
 import axios from 'axios';
-import { useTheme } from '../common/themeProvider';
+import { useTheme } from '../common/ThemeProvider';
 
 const API_URL = "http://localhost:3000"; // Update based on your backend URL
 
