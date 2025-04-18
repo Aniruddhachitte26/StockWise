@@ -1,5 +1,3 @@
-// src/components/common/ThemeProvider.jsx
-
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { detectColorScheme, setThemePreference, initTheme } from '../../config/themeConfig';
 

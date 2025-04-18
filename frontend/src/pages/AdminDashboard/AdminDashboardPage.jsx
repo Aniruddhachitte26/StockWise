@@ -1,5 +1,3 @@
-// src/components/admin/AdminDashboardPage.jsx
-
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Badge, Alert, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
