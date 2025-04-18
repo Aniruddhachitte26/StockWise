@@ -1,8 +1,13 @@
 // src/App.jsx
 import React, { useEffect } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
-import ThemeProvider from './components/common/themeProvider';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext'; // Keep AuthProvider temporarily if components still rely on it, but aim to remove
+import ThemeProvider from './components/common/themeProvider'; // Your Theme Provider
+
+// --- Redux Imports for Routes ---
+import { useSelector } from 'react-redux'; // Needed for Protected/Admin Routes
+
+// --- Page Imports ---
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -11,9 +16,10 @@ import MarketOverview from "./components/dashboard/MarketOverview";
 import ProfilePage from "./pages/Profile";
 import About from "./components/dashboard/About";
 import StockDetailPage from './pages/StockDetailPage';
+import Chat from './pages/Chat';
 import StockListingPage from './pages/StockListingPage';
 
-// Admin Pages
+// --- Admin Page Imports ---
 import AdminDashboardPage from './pages/AdminDashboard/AdminDashboardPage';
 import UsersManagementPage from './components/admin/UsersManagementPage';
 import UserVerificationPage from './components/admin/UserVerificationPage';
@@ -27,45 +33,64 @@ import StockAnalysisPage, {
 
 import { initTheme } from './config/themeConfig';
 import useAuth from './hooks/useAuth';
-import Chat from './pages/Chat';
 import './App.css';
 import './assets/styles/theme.css';
 
 // Protected route component for regular users
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-  
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-  
-  return children;
+    const { isAuthenticated, status } = useSelector(state => state.auth);
+    const location = useLocation();
+
+    console.log(`ProtectedRoute Check: Status=${status}, IsAuth=${isAuthenticated}`);
+
+    // Handle loading state
+    if (status === 'idle' || status === 'loading') {
+        console.log("ProtectedRoute: Auth status loading/idle");
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>; // Replace with Loader component if desired
+    }
+
+    // If not authenticated after checking, redirect to login
+    if (!isAuthenticated) {
+        console.log("ProtectedRoute: Not authenticated, redirecting to login.");
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    // If authenticated, render the child component
+    console.log("ProtectedRoute: Authenticated, rendering children.");
+    return children;
 };
 
 // Admin route component with role check
 const AdminRoute = ({ children }) => {
-  const { isAuthenticated, loading, currentUser } = useAuth();
-  
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-  
-  if (!isAuthenticated) {
-    return <Navigate to="/login" />;
-  }
-  
-  // Check if user is an admin
-  if (currentUser?.type !== 'admin') {
-    return <Navigate to="/dashboard" />;
-  }
-  
-  return children;
+    const { isAuthenticated, status, currentUser } = useSelector(state => state.auth);
+    const location = useLocation();
+
+    console.log(`AdminRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${currentUser?.type}`);
+
+    // Handle loading state
+    if (status === 'idle' || status === 'loading') {
+        console.log("AdminRoute: Auth status loading/idle");
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>; // Replace with Loader component if desired
+    }
+
+    // If not authenticated, redirect to login
+    if (!isAuthenticated) {
+        console.log("AdminRoute: Not authenticated, redirecting to login.");
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    // Check if the authenticated user is an admin
+    if (currentUser?.type !== 'admin') {
+        console.log("AdminRoute: User is not admin, redirecting to user dashboard.");
+        return <Navigate to="/dashboard" replace />; // Redirect non-admins
+    }
+
+    // If authenticated and is an admin, render the child component
+    console.log("AdminRoute: Authenticated and Admin, rendering children.");
+    return children;
 };
 
+// --- Component for defining routes ---
 const AppRoutes = () => {
   return (
   <div>
@@ -167,6 +192,7 @@ const AppRoutes = () => {
   );
 };
 
+// --- Main App Component ---
 const App = () => {
   // Initialize theme on app load
   useEffect(() => {
@@ -174,15 +200,15 @@ const App = () => {
     initTheme();
   }, []);
 
-  return (
-    <Router>
-      <AuthProvider>
-        <ThemeProvider>
-          <AppRoutes />
-        </ThemeProvider>
-      </AuthProvider>
-    </Router>
-  );
+    return (
+        // AuthProvider might still be needed if some components haven't been refactored yet
+        // Once all components use Redux, AuthProvider can be removed
+        <AuthProvider>
+            <ThemeProvider> {/* Handles light/dark theme switching */}
+                <AppRoutes />
+            </ThemeProvider>
+        </AuthProvider>
+    );
 };
 
 export default App;
