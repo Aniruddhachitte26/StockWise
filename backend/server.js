@@ -41,7 +41,7 @@ app.use("/user", userRoutes);
 app.use("/auth", authRoutes);
 app.use("/summary", chatbotRoutes);
 app.use("/market", marketRoutes);
-
+app.use("/stocks", stockRoutes);
 // Default route
 app.get("/", (req, res) => {
 	res.send("Hello from the server...!");

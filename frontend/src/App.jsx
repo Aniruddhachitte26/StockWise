@@ -12,11 +12,14 @@ import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
-import ProfilePage from './pages/Profile';
+import MarketOverview from "./components/dashboard/MarketOverview";
+import ProfilePage from "./pages/Profile";
+import About from "./components/dashboard/About";
 import StockDetailPage from './pages/StockDetailPage';
 import Chat from './pages/Chat';
 import About from './components/dashboard/About'; // Assuming About is treated like a page
 import MarketOverview from "./components/dashboard/MarketOverview"; // Assuming this is used as a page/route
+import StockListingPage from './pages/StockListingPage';
 
 // --- Admin Page Imports ---
 import AdminDashboardPage from './pages/AdminDashboard/AdminDashboardPage';
@@ -24,12 +27,17 @@ import UsersManagementPage from './components/admin/UsersManagementPage';
 import UserVerificationPage from './components/admin/UserVerificationPage';
 import StocksManagementPage from './components/admin/StocksManagementPage';
 
-// --- Other Imports ---
-import { initTheme } from './config/themeConfig'; // Theme initialization
-import './App.css';
-import './assets/styles/theme.css'; // Import your theme CSS
+// Stock Analysis Pages
+import StockAnalysisPage, { 
+  StockAnalysisTabsPage, 
+  StockAnalysisCustomPage 
+} from './pages/StockAnalysisPage';
 
-// --- Protected Route Components (Ideally in separate files) ---
+import { initTheme } from './config/themeConfig';
+import useAuth from './hooks/useAuth';
+import Chat from './pages/Chat';
+import './App.css';
+import './assets/styles/theme.css';
 
 // Protected route component for regular users
 const ProtectedRoute = ({ children }) => {
@@ -87,106 +95,113 @@ const AdminRoute = ({ children }) => {
 
 // --- Component for defining routes ---
 const AppRoutes = () => {
-    return (
-        // The Chat component might be better placed outside Routes if it's a persistent overlay
-        // Or rendered conditionally within specific pages/layouts
-        <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-            <div style={{ flexGrow: 1 }}> {/* Make main content grow */}
-                <Routes>
-                    {/* Public Routes */}
-                    <Route path="/" element={<HomePage />} />
-                    <Route path="/login" element={<LoginPage />} />
-                    <Route path="/register" element={<RegisterPage />} />
-                    <Route path="/stocks/:symbol" element={<StockDetailPage />} />
-                    <Route path="/about" element={<About />} />
-
-                    {/* Protected User Routes */}
-                    <Route
-                        path="/dashboard"
-                        element={
-                            <ProtectedRoute>
-                                <DashboardPage />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/news" // Assuming MarketOverview serves as the News page
-                        element={
-                            <ProtectedRoute>
-                                <MarketOverview />
-                            </ProtectedRoute>
-                        }
-                    />
-                    <Route
-                        path="/profile"
-                        element={
-                            <ProtectedRoute>
-                                <ProfilePage />
-                            </ProtectedRoute>
-                        }
-                    />
-                    {/* Add other protected routes here (Portfolio, Watchlist, Transactions etc.) */}
-                    {/* Example:
-          <Route path="/portfolio" element={<ProtectedRoute><PortfolioPage /></ProtectedRoute>} />
-          */}
-
-
-                    {/* Admin Routes */}
-                    <Route
-                        path="/admin/dashboard"
-                        element={
-                            <AdminRoute>
-                                <AdminDashboardPage />
-                            </AdminRoute>
-                        }
-                    />
-                    <Route
-                        path="/admin/users"
-                        element={
-                            <AdminRoute>
-                                <UsersManagementPage />
-                            </AdminRoute>
-                        }
-                    />
-                    <Route
-                        path="/admin/verify-users"
-                        element={
-                            <AdminRoute>
-                                <UserVerificationPage />
-                            </AdminRoute>
-                        }
-                    />
-                    <Route
-                        path="/admin/stocks"
-                        element={
-                            <AdminRoute>
-                                <StocksManagementPage />
-                            </AdminRoute>
-                        }
-                    />
-
-                    {/* Redirect /admin to /admin/dashboard */}
-                    <Route
-                        path="/admin"
-                        element={<Navigate to="/admin/dashboard" replace />}
-                    />
-
-                    {/* Fallback for unmatched routes */}
-                    <Route path="*" element={<Navigate to="/" />} />
-                </Routes>
-            </div>
-            {/* Chat Bot - Rendered persistently */}
-            <Chat />
-        </div>
-    );
+  return (
+  <div>
+    <Routes>
+      {/* Public Routes */}
+      <Route path="/" element={<HomePage />} />
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/register" element={<RegisterPage />} />
+      <Route path="/stocks/:symbol" element={<StockDetailPage />} />
+      <Route path="/about" element={<About />} />
+      
+      {/* New Stock Analysis Pages */}
+      <Route path="/stock-analysis" element={<StockAnalysisPage />} />
+      <Route path="/stock-analysis/:symbol" element={<StockAnalysisPage />} />
+      <Route path="/stock-tabs" element={<StockAnalysisTabsPage />} />
+      <Route path="/stock-tabs/:symbol" element={<StockAnalysisTabsPage />} />
+      <Route path="/stock-custom" element={<StockAnalysisCustomPage />} />
+      <Route path="/stock-custom/:symbol" element={<StockAnalysisCustomPage />} />
+      
+      {/* Protected User Routes */}
+      <Route 
+        path="/dashboard" 
+        element={
+          <ProtectedRoute>
+            <DashboardPage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/news" 
+        element={
+          <ProtectedRoute>
+            <MarketOverview />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/profile" 
+        element={
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        } 
+      />
+      <Route 
+        path="/stocks" 
+        element={
+          <ProtectedRoute>
+            <StockListingPage />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Admin Routes */}
+      <Route 
+        path="/admin/dashboard" 
+        element={
+          <AdminRoute>
+            <AdminDashboardPage />
+          </AdminRoute>
+        } 
+      />
+      <Route 
+        path="/admin/users" 
+        element={
+          <AdminRoute>
+            <UsersManagementPage />
+          </AdminRoute>
+        } 
+      />
+      <Route 
+        path="/admin/verify-users" 
+        element={
+          <AdminRoute>
+            <UserVerificationPage />
+          </AdminRoute>
+        } 
+      />
+      <Route 
+        path="/admin/stocks" 
+        element={
+          <AdminRoute>
+            <StocksManagementPage />
+          </AdminRoute>
+        } 
+      />
+      
+      {/* Redirect to admin dashboard if admin accesses /dashboard */}
+      <Route
+        path="/admin"
+        element={<Navigate to="/admin/dashboard" replace />}
+      />
+      
+      {/* Fallback */}
+      <Route path="*" element={<Navigate to="/" />} />
+    </Routes>
+    <Chat />
+  </div>
+  );
 };
 
 // --- Main App Component ---
 const App = () => {
-    // Initialize theme on app load
-    useEffect(() => {
-        initTheme();
-    }, []);
+  // Initialize theme on app load
+  useEffect(() => {
+    // Call initTheme directly
+    initTheme();
+  }, []);
 
     return (
         // AuthProvider might still be needed if some components haven't been refactored yet

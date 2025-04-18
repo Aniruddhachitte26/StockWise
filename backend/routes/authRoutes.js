@@ -9,6 +9,6 @@ router.post("/register", validateUserCreate, authController.registerUser);
 router.post("/login", authController.loginUser);
 // Add Google authentication route
 router.post("/google", authController.googleLogin);
-router.post("/change-password", authController.resetPassword)
+router.patch("/change-password/:id", authController.resetPassword)
 
 module.exports = router;
