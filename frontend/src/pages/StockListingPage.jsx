@@ -8,8 +8,7 @@ import { Link } from 'react-router-dom';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
 import axios from 'axios';
-
-// Sample Stock Categories for filters
+import { OverlayTrigger, Tooltip } from 'react-bootstrap';
 const STOCK_CATEGORIES = [
   { value: 'all', label: 'All Sectors' },
   { value: 'technology', label: 'Technology' },
@@ -36,11 +35,31 @@ const StockListingPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(20);
   const [refreshing, setRefreshing] = useState(false);
+  const [watchlist, setWatchlist] = useState([]);
+  const [tooltipStates, setTooltipStates] = useState({});
 
   // Fetch stock data on component mount
   useEffect(() => {
     fetchStocks();
+    fetchWatchlist();
   }, []);
+
+  const fetchWatchlist = async () => {
+    const storedUser = localStorage.getItem("currentUser");
+    const currentUser = storedUser ? JSON.parse(storedUser) : null;
+    const userId = currentUser?.id;
+  
+    if (!userId) return;
+  
+    try {
+      const res = await fetch(`http://localhost:3000/stocks/watchlist/${userId}`);
+      if (!res.ok) throw new Error("Failed to fetch watchlist");
+      const data = await res.json();
+      setWatchlist(data.watchlist); // assuming backend returns { watchlist: ['AAPL', 'MSFT'] }
+    } catch (error) {
+      console.error("Watchlist fetch error:", error);
+    }
+  };
 
   // Filter and sort stocks when dependencies change
   useEffect(() => {
@@ -299,6 +318,47 @@ const StockListingPage = () => {
     }
   }
 
+  const handleAddWatchlist = async (symbol) => {
+    const storedUser = localStorage.getItem("currentUser");
+    const currentUser = storedUser ? JSON.parse(storedUser) : null;
+    const userId = currentUser?.id;
+    if (!userId) return;
+  
+    const isAlreadyInWatchlist = watchlist.includes(symbol);
+  
+    try {
+      const url = isAlreadyInWatchlist
+        ? "http://localhost:3000/stocks/watchlist/remove"
+        : "http://localhost:3000/stocks/watchlist/add";
+  
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, symbol }),
+      });
+  
+      if (!response.ok) throw new Error("Failed to update watchlist");
+  
+      setWatchlist((prev) =>
+        isAlreadyInWatchlist
+          ? prev.filter((item) => item !== symbol)
+          : [...prev, symbol]
+      );
+  
+      setTooltipStates((prev) => ({
+        ...prev,
+        [symbol]: isAlreadyInWatchlist ? "Removed from watchlist" : "Added to watchlist",
+      }));
+  
+      setTimeout(() => {
+        setTooltipStates((prev) => ({ ...prev, [symbol]: null }));
+      }, 2000);
+    } catch (error) {
+      console.error("Watchlist update error:", error);
+    }
+  };
+  
+
   return (
     <div className="stock-listing-page">
       <Navbar />
@@ -328,7 +388,10 @@ const StockListingPage = () => {
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
-                  <Button variant="outline-secondary" onClick={() => setSearchQuery('')}>
+                  <Button
+                    variant="outline-secondary"
+                    onClick={() => setSearchQuery("")}
+                  >
                     <i className="bi bi-x"></i>
                   </Button>
                   <Button variant="outline-primary">
@@ -342,7 +405,7 @@ const StockListingPage = () => {
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
                 >
-                  {STOCK_CATEGORIES.map(category => (
+                  {STOCK_CATEGORIES.map((category) => (
                     <option key={category.value} value={category.value}>
                       {category.label}
                     </option>
@@ -351,15 +414,22 @@ const StockListingPage = () => {
               </Col>
 
               <Col lg={3} md={6} className="d-flex justify-content-md-end">
-                <Button 
-                  variant="primary" 
+                <Button
+                  variant="primary"
                   onClick={handleRefresh}
                   disabled={refreshing}
                   className="w-100 w-md-auto"
                 >
                   {refreshing ? (
                     <>
-                      <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                      <Spinner
+                        as="span"
+                        animation="border"
+                        size="sm"
+                        role="status"
+                        aria-hidden="true"
+                        className="me-2"
+                      />
                       Refreshing...
                     </>
                   ) : (
@@ -371,35 +441,76 @@ const StockListingPage = () => {
                 </Button>
               </Col>
             </Row>
-            
+
             <Row className="mb-3">
               <Col>
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
-                    Showing {indexOfFirstStock + 1} - {Math.min(indexOfLastStock, filteredStocks.length)} of {filteredStocks.length} stocks
+                    Showing {indexOfFirstStock + 1} -{" "}
+                    {Math.min(indexOfLastStock, filteredStocks.length)} of{" "}
+                    {filteredStocks.length} stocks
                   </div>
                   <div>
                     <Dropdown className="d-inline-block">
-                      <Dropdown.Toggle variant="light" id="dropdown-sort-by" size="sm">
-                        Sort By: {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)}
+                      <Dropdown.Toggle
+                        variant="light"
+                        id="dropdown-sort-by"
+                        size="sm"
+                      >
+                        Sort By:{" "}
+                        {sortBy.charAt(0).toUpperCase() + sortBy.slice(1)}
                       </Dropdown.Toggle>
                       <Dropdown.Menu>
-                        <Dropdown.Item onClick={() => setSortBy('symbol')} active={sortBy === 'symbol'}>Symbol</Dropdown.Item>
-                        <Dropdown.Item onClick={() => setSortBy('name')} active={sortBy === 'name'}>Company Name</Dropdown.Item>
-                        <Dropdown.Item onClick={() => setSortBy('price')} active={sortBy === 'price'}>Price</Dropdown.Item>
-                        <Dropdown.Item onClick={() => setSortBy('percentChange')} active={sortBy === 'percentChange'}>% Change</Dropdown.Item>
-                        <Dropdown.Item onClick={() => setSortBy('marketCap')} active={sortBy === 'marketCap'}>Market Cap</Dropdown.Item>
-                        <Dropdown.Item onClick={() => setSortBy('volume')} active={sortBy === 'volume'}>Volume</Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => setSortBy("symbol")}
+                          active={sortBy === "symbol"}
+                        >
+                          Symbol
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => setSortBy("name")}
+                          active={sortBy === "name"}
+                        >
+                          Company Name
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => setSortBy("price")}
+                          active={sortBy === "price"}
+                        >
+                          Price
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => setSortBy("percentChange")}
+                          active={sortBy === "percentChange"}
+                        >
+                          % Change
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => setSortBy("marketCap")}
+                          active={sortBy === "marketCap"}
+                        >
+                          Market Cap
+                        </Dropdown.Item>
+                        <Dropdown.Item
+                          onClick={() => setSortBy("volume")}
+                          active={sortBy === "volume"}
+                        >
+                          Volume
+                        </Dropdown.Item>
                       </Dropdown.Menu>
                     </Dropdown>
 
-                    <Button 
-                      variant="light" 
-                      size="sm" 
-                      onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
+                    <Button
+                      variant="light"
+                      size="sm"
+                      onClick={() =>
+                        setSortDirection(
+                          sortDirection === "asc" ? "desc" : "asc"
+                        )
+                      }
                       className="ms-2"
                     >
-                      {sortDirection === 'asc' ? (
+                      {sortDirection === "asc" ? (
                         <i className="bi bi-sort-up"></i>
                       ) : (
                         <i className="bi bi-sort-down"></i>
@@ -420,69 +531,159 @@ const StockListingPage = () => {
                 <Table hover>
                   <thead>
                     <tr>
-                      <th className="cursor-pointer" onClick={() => handleSort('symbol')}>
-                        Symbol {sortBy === 'symbol' && (
-                          <i className={`bi bi-caret-${sortDirection === 'asc' ? 'up' : 'down'}-fill ms-1`}></i>
+                      <th
+                        className="cursor-pointer"
+                        onClick={() => handleSort("symbol")}
+                      >
+                        Symbol{" "}
+                        {sortBy === "symbol" && (
+                          <i
+                            className={`bi bi-caret-${
+                              sortDirection === "asc" ? "up" : "down"
+                            }-fill ms-1`}
+                          ></i>
                         )}
                       </th>
-                      <th className="cursor-pointer" onClick={() => handleSort('name')}>
-                        Name {sortBy === 'name' && (
-                          <i className={`bi bi-caret-${sortDirection === 'asc' ? 'up' : 'down'}-fill ms-1`}></i>
+                      <th
+                        className="cursor-pointer"
+                        onClick={() => handleSort("name")}
+                      >
+                        Name{" "}
+                        {sortBy === "name" && (
+                          <i
+                            className={`bi bi-caret-${
+                              sortDirection === "asc" ? "up" : "down"
+                            }-fill ms-1`}
+                          ></i>
                         )}
                       </th>
-                      <th className="cursor-pointer text-end" onClick={() => handleSort('price')}>
-                        Price {sortBy === 'price' && (
-                          <i className={`bi bi-caret-${sortDirection === 'asc' ? 'up' : 'down'}-fill ms-1`}></i>
+                      <th
+                        className="cursor-pointer text-end"
+                        onClick={() => handleSort("price")}
+                      >
+                        Price{" "}
+                        {sortBy === "price" && (
+                          <i
+                            className={`bi bi-caret-${
+                              sortDirection === "asc" ? "up" : "down"
+                            }-fill ms-1`}
+                          ></i>
                         )}
                       </th>
-                      <th className="cursor-pointer text-end" onClick={() => handleSort('percentChange')}>
-                        Change {sortBy === 'percentChange' && (
-                          <i className={`bi bi-caret-${sortDirection === 'asc' ? 'up' : 'down'}-fill ms-1`}></i>
+                      <th
+                        className="cursor-pointer text-end"
+                        onClick={() => handleSort("percentChange")}
+                      >
+                        Change{" "}
+                        {sortBy === "percentChange" && (
+                          <i
+                            className={`bi bi-caret-${
+                              sortDirection === "asc" ? "up" : "down"
+                            }-fill ms-1`}
+                          ></i>
                         )}
                       </th>
-                      <th className="cursor-pointer" onClick={() => handleSort('sector')}>
-                        Sector {sortBy === 'sector' && (
-                          <i className={`bi bi-caret-${sortDirection === 'asc' ? 'up' : 'down'}-fill ms-1`}></i>
+                      <th
+                        className="cursor-pointer"
+                        onClick={() => handleSort("sector")}
+                      >
+                        Sector{" "}
+                        {sortBy === "sector" && (
+                          <i
+                            className={`bi bi-caret-${
+                              sortDirection === "asc" ? "up" : "down"
+                            }-fill ms-1`}
+                          ></i>
                         )}
                       </th>
-                      <th className="cursor-pointer text-end" onClick={() => handleSort('marketCap')}>
-                        Market Cap {sortBy === 'marketCap' && (
-                          <i className={`bi bi-caret-${sortDirection === 'asc' ? 'up' : 'down'}-fill ms-1`}></i>
+                      <th
+                        className="cursor-pointer text-end"
+                        onClick={() => handleSort("marketCap")}
+                      >
+                        Market Cap{" "}
+                        {sortBy === "marketCap" && (
+                          <i
+                            className={`bi bi-caret-${
+                              sortDirection === "asc" ? "up" : "down"
+                            }-fill ms-1`}
+                          ></i>
                         )}
                       </th>
-                      <th className="cursor-pointer text-end" onClick={() => handleSort('volume')}>
-                        Volume {sortBy === 'volume' && (
-                          <i className={`bi bi-caret-${sortDirection === 'asc' ? 'up' : 'down'}-fill ms-1`}></i>
+                      <th
+                        className="cursor-pointer text-end"
+                        onClick={() => handleSort("volume")}
+                      >
+                        Volume{" "}
+                        {sortBy === "volume" && (
+                          <i
+                            className={`bi bi-caret-${
+                              sortDirection === "asc" ? "up" : "down"
+                            }-fill ms-1`}
+                          ></i>
                         )}
                       </th>
                       <th className="text-center">Actions</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {currentStocks.map(stock => (
+                    {currentStocks.map((stock) => (
                       <tr key={stock.symbol}>
                         <td>
-                          <Link to={`/stock-analysis/${stock.symbol}`} className="fw-bold text-decoration-none">
+                          <Link
+                            to={`/stock-analysis/${stock.symbol}`}
+                            className="fw-bold text-decoration-none"
+                          >
                             {stock.symbol}
                           </Link>
                         </td>
                         <td>{stock.name}</td>
                         <td className="text-end">${stock.price.toFixed(2)}</td>
-                        <td className={`text-end ${stock.percentChange >= 0 ? 'text-success' : 'text-danger'}`}>
-                          {stock.percentChange >= 0 ? '+' : ''}{stock.percentChange.toFixed(2)}%
+                        <td
+                          className={`text-end ${
+                            stock.percentChange >= 0
+                              ? "text-success"
+                              : "text-danger"
+                          }`}
+                        >
+                          {stock.percentChange >= 0 ? "+" : ""}
+                          {stock.percentChange.toFixed(2)}%
                         </td>
                         <td>
-                          <Badge bg="light" text="dark">{stock.sector}</Badge>
+                          <Badge bg="light" text="dark">
+                            {stock.sector}
+                          </Badge>
                         </td>
-                        <td className="text-end">{formatCurrency(stock.marketCap * 1000000)}</td>
-                        <td className="text-end">{formatVolume(stock.volume)}</td>
+                        <td className="text-end">
+                          {formatCurrency(stock.marketCap * 1000000)}
+                        </td>
+                        <td className="text-end">
+                          {formatVolume(stock.volume)}
+                        </td>
                         <td className="text-center">
-                          <Link to={`/stock-analysis/${stock.symbol}`} className="btn btn-sm btn-primary me-2">
+                          <Link
+                            to={`/stock-analysis/${stock.symbol}`}
+                            className="btn btn-sm btn-primary me-2"
+                          >
                             <i className="bi bi-graph-up"></i> Chart
                           </Link>
-                          <Button variant="outline-secondary" size="sm">
-                            <i className="bi bi-star"></i>
-                          </Button>
+                          <OverlayTrigger
+                                placement="top"
+                                overlay={
+                                  tooltipStates[stock.symbol] ? (
+                                    <Tooltip id={`tooltip-${stock.symbol}`}>
+                                      {tooltipStates[stock.symbol]}
+                                    </Tooltip>
+                                  ) : <></>
+                                }
+                              >
+                                <Button
+                                  variant={watchlist.includes(stock.symbol) ? "warning" : "outline-secondary"}
+                                  size="sm"
+                                  onClick={() => handleAddWatchlist(stock.symbol)}
+                                >
+                                  <i className={`bi ${watchlist.includes(stock.symbol) ? "bi-star-fill" : "bi-star"}`}></i>
+                                </Button>
+                          </OverlayTrigger>
                         </td>
                       </tr>
                     ))}
@@ -491,29 +692,30 @@ const StockListingPage = () => {
               </div>
             ) : (
               <Alert variant="info">
-                No stocks match your search criteria. Please try a different search or filter.
+                No stocks match your search criteria. Please try a different
+                search or filter.
               </Alert>
             )}
-            
+
             {/* Pagination */}
             {!loading && currentStocks.length > 0 && (
               <div className="d-flex justify-content-center mt-4">
                 <Pagination>
-                  <Pagination.First 
-                    onClick={() => paginate(1)} 
+                  <Pagination.First
+                    onClick={() => paginate(1)}
                     disabled={currentPage === 1}
                   />
-                  <Pagination.Prev 
-                    onClick={() => paginate(currentPage - 1)} 
+                  <Pagination.Prev
+                    onClick={() => paginate(currentPage - 1)}
                     disabled={currentPage === 1}
                   />
                   {paginationItems}
-                  <Pagination.Next 
-                    onClick={() => paginate(currentPage + 1)} 
+                  <Pagination.Next
+                    onClick={() => paginate(currentPage + 1)}
                     disabled={currentPage === totalPages}
                   />
-                  <Pagination.Last 
-                    onClick={() => paginate(totalPages)} 
+                  <Pagination.Last
+                    onClick={() => paginate(totalPages)}
                     disabled={currentPage === totalPages}
                   />
                 </Pagination>
@@ -528,24 +730,29 @@ const StockListingPage = () => {
               <Card className="shadow-sm h-100">
                 <Card.Body>
                   <Card.Title>Market Movers</Card.Title>
-                  <Card.Subtitle className="mb-3 text-muted">Top gainers and losers today</Card.Subtitle>
+                  <Card.Subtitle className="mb-3 text-muted">
+                    Top gainers and losers today
+                  </Card.Subtitle>
                   <div className="mt-3">
                     <h6>Top Gainers</h6>
                     <Table size="sm">
                       <tbody>
                         {stocks
-                          .filter(stock => stock.percentChange > 0)
+                          .filter((stock) => stock.percentChange > 0)
                           .sort((a, b) => b.percentChange - a.percentChange)
                           .slice(0, 5)
-                          .map(stock => (
+                          .map((stock) => (
                             <tr key={`gainer-${stock.symbol}`}>
                               <td width="15%">{stock.symbol}</td>
                               <td>{stock.name}</td>
-                              <td className="text-end text-success">+{stock.percentChange.toFixed(2)}%</td>
-                              <td className="text-end">${stock.price.toFixed(2)}</td>
+                              <td className="text-end text-success">
+                                +{stock.percentChange.toFixed(2)}%
+                              </td>
+                              <td className="text-end">
+                                ${stock.price.toFixed(2)}
+                              </td>
                             </tr>
-                          ))
-                        }
+                          ))}
                       </tbody>
                     </Table>
                   </div>
@@ -554,18 +761,21 @@ const StockListingPage = () => {
                     <Table size="sm">
                       <tbody>
                         {stocks
-                          .filter(stock => stock.percentChange < 0)
+                          .filter((stock) => stock.percentChange < 0)
                           .sort((a, b) => a.percentChange - b.percentChange)
                           .slice(0, 5)
-                          .map(stock => (
+                          .map((stock) => (
                             <tr key={`loser-${stock.symbol}`}>
                               <td width="15%">{stock.symbol}</td>
                               <td>{stock.name}</td>
-                              <td className="text-end text-danger">{stock.percentChange.toFixed(2)}%</td>
-                              <td className="text-end">${stock.price.toFixed(2)}</td>
+                              <td className="text-end text-danger">
+                                {stock.percentChange.toFixed(2)}%
+                              </td>
+                              <td className="text-end">
+                                ${stock.price.toFixed(2)}
+                              </td>
                             </tr>
-                          ))
-                        }
+                          ))}
                       </tbody>
                     </Table>
                   </div>
@@ -576,7 +786,9 @@ const StockListingPage = () => {
               <Card className="shadow-sm h-100">
                 <Card.Body>
                   <Card.Title>Market Sectors</Card.Title>
-                  <Card.Subtitle className="mb-3 text-muted">Performance by sector</Card.Subtitle>
+                  <Card.Subtitle className="mb-3 text-muted">
+                    Performance by sector
+                  </Card.Subtitle>
 
                   <div className="mt-3">
                     <Table size="sm">
@@ -588,23 +800,41 @@ const StockListingPage = () => {
                         </tr>
                       </thead>
                       <tbody>
-                        {STOCK_CATEGORIES.slice(1).map(category => {
-                          const sectorStocks = stocks.filter(stock => 
-                            stock.sector.toLowerCase().includes(category.value.toLowerCase())
+                        {STOCK_CATEGORIES.slice(1).map((category) => {
+                          const sectorStocks = stocks.filter((stock) =>
+                            stock.sector
+                              .toLowerCase()
+                              .includes(category.value.toLowerCase())
                           );
-                          
+
                           if (sectorStocks.length === 0) return null;
-                          
-                          const avgChange = sectorStocks.reduce((sum, stock) => sum + stock.percentChange, 0) / sectorStocks.length;
-                          const totalMarketCap = sectorStocks.reduce((sum, stock) => sum + stock.marketCap, 0);
-                          
+
+                          const avgChange =
+                            sectorStocks.reduce(
+                              (sum, stock) => sum + stock.percentChange,
+                              0
+                            ) / sectorStocks.length;
+                          const totalMarketCap = sectorStocks.reduce(
+                            (sum, stock) => sum + stock.marketCap,
+                            0
+                          );
+
                           return (
                             <tr key={category.value}>
                               <td>{category.label}</td>
-                              <td className={`text-end ${avgChange >= 0 ? 'text-success' : 'text-danger'}`}>
-                                {avgChange >= 0 ? '+' : ''}{avgChange.toFixed(2)}%
+                              <td
+                                className={`text-end ${
+                                  avgChange >= 0
+                                    ? "text-success"
+                                    : "text-danger"
+                                }`}
+                              >
+                                {avgChange >= 0 ? "+" : ""}
+                                {avgChange.toFixed(2)}%
                               </td>
-                              <td className="text-end">{formatCurrency(totalMarketCap * 1000000)}</td>
+                              <td className="text-end">
+                                {formatCurrency(totalMarketCap * 1000000)}
+                              </td>
                             </tr>
                           );
                         })}
