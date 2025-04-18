@@ -31,6 +31,33 @@ const UserDetailsModal = ({
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
   
+  // Get badge properties based on verification status
+  const getStatusBadge = (status) => {
+    switch (status) {
+      case 'approved':
+        return {
+          bg: 'success',
+          text: 'Approved',
+          style: { backgroundColor: 'var(--accent)' }
+        };
+      case 'rejected':
+        return {
+          bg: 'danger',
+          text: 'Rejected',
+          style: { backgroundColor: 'var(--danger)' }
+        };
+      case 'pending':
+      default:
+        return {
+          bg: 'warning',
+          text: 'Pending',
+          style: { backgroundColor: 'var(--warning, #ffc107)' }
+        };
+    }
+  };
+  
+  const badge = getStatusBadge(user.verified);
+  
   return (
     <Modal
       show={show}
@@ -85,12 +112,10 @@ const UserDetailsModal = ({
             <h4 className="mt-3 mb-1" style={{ color: 'var(--textPrimary)' }}>{user.fullName}</h4>
             <Badge 
               pill
-              bg={user.verified ? 'success' : 'warning'}
-              style={{ 
-                backgroundColor: user.verified ? 'var(--accent)' : 'var(--warning, #ffc107)'
-              }}
+              bg={badge.bg}
+              style={badge.style}
             >
-              {user.verified ? 'Approved' : 'Pending'}
+              {badge.text}
             </Badge>
           </Col>
           
@@ -167,7 +192,7 @@ const UserDetailsModal = ({
         )}
         
         {/* Verification Actions Section - Only show for pending users */}
-        {!user.verified && (
+        {user.verified === 'pending' && (
           <>
             <h5 
               style={{ 
@@ -218,7 +243,7 @@ const UserDetailsModal = ({
         </Button>
         
         {/* Show approve/reject buttons only for pending users */}
-        {!user.verified && onApprove && (
+        {user.verified === 'pending' && onApprove && (
           <Button 
             variant="success"
             onClick={() => onApprove(verificationNote)}
@@ -232,7 +257,7 @@ const UserDetailsModal = ({
           </Button>
         )}
         
-        {!user.verified && onReject && (
+        {user.verified === 'pending' && onReject && (
           <Button 
             variant="danger"
             onClick={() => onReject(verificationNote)}
@@ -246,8 +271,8 @@ const UserDetailsModal = ({
           </Button>
         )}
         
-        {/* Show re-verify button only for already verified users */}
-        {user.verified && onReverify && (
+        {/* Show reset button for non-pending users */}
+        {user.verified !== 'pending' && onReverify && (
           <Button 
             variant="primary"
             onClick={onReverify}
@@ -257,7 +282,7 @@ const UserDetailsModal = ({
             }}
           >
             <i className="bi bi-arrow-repeat me-1"></i>
-            Re-verify
+            Reset to Pending
           </Button>
         )}
       </Modal.Footer>

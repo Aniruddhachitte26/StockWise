@@ -111,51 +111,93 @@ const getUserDetails = async (req, res) => {
 
 
 // backend/controllers/userController.js - Update the updateUserDetails function
-
-const updateUserDetails = async(req, res) =>{
-	console.log("updateUserDetails called with req.body:", req.body);
+const updateUserDetails = async(req, res) => {
+	// Enhanced logging
+	console.log("=====================================================");
+	console.log("🔍 updateUserDetails called with req.body:", JSON.stringify(req.body, null, 2));
+	console.log("=====================================================");
+	
 	const { fullName, email, phone, address, _id, verified } = req.body;
   
 	try {
+	  // Find the user
 	  const user = await User.findById(_id);
-	  if (!user) return res.status(404).json({ message: "User not found" });
+	  if (!user) {
+		console.log("❌ User not found with ID:", _id);
+		return res.status(404).json({ message: "User not found" });
+	  }
+	  
+	  console.log("✅ Found user:", user.fullName, "Current verification status:", user.verified);
   
-	  // Update basic profile fields if provided
-	  if (fullName !== undefined) user.fullName = fullName;
+	  // Update fields
+	  let updates = [];
+	  
+	  if (fullName !== undefined && fullName !== user.fullName) {
+		user.fullName = fullName;
+		updates.push(`fullName: ${user.fullName}`);
+	  }
+	  
 	  if (email !== undefined && email !== user.email) {
-		// Check if email is already in use by another user
+		// Check if email is already in use
 		const existingUser = await User.findOne({ email });
 		if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+		  console.log("❌ Email already in use:", email);
 		  return res.status(400).json({ message: "Email already in use" });
 		}
 		user.email = email;
+		updates.push(`email: ${user.email}`);
 	  }
-	  if (phone !== undefined) user.phone = phone;
-	  if (address !== undefined) user.address = address;
 	  
-	  // Handle verification status update
-	  if (verified !== undefined) {
-		console.log(`Updating user ${user._id} verification status to ${verified}`);
-		user.verified = verified;
+	  if (phone !== undefined && phone !== user.phone) {
+		user.phone = phone;
+		updates.push(`phone: ${user.phone}`);
+	  }
+	  
+	  if (address !== undefined && address !== user.address) {
+		user.address = address;
+		updates.push(`address: ${user.address}`);
+	  }
+	  
+	  // Handle verification status update - now using string values
+	  if (verified !== undefined && verified !== user.verified) {
+		// Make sure verified is one of the allowed values
+		if (["pending", "approved", "rejected"].includes(verified)) {
+		  console.log(`🔄 Updating verification status from ${user.verified} to ${verified}`);
+		  user.verified = verified;
+		  updates.push(`verified: ${user.verified}`);
+		} else {
+		  console.log(`❌ Invalid verification status: ${verified}`);
+		  return res.status(400).json({ 
+			message: "Invalid verification status. Must be 'pending', 'approved', or 'rejected'." 
+		  });
+		}
+	  }
+	  
+	  if (updates.length === 0) {
+		console.log("⚠️ No changes detected");
+	  } else {
+		console.log(`🔄 Updates to be applied:`, updates.join(', '));
 	  }
   
-	  await user.save();
-	  console.log(`User ${user._id} updated successfully. Verified status: ${user.verified}`);
+	  // Save user changes
+	  const savedUser = await user.save();
+	  console.log("✅ User saved successfully. New verification status:", savedUser.verified);
   
+	  // Send response
 	  res.status(200).json({
 		message: "Profile updated successfully",
 		user: {
-		  _id: user._id,
-		  fullName: user.fullName,
-		  email: user.email,
-		  phone: user.phone,
-		  address: user.address,
-		  verified: user.verified,
-		  updatedAt: user.updatedAt,
+		  _id: savedUser._id,
+		  fullName: savedUser.fullName,
+		  email: savedUser.email,
+		  phone: savedUser.phone,
+		  address: savedUser.address,
+		  verified: savedUser.verified,
+		  updatedAt: savedUser.updatedAt,
 		},
 	  });
 	} catch (error) {
-	  console.error("Error updating profile:", error);
+	  console.error("❌ Error updating profile:", error);
 	  res.status(500).json({ message: "Internal server error" });
 	}
   }
