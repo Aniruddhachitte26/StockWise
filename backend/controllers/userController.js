@@ -201,10 +201,62 @@ const updateUserDetails = async(req, res) => {
 	  res.status(500).json({ message: "Internal server error" });
 	}
   }
+
+  const uploadProofDocument = async (req, res) => {
+	try {
+	  // Get user ID from the request
+	  const { userId, proofType } = req.body;
+  
+	  if (!userId || !proofType) {
+		return res.status(400).json({ 
+		  error: "User ID and document type are required." 
+		});
+	  }
+  
+	  // Valid proof types
+	  const validProofTypes = ["driving license", "passport"];
+	  if (!validProofTypes.includes(proofType)) {
+		return res.status(400).json({ 
+		  error: "Invalid document type. Must be 'driving license' or 'passport'." 
+		});
+	  }
+  
+	  // Check if user exists
+	  const user = await User.findById(userId);
+	  if (!user) {
+		return res.status(404).json({ error: "User not found." });
+	  }
+  
+	  // Make sure file was uploaded
+	  if (!req.file) {
+		return res.status(400).json({ error: "No document file provided." });
+	  }
+  
+	  // Update user with document path
+	  const filePath = `/images/${req.file.filename}`;
+	  user.proof = req.file.filename;
+	  user.proofType = proofType;
+  
+	  await user.save();
+  
+	  return res.status(201).json({
+		message: "Document uploaded successfully.",
+		proof: user.proof,
+		proofType: user.proofType
+	  });
+	} catch (error) {
+	  console.error("Error uploading document:", error);
+	  return res.status(500).json({
+		error: "Server error. Failed to upload document."
+	  });
+	}
+  };
+  
 module.exports = {
 	updateUser,
 	deleteUser,
 	getAllUsers,
 	getUserDetails,
-	updateUserDetails
+	updateUserDetails,
+	uploadProofDocument
 };

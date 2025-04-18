@@ -55,5 +55,18 @@ router.post(
 	},
 	imageController.uploadImage
 );
+router.post(
+	"/uploadProof",
+	authenticateUser,
+	(req, res, next) => {
+	  upload.single("proof")(req, res, (err) => {
+		if (err) {
+		  return res.status(400).json({ error: err.message });
+		}
+		next();
+	  });
+	},
+	userController.uploadProofDocument
+  );
 
 module.exports = router;
