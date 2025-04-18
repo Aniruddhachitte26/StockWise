@@ -26,6 +26,12 @@ import UsersManagementPage from './components/admin/UsersManagementPage';
 import UserVerificationPage from './components/admin/UserVerificationPage';
 import StocksManagementPage from './components/admin/StocksManagementPage';
 
+// --- Broker Page Imports ---
+import BrokerDashboardPage from './pages/BrokerDashboard/BrokerDashboardPage';
+import ClientsManagementPage from './pages/BrokerDashboard/ClientsManagementPage';
+import TransactionsPage from './pages/BrokerDashboard/TransactionsPage';
+import BrokerRegisterPage from './pages/BrokerRegisterPage';
+
 // Stock Analysis Pages
 import StockAnalysisPage, {
     StockAnalysisTabsPage,
@@ -91,6 +97,38 @@ const AdminRoute = ({ children }) => {
     return children;
 };
 
+// Broker route component with role check
+// BrokerRoute component with context-based auth
+const BrokerRoute = ({ children }) => {
+    // Use your context-based auth hook instead of Redux
+    const { isAuthenticated, currentUser, loading } = useAuth();
+    const location = useLocation();
+
+    console.log(`BrokerRoute Check: Loading=${loading}, IsAuth=${isAuthenticated}, UserType=${currentUser?.type}`);
+
+    // Handle loading state from context
+    if (loading) {
+        console.log("BrokerRoute: Auth status loading");
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>;
+    }
+
+    // If not authenticated, redirect to login
+    if (!isAuthenticated) {
+        console.log("BrokerRoute: Not authenticated, redirecting to login.");
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+
+    // Check if the authenticated user is a broker
+    if (currentUser?.type !== 'broker') {
+        console.log("BrokerRoute: User is not broker, redirecting to user dashboard.");
+        return <Navigate to="/dashboard" replace />;
+    }
+
+    // If authenticated and is a broker, render the child component
+    console.log("BrokerRoute: Authenticated and Broker, rendering children.");
+    return children;
+};
+
 // --- Component for defining routes ---
 const AppRoutes = () => {
     return (
@@ -100,6 +138,7 @@ const AppRoutes = () => {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/broker-register" element={<BrokerRegisterPage />} />
                 <Route path="/stocks/:symbol" element={<StockDetailPage />} />
                 <Route path="/about" element={<About />} />
 
@@ -179,10 +218,42 @@ const AppRoutes = () => {
                     }
                 />
 
+                {/* Broker Routes */}
+                <Route
+                    path="/broker/dashboard"
+                    element={
+                        <BrokerRoute>
+                            <BrokerDashboardPage />
+                        </BrokerRoute>
+                    }
+                />
+                <Route
+                    path="/broker/clients"
+                    element={
+                        <BrokerRoute>
+                            <ClientsManagementPage />
+                        </BrokerRoute>
+                    }
+                />
+                <Route
+                    path="/broker/transactions"
+                    element={
+                        <BrokerRoute>
+                            <TransactionsPage />
+                        </BrokerRoute>
+                    }
+                />
+
                 {/* Redirect to admin dashboard if admin accesses /dashboard */}
                 <Route
                     path="/admin"
                     element={<Navigate to="/admin/dashboard" replace />}
+                />
+
+                {/* Redirect to broker dashboard if broker accesses /broker */}
+                <Route
+                    path="/broker"
+                    element={<Navigate to="/broker/dashboard" replace />}
                 />
 
                 {/* Fallback */}

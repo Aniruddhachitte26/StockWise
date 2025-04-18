@@ -38,6 +38,11 @@ const styles = {
     overflowX: 'hidden',
     backgroundColor: '#212529',
     color: 'white'
+  },
+  brokerSection: {
+    background: 'linear-gradient(135deg, #5e35b1 0%, #3949ab 100%)',
+    padding: '4rem 0',
+    color: 'white'
   }
 };
 
@@ -195,41 +200,92 @@ const HomePage = () => {
         </div>
       </div>
 
-{/* Top Stocks Section */}
-<div style={styles.fullWidthSection}>
-  <div style={styles.fullWidth}>
-    <h2 className="text-center mb-4">Top Stocks</h2>
-    {loading && !topStocks.length ? (
-      <div className="text-center py-5">
-        <Loader />
-        <p className="mt-3">Loading top stocks data...</p>
-      </div>
-    ) : error && !topStocks.length ? (
-      <Alert variant="warning" className="mb-4">
-        {error}
-      </Alert>
-    ) : topStocks && topStocks.length > 0 ? (
-      <>
-        <Row>
-          {topStocks.map(stock => (
-            <Col key={stock.symbol} lg={4} md={6} className="mb-4">
-              <StockCard stock={stock} />
-            </Col>
-          ))}
-        </Row>
-        <div className="text-center mt-4">
-          <Link to="/stocks">
-            <Button variant="primary">View All Stocks</Button>
-          </Link>
+      {/* Top Stocks Section */}
+      <div style={styles.fullWidthSection}>
+        <div style={styles.fullWidth}>
+          <h2 className="text-center mb-4">Top Stocks</h2>
+          {loading && !topStocks.length ? (
+            <div className="text-center py-5">
+              <Loader />
+              <p className="mt-3">Loading top stocks data...</p>
+            </div>
+          ) : error && !topStocks.length ? (
+            <Alert variant="warning" className="mb-4">
+              {error}
+            </Alert>
+          ) : topStocks && topStocks.length > 0 ? (
+            <>
+              <Row>
+                {topStocks.map(stock => (
+                  <Col key={stock.symbol} lg={4} md={6} className="mb-4">
+                    <StockCard stock={stock} />
+                  </Col>
+                ))}
+              </Row>
+              <div className="text-center mt-4">
+                <Link to="/stocks">
+                  <Button variant="primary">View All Stocks</Button>
+                </Link>
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-5">
+              <p>No stock data available.</p>
+            </div>
+          )}
         </div>
-      </>
-    ) : (
-      <div className="text-center py-5">
-        <p>No stock data available.</p>
       </div>
-    )}
-  </div>
-</div>
+
+      {/* Broker Section (New) */}
+      <div style={styles.brokerSection}>
+        <div style={styles.fullWidth}>
+          <Row className="align-items-center">
+            <Col lg={6} className="mb-4 mb-lg-0">
+              <h2 className="display-5 fw-bold mb-4">Are You a Licensed Broker?</h2>
+              <p className="lead mb-4">Join our platform as a broker and help investors make informed trading decisions.</p>
+              <ul className="list-unstyled mb-4">
+                <li className="mb-3">
+                  <i className="bi bi-check-circle-fill me-2 text-light"></i>
+                  Manage client accounts and approve transactions
+                </li>
+                <li className="mb-3">
+                  <i className="bi bi-check-circle-fill me-2 text-light"></i>
+                  Access real-time market data and analytics tools
+                </li>
+                <li className="mb-3">
+                  <i className="bi bi-check-circle-fill me-2 text-light"></i>
+                  Build your client base through our platform
+                </li>
+                <li className="mb-3">
+                  <i className="bi bi-check-circle-fill me-2 text-light"></i>
+                  Secure and compliant transaction processing
+                </li>
+              </ul>
+              <Link to="/broker-register">
+                <Button variant="light" size="lg" className="px-4">Register as a Broker</Button>
+              </Link>
+            </Col>
+            <Col lg={6}>
+              <div className="p-4 bg-white rounded shadow">
+                <h3 className="text-center text-dark mb-4">Broker Dashboard Preview</h3>
+                <img 
+                  src="images/broker-dashboard-preview.png" 
+                  alt="Broker Dashboard Preview" 
+                  className="img-fluid rounded shadow-sm"
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/600x350?text=Broker+Dashboard+Preview';
+                  }}
+                />
+                <div className="text-center mt-3 text-dark">
+                  <p className="mb-0"><strong>Powerful tools for professional brokers</strong></p>
+                  <p className="text-muted small">Monitor client portfolios, manage transactions, and grow your business</p>
+                </div>
+              </div>
+            </Col>
+          </Row>
+        </div>
+      </div>
 
       {/* Features Section */}
       <div style={{...styles.fullWidthSection, background: "#f8f9fa"}}>
@@ -311,9 +367,16 @@ const HomePage = () => {
         <div style={styles.fullWidth}>
           <h2 className="mb-4">Ready to Start Trading?</h2>
           <p className="lead mb-4">Join thousands of successful traders on StockWise today!</p>
-          <Link to="/register">
-            <Button variant="primary" size="lg">Create Your Free Account</Button>
-          </Link>
+          <Row className="justify-content-center">
+            <Col md={6} className="d-flex justify-content-center gap-3">
+              <Link to="/register">
+                <Button variant="primary" size="lg">Create User Account</Button>
+              </Link>
+              <Link to="/broker-register">
+                <Button variant="outline-light" size="lg">Register as Broker</Button>
+              </Link>
+            </Col>
+          </Row>
         </div>
       </div>
 

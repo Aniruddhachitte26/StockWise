@@ -5,6 +5,8 @@ const connectDB = require("./config/db");
 const userRoutes = require("./routes/userRoutes");
 const authRoutes = require("./routes/authRoutes");
 const marketRoutes = require("./routes/marketRoutes")
+const brokerRoutes = require("./routes/brokerRoutes");
+
 
 const chatbotRoutes = require("./routes/chatbotRoutes");
 const swaggerUi = require("swagger-ui-express");
@@ -42,6 +44,7 @@ app.use("/auth", authRoutes);
 app.use("/summary", chatbotRoutes);
 app.use("/market", marketRoutes);
 app.use("/stocks", stockRoutes);
+app.use("/broker", brokerRoutes);
 // Default route
 app.get("/", (req, res) => {
 	res.send("Hello from the server...!");
@@ -52,6 +55,11 @@ app.use((err, req, res, next) => {
 	console.error(err.stack);
 	res.status(500).json({ error: "Server error" });
 });
+
+// Add this line with your other route imports in server.js
+
+// Then add this line with your other app.use routes
+
 // backend/server.js
 // Add this to your existing server.js imports
 
