@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Modal, Button, Badge, Row, Col, Table, Form } from 'react-bootstrap';
-import { useTheme } from '../common/themeProvider';
+import { useTheme } from '../common/ThemeProvider';
 
 const UserDetailsModal = ({ 
   user, 
