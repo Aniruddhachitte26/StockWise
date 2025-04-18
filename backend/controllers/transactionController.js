@@ -14,7 +14,7 @@ const addTransaction = async (req, res) => {
 
     if (!userPortfolio) {
       userPortfolio = new Portfolio({
-        userId: mongoose.Types.ObjectId(userId),
+        userId: new mongoose.Types.ObjectId(userId),
         stocks: [],
         wallet: 25000,
         investmentFund: 0
