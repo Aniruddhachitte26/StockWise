@@ -80,7 +80,7 @@ const getAllUsers = async (req, res) => {
 	try {
 		// Update the select method to exclude the password field by using "-password"
 		const users = await User.find({}).select(
-			"fullName email type imagePath"
+			"fullName email type imagePath address phone dateOfBirth proof proofType verified createdAt updatedAt"
 		);
 
 		return res.status(200).json({ users });
@@ -110,45 +110,55 @@ const getUserDetails = async (req, res) => {
 };
 
 
+// backend/controllers/userController.js - Update the updateUserDetails function
+
 const updateUserDetails = async(req, res) =>{
-  console.log("req", req);
-  const { fullName, email, phone, address } = req.body;
-
-  try {
-    const user = await User.findById(req.body._id);
-    if (!user) return res.status(404).json({ message: "User not found" });
-
-
-    if (fullName !== undefined) user.fullName = fullName;
-    if (email !== undefined && email !== user.email) {
-    
-      const existingUser = await User.findOne({ email });
-      if (existingUser && existingUser._id.toString() !== user._id.toString()) {
-        return res.status(400).json({ message: "Email already in use" });
-      }
-      user.email = email;
-    }
-    if (phone !== undefined) user.phone = phone;
-    if (address !== undefined) user.address = address;
-
-    await user.save();
-
-    res.status(200).json({
-      message: "Profile updated successfully",
-      user: {
-        fullName: user.fullName,
-        email: user.email,
-        phone: user.phone,
-        address: user.address,
-        updatedAt: user.updatedAt,
-      },
-    });
-  } catch (error) {
-    console.error("Error updating profile:", error);
-    res.status(500).json({ message: "Internal server error" });
+	console.log("updateUserDetails called with req.body:", req.body);
+	const { fullName, email, phone, address, _id, verified } = req.body;
+  
+	try {
+	  const user = await User.findById(_id);
+	  if (!user) return res.status(404).json({ message: "User not found" });
+  
+	  // Update basic profile fields if provided
+	  if (fullName !== undefined) user.fullName = fullName;
+	  if (email !== undefined && email !== user.email) {
+		// Check if email is already in use by another user
+		const existingUser = await User.findOne({ email });
+		if (existingUser && existingUser._id.toString() !== user._id.toString()) {
+		  return res.status(400).json({ message: "Email already in use" });
+		}
+		user.email = email;
+	  }
+	  if (phone !== undefined) user.phone = phone;
+	  if (address !== undefined) user.address = address;
+	  
+	  // Handle verification status update
+	  if (verified !== undefined) {
+		console.log(`Updating user ${user._id} verification status to ${verified}`);
+		user.verified = verified;
+	  }
+  
+	  await user.save();
+	  console.log(`User ${user._id} updated successfully. Verified status: ${user.verified}`);
+  
+	  res.status(200).json({
+		message: "Profile updated successfully",
+		user: {
+		  _id: user._id,
+		  fullName: user.fullName,
+		  email: user.email,
+		  phone: user.phone,
+		  address: user.address,
+		  verified: user.verified,
+		  updatedAt: user.updatedAt,
+		},
+	  });
+	} catch (error) {
+	  console.error("Error updating profile:", error);
+	  res.status(500).json({ message: "Internal server error" });
+	}
   }
-}
-
 module.exports = {
 	updateUser,
 	deleteUser,
