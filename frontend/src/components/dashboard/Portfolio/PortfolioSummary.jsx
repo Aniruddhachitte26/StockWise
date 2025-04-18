@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from "recharts";
-
+import { useNavigate } from 'react-router-dom';
 import "./PortfolioSummary.css";
 import AppNavbar from "../../common/Navbar";
 
@@ -20,6 +20,12 @@ const PortfolioSummary = () => {
   const [errorMessage, setErrorMessage] = useState("");
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [hoveredStock, setHoveredStock] = useState(null);
+  const [transactionType, setTransactionType] = useState("all"); // all, buy, sell
+  const [timeRange, setTimeRange] = useState("all"); // all, week, month, year
+  const [totalGain, setTotalGain] = useState(0.0);
+  const [totalLoss, setTotalLoss] = useState(0.0);
+  const navigate = useNavigate();
+
 
   // Generate consistent colors for stocks
   const COLORS = ['#1E88E5', '#00ACC1', '#43A047', '#E53935', '#FF9800', '#9C27B0', '#3F51B5', '#F44336'];
@@ -31,6 +37,14 @@ const PortfolioSummary = () => {
   const formatPercentChange = (percent) => {
     return percent > 0 ? `+${percent.toFixed(2)}%` : `${percent.toFixed(2)}%`;
   };
+
+  const handleBuyStock = () => {
+    navigate("/stocks");
+  };
+
+  const handleStockDetailsNavigation = (symbol) =>{
+    navigate(`/stock-analysis/${symbol}?symbol=${symbol}`);
+  }
 
   const formatCurrency = (value) => {
     return new Intl.NumberFormat('en-US', { 
@@ -53,6 +67,11 @@ const PortfolioSummary = () => {
   const refreshPortfolio = () => {
     setRefreshTrigger(prev => prev + 1);
   };
+
+  useEffect(() =>{
+    console.log("totalGain, totalLoss")
+    console.log(totalGain, totalLoss)
+  }, [totalGain, totalLoss])
 
   useEffect(() => {
     const fetchPortfolio = async () => {
@@ -145,15 +164,42 @@ const PortfolioSummary = () => {
           }
         }
         
-        // Fetch transaction history
-        const transactionsResponse = await fetch(
-          `http://localhost:3000/transactions/${currentUser.id}`
-        );
-        
-        if (transactionsResponse.ok) {
-          const transactionsData = await transactionsResponse.json();
-          console.log("Transactions:", transactionsData);
-          setTransactions(transactionsData || []);
+        // Fetch transaction history using the new API endpoint
+        try {
+          const transactionsResponse = await fetch(
+            `http://localhost:3000/stocks/transactions/${currentUser.id}`
+          );
+          
+          if (transactionsResponse.ok) {
+            const transactionsData = await transactionsResponse.json();
+            console.log("Transactions:", transactionsData);
+            // Sort transactions by date (newest first)
+            const sortedTransactions = transactionsData.sort((a, b) => 
+              new Date(b.date) - new Date(a.date)
+            );
+            setTransactions(sortedTransactions || []);
+
+            const sellTransactions = sortedTransactions.filter(txn => txn.type === "SELL");
+            console.log("sellTransactions", sellTransactions)
+            const totalGain = sellTransactions
+            .filter(txn => txn.profitOrLoss > 0)
+            .reduce((sum, txn) => sum + txn.profitOrLoss, 0);
+
+            const totalLoss = sellTransactions
+            .filter(txn => txn.profitOrLoss < 0)
+            .reduce((sum, txn) => sum + Math.abs(txn.profitOrLoss), 0);
+            
+
+            setTotalGain(totalGain.toFixed(2))
+            setTotalLoss(totalLoss.toFixed(2))
+
+          } else {
+            console.error("Failed to fetch transactions");
+            setTransactions([]);
+          }
+        } catch (transactionError) {
+          console.error("Error fetching transactions:", transactionError);
+          setTransactions([]);
         }
       } catch (error) {
         console.error("Error fetching portfolio:", error);
@@ -165,6 +211,39 @@ const PortfolioSummary = () => {
 
     fetchPortfolio();
   }, [refreshTrigger]);
+
+  // Filter transactions based on selected type and time range
+  const filteredTransactions = transactions.filter(transaction => {
+    // Filter by transaction type
+    if (transactionType !== "all" && transaction.type.toLowerCase() !== transactionType) {
+      return false;
+    }
+    
+    // Filter by time range
+    if (timeRange !== "all") {
+      const transactionDate = new Date(transaction.date);
+      const currentDate = new Date();
+      
+      if (timeRange === "week") {
+        // Past week
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        return transactionDate >= oneWeekAgo;
+      } else if (timeRange === "month") {
+        // Past month
+        const oneMonthAgo = new Date();
+        oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
+        return transactionDate >= oneMonthAgo;
+      } else if (timeRange === "year") {
+        // Past year
+        const oneYearAgo = new Date();
+        oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
+        return transactionDate >= oneYearAgo;
+      }
+    }
+    
+    return true;
+  });
 
   const handleTransaction = (stock, type) => {
     const stockPrice = stockPrices[stock.symbol] ? stockPrices[stock.symbol].c : stock.averagePrice;
@@ -274,7 +353,7 @@ const PortfolioSummary = () => {
       }
       
       // Send transaction to API
-      const response = await fetch("http://localhost:3000/stocks/transactions", {
+      const response = await fetch("http://localhost:3000/stocks/transaction", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -329,6 +408,7 @@ const PortfolioSummary = () => {
 
   // Calculate portfolio summary stats
   const calculatePortfolioStats = () => {
+    console.log("portfolioData", portfolioData)
     if (!portfolioData || !portfolioData.stocks || portfolioData.stocks.length === 0) {
       return {
         totalValue: 0,
@@ -364,13 +444,14 @@ const PortfolioSummary = () => {
     const todayChange = totalValue - previousDayValue;
     const todayChangePercent = previousDayValue > 0 ? (todayChange / previousDayValue) * 100 : 0;
     
+    console.log("printing from here", portfolioData.wallet)
     return {
       totalValue,
       totalGain,
       totalGainPercent,
       todayChange,
       todayChangePercent,
-      walletBalance: portfolioData.wallet || 0
+      wallet: portfolioData.wallet || 0
     };
   };
 
@@ -426,7 +507,7 @@ const PortfolioSummary = () => {
         style={{ backgroundColor: "var(--neutral-bg-light)" }}
       >
         <div className="row mb-4">
-          <div className="col-md-6">
+          <div className="col-md-6 d-flex justify-content-md-start">
             {/* <h1 className="text-start font-poppins fw-bold text-primary-custom ps-3 mb-0">
               Your Portfolio
             </h1> */}
@@ -442,7 +523,7 @@ const PortfolioSummary = () => {
               <i className="bi bi-arrow-clockwise me-2"></i>
               Refresh
             </button>
-            <button className="btn custom-btn-primary rounded-pill">
+            <button className="btn custom-btn-primary rounded-pill" onClick={handleBuyStock}>
               <i className="bi bi-plus-lg me-2"></i>
               Buy Stocks
             </button>
@@ -467,11 +548,11 @@ const PortfolioSummary = () => {
             <div className="custom-card h-100 hover-lift">
               <h3 className="font-poppins text-primary-custom fs-5 mb-3">Total Gain/Loss</h3>
               <p className={`portfolio-value font-poppins fw-bold mb-0 ${
-                portfolioStats.totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
+                totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
               }`}>
-                {formatCurrency(portfolioStats.totalGain)}
+                {totalGain}
                 <span className="percentage-change ms-2">
-                  ({formatPercentChange(portfolioStats.totalGainPercent)})
+                  ({totalGain})
                 </span>
               </p>
               <div className={`summary-indicator ${portfolioStats.totalGain >= 0 ? 'bg-success-soft' : 'bg-danger-soft'}`}>
@@ -482,9 +563,10 @@ const PortfolioSummary = () => {
           
           <div className="col-12 col-md-6 col-lg-3 mb-3">
             <div className="custom-card h-100 hover-lift">
-              <h3 className="font-poppins text-primary-custom fs-5 mb-3">Wallet Balance</h3>
+              <h3 className="font-poppins text-primary-custom fs-5 mb-3">Wallet Balance123</h3>
               <p className="portfolio-value font-poppins fw-bold mb-0 text-primary-custom">
-                {formatCurrency(portfolioStats.walletBalance)}
+                {console.log("portfolioStats.walletBalance", portfolioStats, portfolioStats.walletBalance)}
+                {formatCurrency(portfolioStats.wallet)}
               </p>
               <div className="summary-indicator bg-primary-soft">
                 <i className="bi bi-cash-coin"></i>
@@ -632,124 +714,123 @@ const PortfolioSummary = () => {
         {/* Content based on active view */}
         {activeView === 'holdings' ? (
           // Portfolio Holdings
-          <div className="row justify-content-center">
-            <div className="col-12 col-lg-10 col-xl-11">
-              <h2 className="font-poppins fw-bold text-primary-custom ps-3 mb-3">Your Holdings</h2>
-              
-              {portfolioData.stocks && portfolioData.stocks.length > 0 ? (
-                portfolioData.stocks.map((stock, index) => {
-                  const stockInfo = stockPrices[stock.symbol] || { c: stock.averagePrice, pc: stock.averagePrice, d: 0, dp: 0 };
-                  const currentValue = stock.quantity * stockInfo.c;
-                  const investedValue = stock.quantity * stock.averagePrice;
-                  const totalGain = currentValue - investedValue;
-                  const gainPercent = investedValue > 0 ? (totalGain / investedValue) * 100 : 0;
-                  const isPositive = stockInfo.d >= 0;
-                  
-                  return (
-                    <div className="custom-card card mb-3 hover-lift" key={index}>
-                      <div className="stock-item">
-                        <div className="row align-items-center">
-                          <div className="col-12 col-md-2 mb-3 mb-md-0">
-                            <div className="d-flex flex-column align-items-center">
-                              <h2 className="fs-2 fw-bold mb-0 font-poppins text-primary-custom">
-                                {stock.symbol}
-                              </h2>
-                              <span
-                                className={`price-pill d-inline-flex align-items-center mt-2 ${
-                                  isPositive ? "positive-change" : "negative-change"
-                                }`}
-                              >
-                                <i
-                                  className={`bi ${
-                                    isPositive
-                                      ? "bi-arrow-up-right"
-                                      : "bi-arrow-down-right"
-                                  } me-1`}
-                                ></i>
-                                {formatPercentChange(stockInfo.dp)}
-                              </span>
-                            </div>
+        <div className="row justify-content-center">
+          <div className="col-12 col-lg-10 col-xl-11">
+            <h2 className="font-poppins fw-bold text-primary-custom ps-3 mb-3">Your Holdings</h2>
+            
+            {portfolioData.stocks && portfolioData.stocks.length > 0 ? (
+              portfolioData.stocks.map((stock, index) => {
+                const stockInfo = stockPrices[stock.symbol] || { c: stock.averagePrice, pc: stock.averagePrice, d: 0, dp: 0 };
+                const currentValue = stock.quantity * stockInfo.c;
+                const investedValue = stock.quantity * stock.averagePrice;
+                const totalGain = currentValue - investedValue;
+                const gainPercent = investedValue > 0 ? (totalGain / investedValue) * 100 : 0;
+                const isPositive = stockInfo.d >= 0;
+                
+                return (
+                  <div className="custom-card card mb-3 hover-lift" key={index}>
+                    <div className="stock-item">
+                      <div className="row align-items-center">
+                        <div className="col-12 col-md-2 mb-3 mb-md-0">
+                          <div className="d-flex flex-column align-items-center">
+                            <h2 className="fs-2 fw-bold mb-0 font-poppins text-primary-custom">
+                              {stock.symbol}
+                            </h2>
+                            <span
+                              className={`price-pill d-inline-flex align-items-center mt-2 ${
+                                isPositive ? "positive-change" : "negative-change"
+                              }`}
+                            >
+                              <i
+                                className={`bi ${
+                                  isPositive
+                                    ? "bi-arrow-up-right"
+                                    : "bi-arrow-down-right"
+                                } me-1`}
+                              ></i>
+                              {formatPercentChange(stockInfo.dp)}
+                            </span>
                           </div>
+                        </div>
 
-                          <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
-                            <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
-                              Shares
-                            </p>
-                            <p className="fs-5 fw-bold font-inter mb-0">
-                              {stock.quantity}
-                            </p>
-                            <p className="small font-inter text-secondary-custom mb-0">
-                              Avg. Cost: ${formatPrice(stock.averagePrice)}
-                            </p>
-                          </div>
+                        <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
+                          <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
+                            Shares
+                          </p>
+                          <p className="fs-5 fw-bold font-inter mb-0">
+                            {stock.quantity}
+                          </p>
+                          <p className="small font-inter text-secondary-custom mb-0">
+                            Avg. Cost: ${formatPrice(stock.averagePrice)}
+                          </p>
+                        </div>
 
-                          <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
-                            <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
-                              Current Price
-                            </p>
-                            <p className="fs-5 fw-bold font-inter mb-0 d-flex align-items-center justify-content-center">
-                              <i className="bi bi-currency-dollar"></i>
-                              {formatPrice(stockInfo.c)}
-                            </p>
-                          </div>
+                        <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
+                          <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
+                            Current Price
+                          </p>
+                          <p className="fs-5 fw-bold font-inter mb-0 d-flex align-items-center justify-content-center">
+                            <i className="bi bi-currency-dollar"></i>
+                            {formatPrice(stockInfo.c)}
+                          </p>
+                        </div>
 
-                          <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
-                            <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
-                              Market Value
-                            </p>
-                            <p className="fs-5 fw-bold font-inter mb-0">
-                              {formatCurrency(currentValue)}
-                            </p>
-                          </div>
+                        <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
+                          <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
+                            Market Value
+                          </p>
+                          <p className="fs-5 fw-bold font-inter mb-0">
+                            {formatCurrency(currentValue)}
+                          </p>
+                        </div>
 
-                          <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
-                            <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
-                              Total Gain/Loss
-                            </p>
-                            <p className={`fs-5 fw-bold font-inter mb-0 ${
-                              totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
-                            }`}>
-                              {formatCurrency(totalGain)}
-                            </p>
-                            <p className={`small font-inter mb-0 ${
-                              gainPercent >= 0 ? 'text-success-custom' : 'text-danger-custom'
-                            }`}>
-                              {formatPercentChange(gainPercent)}
-                            </p>
-                          </div>
+                        <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
+                          <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
+                            Total Gain/Loss
+                          </p>
+                          <p className={`fs-5 fw-bold font-inter mb-0 ${
+                            totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
+                          }`}>
+                            {formatCurrency(totalGain)}
+                          </p>
+                          <p className={`small font-inter mb-0 ${
+                            gainPercent >= 0 ? 'text-success-custom' : 'text-danger-custom'
+                          }`}>
+                            {formatPercentChange(gainPercent)}
+                          </p>
+                        </div>
 
-                          <div className="col-12 col-md-2 mt-3 mt-md-0">
-                            <div className="d-flex flex-column gap-2 action-buttons">
-                              <button className="custom-btn-primary btn py-2 fw-medium font-inter w-100 rounded-pill">
-                                <i className="bi bi-eye me-1"></i> Details
+                        <div className="col-12 col-md-2 mt-3 mt-md-0">
+                          <div className="d-flex flex-column gap-2 action-buttons">
+                            <button className="custom-btn-primary btn py-2 fw-medium font-inter w-100 rounded-pill" onClick={() => handleStockDetailsNavigation(stock.symbol)}>
+                              <i className="bi bi-eye me-1"></i> Details
+                            </button>
+                            <div className="d-flex gap-2">
+                              <button className="sell-btn btn py-2 fw-medium font-inter w-100 rounded-pill" onClick={() => handleTransaction(stock, "SELL")}>
+                                <i className="bi bi-cart-dash me-1"></i> Sell
                               </button>
-                              <div className="d-flex gap-2">
-                                <button className="sell-btn btn py-2 fw-medium font-inter w-100 rounded-pill" onClick={() => handleTransaction(stock, "SELL")}>
-                                  <i className="bi bi-cart-dash me-1"></i> Sell
-                                </button>
-                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  );
-                })
-              ) : (
-                <div className="custom-card empty-state">
-                  <div className="text-center p-4">
-                    <i className="bi bi-wallet2 fs-1 text-secondary-custom mb-3"></i>
-                    <h3 className="font-poppins fs-5">Your portfolio is empty</h3>
-                    <p className="font-inter text-secondary-custom mb-4">Start adding stocks to your portfolio</p>
-                    <button className="btn custom-btn-primary px-4 py-2 font-inter rounded-pill">
-                      <i className="bi bi-search me-2"></i>
-                      Browse Stocks
-                    </button>
                   </div>
+                );
+              })
+            ) : (
+              <div className="custom-card empty-state">
+                <div className="text-center p-4">
+                  <i className="bi bi-wallet2 fs-1 text-secondary-custom mb-3"></i>
+                  <h3 className="font-poppins fs-5">Your portfolio is empty</h3>
+                  <p className="font-inter text-secondary-custom mb-4">Start adding stocks to your portfolio</p>
+                  <button className="btn custom-btn-primary px-4 py-2 font-inter rounded-pill">
+                    Browse Stocks
+                  </button>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
           </div>
+        </div>
         ) : (
           // Transaction History View
           <div className="row justify-content-center">
@@ -758,12 +839,20 @@ const PortfolioSummary = () => {
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h3 className="font-poppins text-primary-custom fs-5 mb-0">Transaction History</h3>
                   <div className="transaction-filters">
-                    <select className="form-select form-select-sm me-2 d-inline-block w-auto">
+                    <select 
+                      className="form-select form-select-sm me-2 d-inline-block w-auto"
+                      value={transactionType}
+                      onChange={(e) => setTransactionType(e.target.value)}
+                    >
                       <option value="all">All Transactions</option>
                       <option value="buy">Buy Only</option>
                       <option value="sell">Sell Only</option>
                     </select>
-                    <select className="form-select form-select-sm d-inline-block w-auto">
+                    <select 
+                      className="form-select form-select-sm d-inline-block w-auto"
+                      value={timeRange}
+                      onChange={(e) => setTimeRange(e.target.value)}
+                    >
                       <option value="all">All Time</option>
                       <option value="week">Past Week</option>
                       <option value="month">Past Month</option>
@@ -772,7 +861,7 @@ const PortfolioSummary = () => {
                   </div>
                 </div>
                 
-                {transactions && transactions.length > 0 ? (
+                {filteredTransactions && filteredTransactions.length > 0 ? (
                   <div className="table-responsive transaction-table">
                     <table className="table table-hover">
                       <thead>
@@ -783,10 +872,11 @@ const PortfolioSummary = () => {
                           <th className="font-inter">Quantity</th>
                           <th className="font-inter">Price</th>
                           <th className="font-inter">Total</th>
+                          <th className="font-inter">Profit/Loss</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {transactions.map((transaction, index) => (
+                        {filteredTransactions.map((transaction, index) => (
                           <tr key={index} className="transaction-row">
                             <td className="font-inter">{formatDate(transaction.date)}</td>
                             <td className="font-inter fw-medium">{transaction.symbol}</td>
@@ -800,6 +890,15 @@ const PortfolioSummary = () => {
                             <td className="font-inter fw-medium">
                               {formatCurrency(transaction.price * transaction.quantity)}
                             </td>
+                            <td className="font-inter">
+                              {transaction.type === "SELL" && transaction.profitOrLoss !== undefined ? (
+                                <span className={transaction.profitOrLoss >= 0 ? "text-success-custom" : "text-danger-custom"}>
+                                  {formatCurrency(transaction.profitOrLoss)}
+                                </span>
+                              ) : (
+                                <span className="text-secondary-custom">—</span>
+                              )}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
@@ -808,9 +907,13 @@ const PortfolioSummary = () => {
                 ) : (
                   <div className="text-center p-4 empty-state">
                     <i className="bi bi-receipt fs-1 text-secondary-custom mb-3"></i>
-                    <h3 className="font-poppins fs-5">No transactions yet</h3>
-                    <p className="font-inter text-secondary-custom">Your transaction history will appear here</p>
-                    <button className="btn custom-btn-primary rounded-pill mt-2">
+                    <h3 className="font-poppins fs-5">No transactions found</h3>
+                    <p className="font-inter text-secondary-custom">
+                      {transactionType !== "all" || timeRange !== "all" 
+                        ? "Try changing your filters to see more transactions" 
+                        : "Your transaction history will appear here"}
+                    </p>
+                    <button className="btn custom-btn-primary rounded-pill mt-2" onClick={handleBuyStock}>
                       <i className="bi bi-cart-plus me-2"></i>
                       Make Your First Trade
                     </button>
@@ -845,7 +948,7 @@ const PortfolioSummary = () => {
               
               <div className="wallet-status mb-4">
                 <div className="d-flex justify-content-between align-items-center">
-                  <span className="font-inter">Wallet Balance:</span>
+                  <span className="font-inter">Wallet Balance345</span>
                   <span className="font-inter fw-bold">{formatCurrency(portfolioData.wallet || 0)}</span>
                 </div>
                 <div className="progress mt-2" style={{ height: '8px' }}>

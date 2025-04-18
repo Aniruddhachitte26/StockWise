@@ -1,5 +1,3 @@
-// src/pages/StockDetailPage.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Button, Table, Nav, Tab, Alert } from 'react-bootstrap';
@@ -57,17 +55,47 @@ const StockDetailPage = () => {
     }
   }, [watchlist, symbol]);
   
-  // Handle add to watchlist
-  const handleAddToWatchlist = async () => {
+  const handleAddToWatchlist = async (symbol) => {
+    console.log("handleAddToWatchlist")
+    const storedUser = localStorage.getItem("currentUser");
+    const currentUser = storedUser ? JSON.parse(storedUser) : null;
+    const userId = currentUser?.id;
+    if (!userId) return;
+  
+    const isAlreadyInWatchlist = watchlist.includes(symbol);
+  
     try {
-      await addToWatchlist(symbol);
-      setIsInWatchlist(true);
-    } catch (err) {
-      console.error('Error adding to watchlist:', err);
+      const url = isAlreadyInWatchlist
+        ? "http://localhost:3000/stocks/watchlist/remove"
+        : "http://localhost:3000/stocks/watchlist/add";
+  
+      const response = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, symbol }),
+      });
+  
+      if (!response.ok) throw new Error("Failed to update watchlist");
+  
+      setWatchlist((prev) =>
+        isAlreadyInWatchlist
+          ? prev.filter((item) => item !== symbol)
+          : [...prev, symbol]
+      );
+  
+      setTooltipStates((prev) => ({
+        ...prev,
+        [symbol]: isAlreadyInWatchlist ? "Removed from watchlist" : "Added to watchlist",
+      }));
+  
+      setTimeout(() => {
+        setTooltipStates((prev) => ({ ...prev, [symbol]: null }));
+      }, 2000);
+    } catch (error) {
+      console.error("Watchlist update error:", error);
     }
   };
   
-  // Handle remove from watchlist
   const handleRemoveFromWatchlist = async () => {
     try {
       await removeFromWatchlist(symbol);
@@ -140,7 +168,7 @@ const StockDetailPage = () => {
                     <Button 
                       variant="outline-danger" 
                       className="me-2"
-                      onClick={handleRemoveFromWatchlist}
+                      onClick={() => handleAddToWatchlist(stock.symbol)}
                     >
                       <i className="bi bi-star-fill me-2"></i>
                       Remove from Watchlist
@@ -149,7 +177,7 @@ const StockDetailPage = () => {
                     <Button 
                       variant="outline-primary" 
                       className="me-2"
-                      onClick={handleAddToWatchlist}
+                      onClick={() => handleAddToWatchlist(stock.symbol)}
                     >
                       <i className="bi bi-star me-2"></i>
                       Add to Watchlist
