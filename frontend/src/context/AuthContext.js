@@ -114,6 +114,42 @@ export const AuthProvider = ({ children }) => {
 		}
 	};
 
+    // Register as broker 
+    const registerAsBroker = async (userData) => {
+        setLoading(true);
+        setError(null);
+
+        try {
+            // Add broker type to the user data
+            const brokerData = {
+                ...userData,
+                type: 'broker'
+            };
+
+            const response = await axios.post(
+                `${API_URL}/auth/register`,
+                brokerData
+            );
+
+            // After registration, automatically log in the user
+            if (response.data) {
+                await login({
+                    email: brokerData.email,
+                    password: brokerData.password,
+                });
+            }
+
+            return response.data;
+        } catch (error) {
+            setError(
+                error.response?.data?.error ||
+                "Broker registration failed. Please try again."
+            );
+            setLoading(false);
+            throw error;
+        }
+    };
+
 	// Login user
 	const login = async (credentials) => {
 		setLoading(true);
@@ -206,6 +242,7 @@ export const AuthProvider = ({ children }) => {
 				loading,
 				error,
 				register,
+                registerAsBroker,
 				login,
 				logout,
 				clearError,
@@ -215,5 +252,4 @@ export const AuthProvider = ({ children }) => {
 		</AuthContext.Provider>
 	);
 };
-
 export default AuthContext;

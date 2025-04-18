@@ -13,6 +13,53 @@ const comparePassword = async (plainPassword, hashedPassword) => {
 	return await bcrypt.compare(plainPassword, hashedPassword);
 };
 
+// Add this to your existing backend/middleware/authmiddleware.js file
+
+// Middleware to authorize broker users
+const authorizeBroker = async (req, res, next) => {
+	try {
+	  // First make sure the user is authenticated
+	  if (!req.user) {
+		return res
+		  .status(401)
+		  .json({ error: "Authentication required." });
+	  }
+  
+	  // Get the user ID from the token
+	  const userId = req.user.id;
+  
+	  // Find the user in the database to get their type
+	  const user = await User.findById(userId);
+  
+	  if (!user) {
+		return res
+		  .status(404)
+		  .json({ error: "User not found." });
+	  }
+  
+	  // Check if the user is a broker
+	  if (user.type !== "broker") {
+		return res.status(403).json({
+		  error: "Access denied. Broker privileges required.",
+		});
+	  }
+  
+	  // User is authenticated and authorized as broker
+	  next();
+	} catch (error) {
+	  console.error("Error authorizing broker:", error);
+	  return res
+		.status(500)
+		.json({ error: "Server error during authorization." });
+	}
+  };
+  
+  // Add this to the module.exports
+  module.exports = {
+	// ... existing exports
+	authorizeBroker,
+  };
+
 // Add authentication middleware to verify JWT token
 const authenticateUser = (req, res, next) => {
 	try {
