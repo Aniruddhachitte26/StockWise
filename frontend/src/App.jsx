@@ -17,8 +17,6 @@ import ProfilePage from "./pages/Profile";
 import About from "./components/dashboard/About";
 import StockDetailPage from './pages/StockDetailPage';
 import Chat from './pages/Chat';
-import About from './components/dashboard/About'; // Assuming About is treated like a page
-import MarketOverview from "./components/dashboard/MarketOverview"; // Assuming this is used as a page/route
 import StockListingPage from './pages/StockListingPage';
 
 // --- Admin Page Imports ---
@@ -35,7 +33,6 @@ import StockAnalysisPage, {
 
 import { initTheme } from './config/themeConfig';
 import useAuth from './hooks/useAuth';
-import Chat from './pages/Chat';
 import './App.css';
 import './assets/styles/theme.css';
 
