@@ -3,6 +3,7 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext'; // Keep AuthProvider temporarily if components still rely on it, but aim to remove
 import ThemeProvider from './components/common/ThemeProvider'; // Your Theme Provider
+import Loader from './components/common/Loader';
 
 // --- Redux Imports ---
 import { useDispatch, useSelector } from 'react-redux';
@@ -49,87 +50,92 @@ import useAuth from './hooks/useAuth';
 import './App.css';
 import './assets/styles/theme.css';
 
-// Protected route component for regular users
+// ==========================
+// Protected Route (User)
+// ==========================
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated, status } = useSelector(state => state.auth);
     const location = useLocation();
 
     console.log(`ProtectedRoute Check: Status=${status}, IsAuth=${isAuthenticated}`);
 
-    // Handle loading state
-    if (status === 'idle' || status === 'loading') {
-        console.log("ProtectedRoute: Auth status loading/idle");
-        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>; // Replace with Loader component if desired
+    // Show loader if status is 'loading' OR if 'idle' but authentication might still succeed (token exists)
+    if (status === 'loading' || (status === 'idle' && isAuthenticated)) {
+        console.log("ProtectedRoute: Auth status loading/idle (verification pending), showing loader.");
+        return <Loader fullScreen text="Verifying Authentication..." />;
     }
 
-    // If not authenticated after checking, redirect to login
+    // If definitely not authenticated (after loading/idle check), redirect
     if (!isAuthenticated) {
         console.log("ProtectedRoute: Not authenticated, redirecting to login.");
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // If authenticated, render the child component
+    // Authenticated, render the requested component
     console.log("ProtectedRoute: Authenticated, rendering children.");
     return children;
 };
 
-// Admin route component with role check
+// ==========================
+// Admin Route
+// ==========================
 const AdminRoute = ({ children }) => {
     const { isAuthenticated, status, user } = useSelector(state => state.auth);
     const location = useLocation();
 
     console.log(`AdminRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${user?.type}`);
 
-    // Handle loading state
-    if (status === 'idle' || status === 'loading') {
-        console.log("AdminRoute: Auth status loading/idle");
-        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>; // Replace with Loader component if desired
+    // Show loader if status is 'loading' OR if 'idle' but authentication might still succeed
+    if (status === 'loading' || (status === 'idle' && isAuthenticated)) {
+        console.log("AdminRoute: Auth status loading/idle (verification pending), showing loader.");
+        return <Loader fullScreen text="Verifying Authentication..." />;
     }
 
-    // If not authenticated, redirect to login
+    // If definitely not authenticated
     if (!isAuthenticated) {
         console.log("AdminRoute: Not authenticated, redirecting to login.");
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // Check if the authenticated user is an admin
+    // Authenticated, now check role
     if (user?.type !== 'admin') {
-        console.log("AdminRoute: User is not admin, redirecting to user dashboard.");
+        console.log("AdminRoute: User is authenticated but not admin, redirecting to user dashboard.");
         return <Navigate to="/dashboard" replace />; // Redirect non-admins
     }
 
-    // If authenticated and is an admin, render the child component
+    // Authenticated and is an admin
     console.log("AdminRoute: Authenticated and Admin, rendering children.");
     return children;
 };
 
-// Broker route component with role check
+// ==========================
+// Broker Route
+// ==========================
 const BrokerRoute = ({ children }) => {
-    // Use context-based auth hook instead of Redux
-    const { isAuthenticated, currentUser, loading } = useAuth();
+    const { isAuthenticated, status, user } = useSelector(state => state.auth);
     const location = useLocation();
 
-    console.log(`BrokerRoute Check: Loading=${loading}, IsAuth=${isAuthenticated}, UserType=${currentUser?.type}`);
+    console.log(`BrokerRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${user?.type}`);
 
-    // Handle loading state from context
-    if (loading) {
-        console.log("BrokerRoute: Auth status loading");
-        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>;
+    // Show loader if status is 'loading' OR if 'idle' but authentication might still succeed
+    if (status === 'loading' || (status === 'idle' && isAuthenticated)) {
+        console.log("BrokerRoute: Auth status loading/idle (verification pending), showing loader.");
+        return <Loader fullScreen text="Verifying Authentication..." />;
     }
 
-    // If not authenticated, redirect to login
+    // If definitely not authenticated
     if (!isAuthenticated) {
         console.log("BrokerRoute: Not authenticated, redirecting to login.");
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // Check if the authenticated user is a broker
-    if (currentUser?.type !== 'broker') {
-        console.log("BrokerRoute: User is not broker, redirecting to user dashboard.");
-        return <Navigate to="/dashboard" replace />;
+    // Authenticated, now check role
+    if (user?.type !== 'broker') {
+        console.log("BrokerRoute: User is authenticated but not broker, redirecting to user dashboard.");
+        return <Navigate to="/dashboard" replace />; // Redirect non-brokers
     }
 
-    // If authenticated and is a broker, render the child component
+    // Authenticated and is a broker
     console.log("BrokerRoute: Authenticated and Broker, rendering children.");
     return children;
 };
