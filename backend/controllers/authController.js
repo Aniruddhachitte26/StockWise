@@ -10,7 +10,8 @@ const bcrypt = require("bcrypt");
 const { generateOtp } = require("../utils/otpUtils"); // Import OTP generator
 const { sendOtpEmail } = require("../controllers/mailController"); // Import OTP email sender
 const { getRedisClient, isRedisReady } = require("../config/redisClient"); // Import Redis client getter
-const { validatePassword } = require("../middleware/validateUser");
+const { validatePassword } = require("../middleware/validateUser"); 
+const JWT_EXPIRATION_SECONDS = 3600; // 1 hour
 
 // User login
 const loginUser = async (req, res) => {
@@ -56,6 +57,31 @@ const loginUser = async (req, res) => {
 			process.env.JWT_SECRET,
 			{ expiresIn: "1h" }
 		);
+
+		// --- Store active status in Redis ---
+		try {
+			const redisClient = getRedisClient();
+			if (redisClient && isRedisReady()) {
+				const redisKey = `active_user:${user._id}`;
+				// Store a simple value like '1' or 'active' with the same expiration as the JWT
+				await redisClient.set(redisKey, "active", {
+					EX: JWT_EXPIRATION_SECONDS,
+				});
+				console.log(
+					`✅ Stored active status for user ${user._id} in Redis. Key: ${redisKey}`
+				);
+			} else {
+				console.warn(
+					`⚠️ Redis client not ready during login for user ${user._id}. Active status not stored.`
+				);
+			}
+		} catch (redisError) {
+			console.error(
+				`❌ Redis SET error during login for user ${user._id}:`,
+				redisError
+			);
+			// Continue with login even if Redis fails, but log the error
+		}
 
 		// Return user info and token
 		return res.status(200).json({
@@ -270,33 +296,56 @@ const googleLogin = async (req, res) => {
 			{ expiresIn: "1h" }
 		);
 
+		// --- Store active status in Redis ---
+		try {
+			const redisClient = getRedisClient();
+			if (redisClient && isRedisReady()) {
+				const redisKey = `active_user:${user._id}`;
+				await redisClient.set(redisKey, "active", {
+					EX: JWT_EXPIRATION_SECONDS,
+				});
+				console.log(
+					`✅ Stored active status for user ${user._id} via Google Login in Redis. Key: ${redisKey}`
+				);
+			} else {
+				console.warn(
+					`⚠️ Redis client not ready during Google login for user ${user._id}. Active status not stored.`
+				);
+			}
+		} catch (redisError) {
+			console.error(
+				`❌ Redis SET error during Google login for user ${user._id}:`,
+				redisError
+			);
+		}
+
 		// Return user info and token
 		return res.status(200).json({
 			message: "Google login successful.",
 			user: {
 				// Essential fields
-                id: user._id,
-                fullName: user.fullName,
-                email: user.email,
-                type: user.type,
-                // Additional fields
-                imagePath: user.imagePath,
-                address: user.address,
-                phone: user.phone,
-                dateOfBirth: user.dateOfBirth,
-                proof: user.proof,
-                proofType: user.proofType,
-                verified: user.verified,
-                createdAt: user.createdAt,
-                updatedAt: user.updatedAt,
-                company: user.company,
-                licenseNumber: user.licenseNumber,
-                licenseExpiry: user.licenseExpiry,
-                specialization: user.specialization,
-                yearsOfExperience: user.yearsOfExperience,
-                brokerStatus: user.brokerStatus,
-                commission: user.commission,
-                // Exclude sensitive fields
+				id: user._id,
+				fullName: user.fullName,
+				email: user.email,
+				type: user.type,
+				// Additional fields
+				imagePath: user.imagePath,
+				address: user.address,
+				phone: user.phone,
+				dateOfBirth: user.dateOfBirth,
+				proof: user.proof,
+				proofType: user.proofType,
+				verified: user.verified,
+				createdAt: user.createdAt,
+				updatedAt: user.updatedAt,
+				company: user.company,
+				licenseNumber: user.licenseNumber,
+				licenseExpiry: user.licenseExpiry,
+				specialization: user.specialization,
+				yearsOfExperience: user.yearsOfExperience,
+				brokerStatus: user.brokerStatus,
+				commission: user.commission,
+				// Exclude sensitive fields
 			},
 			token,
 		});
@@ -529,6 +578,56 @@ const resetPasswordWithOtp = async (req, res) => {
 	}
 };
 
+// --- Add new logoutUser function ---
+const logoutUser = async (req, res) => {
+	// Get user ID from the authenticated request (set by authenticateUser middleware)
+	const userId = req.user?.id;
+
+	if (!userId) {
+		// Should not happen if authenticateUser middleware is used
+		console.warn(
+			"⚠️ Logout attempt without authenticated user ID."
+		);
+		return res.status(400).json({ error: "User not identified." });
+	}
+
+	console.log(`Attempting logout for user ID: ${userId}`);
+	try {
+		const redisClient = getRedisClient();
+		if (redisClient && isRedisReady()) {
+			const redisKey = `active_user:${userId}`;
+			const result = await redisClient.del(redisKey);
+			if (result === 1) {
+				console.log(
+					`✅ Removed active status key from Redis for user ${userId}. Key: ${redisKey}`
+				);
+			} else {
+				console.log(
+					`ℹ️ No active status key found in Redis for user ${userId} to remove. Key: ${redisKey}`
+				);
+			}
+		} else {
+			console.warn(
+				`⚠️ Redis client not ready during logout for user ${userId}. Key not removed.`
+			);
+		}
+
+		// Regardless of Redis success/failure, send success response to frontend
+		return res.status(200).json({ message: "Logout processed." });
+	} catch (redisError) {
+		console.error(
+			`❌ Redis DEL error during logout for user ${userId}:`,
+			redisError
+		);
+		// Still send success to frontend, but log the error
+		return res
+			.status(200)
+			.json({
+				message: "Logout processed, Redis cleanup may have failed.",
+			});
+	}
+};
+
 module.exports = {
 	loginUser,
 	registerUser,
@@ -537,4 +636,5 @@ module.exports = {
 	requestPasswordResetOtp, // Add new function
 	resetPasswordWithOtp,
 	registerBroker,
+    logoutUser
 };

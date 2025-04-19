@@ -116,7 +116,10 @@ const login = async (credentials) => {
 
 		// Return the full payload for the Redux slice
 		// Expected backend response: { message: '...', user: {...}, token: '...' }
-        console.log('AuthService: Login Response Data Received:', response.data);
+		console.log(
+			"AuthService: Login Response Data Received:",
+			response.data
+		);
 		return response.data;
 	} catch (error) {
 		// Clear tokens/user on login failure before throwing
@@ -149,6 +152,48 @@ const googleLogin = async (tokenData) => {
 		return response.data; // Expected: { user: {...}, token: '...' }
 	} catch (error) {
 		throw handleApiError(error, "Google Login");
+	}
+};
+
+// --- NEW: Backend Logout Call ---
+// This function specifically calls the backend endpoint.
+// The Redux thunk will handle clearing local storage etc.
+const logoutUserBackend = async () => {
+	console.log("AuthService: Calling POST /auth/logout");
+	const token = localStorage.getItem("token");
+	// If no token, we can't tell backend to log out, but frontend logout should proceed
+	if (!token) {
+		console.warn(
+			"AuthService: No token found, skipping backend logout call."
+		);
+		return { message: "No active session on frontend." }; // Return a success-like message
+	}
+	try {
+		// Using POST, change to axios.delete if you used DELETE route in backend
+		const response = await axios.post(
+			`${API_URL}/auth/logout`,
+			{},
+			{
+				// Send empty body if needed
+				headers: { Authorization: `Bearer ${token}` },
+			}
+		);
+		console.log(
+			"AuthService: Backend Logout Response:",
+			response.data
+		);
+		return response.data; // Expected: { message: 'Logout processed.' }
+	} catch (error) {
+		// Don't throw error here ideally, logout should proceed on frontend. Log it instead.
+		console.error(
+			"AuthService: Backend logout call failed:",
+			error.response || error.message || error
+		);
+		// Return a specific object or message indicating backend call failure but allowing frontend logout
+		return {
+			message: "Backend logout call failed, proceeding with frontend logout.",
+			error: true,
+		};
 	}
 };
 
@@ -197,6 +242,7 @@ const authService = {
 	login,
 	// googleLogin, // The thunk calls axios directly now, this might be unused
 	logout, // The slice calls this, or handles the logic directly
+    logoutUserBackend,
 	isAuthenticated, // Useful for initial checks maybe? Redux state is primary source
 	getToken, // Useful for initial header setup maybe? Redux state is primary source
 	getCurrentUserFromStorage, // Might be useful for initial state hydration

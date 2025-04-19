@@ -349,8 +349,8 @@ export const changeUserPassword = createAsyncThunk(
 		// passwordData expected: { currentPassword, newPassword, confirmPassword }
 		console.log("AuthSlice: Dispatching changeUserPassword thunk");
 		const { token, user } = getState().auth; // Get token and user ID
-        console.log("inside thunk user is: ",user);
-        
+		console.log("inside thunk user is: ", user);
+
 		if (!token) return rejectWithValue("Authentication required.");
 		if (!user || !user._id)
 			return rejectWithValue("User ID not found.");
@@ -451,46 +451,78 @@ export const uploadProofDocument = createAsyncThunk(
 	}
 );
 
+// --- NEW: Logout User Thunk ---
+export const logoutUser = createAsyncThunk(
+	"auth/logoutUser",
+	async (_, { dispatch, rejectWithValue }) => {
+		console.log("AuthSlice: Dispatching logoutUser thunk");
+		try {
+			await authService.logoutUserBackend(); // Call the specific backend logout service
+			console.log(
+				"AuthSlice: Backend logout call attempted."
+			);
+			return { success: true }; // Indicate successful frontend logout procedure
+		} catch (error) {
+			// Even if backend call fails, attempt frontend logout
+			console.error(
+				"AuthSlice: Error during backend logout call, proceeding with frontend logout",
+				error
+			);
+			return rejectWithValue(
+				"Logout failed but local cleanup attempted."
+			); // Still indicate success for clearing state
+		} finally {
+			// --- This cleanup ALWAYS happens in fulfilled/rejected ---
+			console.log(
+				"AuthSlice: Clearing local storage and Axios header in thunk finally/reducer."
+			);
+			localStorage.removeItem("token");
+			localStorage.removeItem("currentUser");
+			authService.setAuthToken(null);
+		}
+	}
+);
+
 // --- Slice Definition ---
 const authSlice = createSlice({
 	name: "auth",
 	initialState,
 	reducers: {
 		// Synchronous action to log out
-		logout: (state) => {
-			console.log("AuthSlice: Executing logout reducer.");
-			console.log(
-				"AuthSlice: State BEFORE logout:",
-				JSON.stringify(state)
-			);
+		// logout: (state) => {
+		// 	console.log("AuthSlice: Executing logout reducer.");
+		// 	console.log(
+		// 		"AuthSlice: State BEFORE logout:",
+		// 		JSON.stringify(state)
+		// 	);
 
-			// Clear local storage
-			localStorage.removeItem("token");
-			localStorage.removeItem("currentUser");
-			// Clear Axios header
-			authService.setAuthToken(null); // Call the service function to clear header
+		// 	// Clear local storage
+		// 	localStorage.removeItem("token");
+		// 	localStorage.removeItem("currentUser");
+		// 	// Clear Axios header
+		// 	authService.setAuthToken(null); // Call the service function to clear header
 
-			// Reset Redux state
-			state.user = null;
-			state.token = null;
-			state.isAuthenticated = false;
-			state.status = "idle"; // Reset status to idle
-			state.error = null; // Clear any existing errors
-			// Reset profile statuses on logout
-			state.profileUpdateStatus = "idle";
-			state.profileUpdateError = null;
-			state.passwordChangeStatus = "idle";
-			state.passwordChangeError = null;
-			state.documentUploadStatus = "idle";
-			state.documentUploadError = null;
-			state.passwordResetStatus = "idle";
-			state.passwordResetError = null;
+		// 	// Reset Redux state
+		// 	state.user = null;
+		// 	state.token = null;
+		// 	state.isAuthenticated = false;
+		// 	state.status = "idle"; // Reset status to idle
+		// 	state.error = null; // Clear any existing errors
+		// 	// Reset profile statuses on logout
+		// 	state.profileUpdateStatus = "idle";
+		// 	state.profileUpdateError = null;
+		// 	state.passwordChangeStatus = "idle";
+		// 	state.passwordChangeError = null;
+		// 	state.documentUploadStatus = "idle";
+		// 	state.documentUploadError = null;
+		// 	state.passwordResetStatus = "idle";
+		// 	state.passwordResetError = null;
 
-			console.log(
-				"AuthSlice: State AFTER logout:",
-				JSON.stringify(state)
-			);
-		},
+		// 	console.log(
+		// 		"AuthSlice: State AFTER logout:",
+		// 		JSON.stringify(state)
+		// 	);
+		// },
 		clearError: (state) => {
 			state.error = null;
 			state.profileUpdateError = null;
@@ -826,12 +858,62 @@ const authSlice = createSlice({
 					state.documentUploadError =
 						action.payload;
 				}
-			);
+			)
+			// --- NEW: Handle logoutUser Thunk ---
+			.addCase(logoutUser.pending, (state) => {
+				// Optional: Set a specific logout status if needed
+				state.status = "loading"; // Reuse general status or add logoutStatus
+			})
+			.addCase(logoutUser.fulfilled, (state) => {
+				// Clear the state regardless of backend success (handled in finally block now)
+				console.log(
+					"AuthSlice: logoutUser.fulfilled - Clearing state."
+				);
+				state.user = null;
+				state.token = null;
+				state.isAuthenticated = false;
+				state.status = "idle";
+				state.error = null;
+				// Reset other statuses
+				state.profileUpdateStatus = "idle";
+				state.profileUpdateError = null;
+				state.passwordChangeStatus = "idle";
+				state.passwordChangeError = null;
+				state.documentUploadStatus = "idle";
+				state.documentUploadError = null;
+				state.passwordResetStatus = "idle";
+				state.passwordResetError = null;
+			})
+			.addCase(logoutUser.rejected, (state, action) => {
+				// Still clear the state even if backend call failed
+				console.warn(
+					"AuthSlice: logoutUser.rejected - Clearing state despite error:",
+					action.payload
+				);
+				state.user = null;
+				state.token = null;
+				state.isAuthenticated = false;
+				state.status = "idle"; // Set to idle, maybe set general error?
+				state.error =
+					action.payload || "Logout failed."; // Store potential error message
+				// Reset other statuses
+				state.profileUpdateStatus = "idle";
+				state.profileUpdateError = null;
+				state.passwordChangeStatus = "idle";
+				state.passwordChangeError = null;
+				state.documentUploadStatus = "idle";
+				state.documentUploadError = null;
+				state.passwordResetStatus = "idle";
+				state.passwordResetError = null;
+			});
 	},
 });
 
 // --- Exports ---
-export const { logout, clearError, clearPasswordResetStatus, clearProfileStatus } =
-	authSlice.actions;
+export const {
+	clearError,
+	clearPasswordResetStatus,
+	clearProfileStatus,
+} = authSlice.actions;
 
 export default authSlice.reducer;

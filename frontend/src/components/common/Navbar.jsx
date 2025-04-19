@@ -163,7 +163,7 @@ import React, { useState, useEffect } from 'react';
 import { Navbar, Nav, Container, Button, NavDropdown } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../../redux/features/authSlice';
+import { logoutUser } from '../../redux/features/authSlice';
 
 const AppNavbar = () => {
     const [expanded, setExpanded] = useState(false);
@@ -185,7 +185,7 @@ const AppNavbar = () => {
     
 
     const handleLogout = () => {
-        dispatch(logout());
+        dispatch(logoutUser());
         navigate('/');
         setExpanded(false);
     };
