@@ -563,7 +563,7 @@ const PortfolioSummary = () => {
           
           <div className="col-12 col-md-6 col-lg-3 mb-3">
             <div className="custom-card h-100 hover-lift">
-              <h3 className="font-poppins text-primary-custom fs-5 mb-3">Wallet Balance123</h3>
+              <h3 className="font-poppins text-primary-custom fs-5 mb-3">Wallet Balance</h3>
               <p className="portfolio-value font-poppins fw-bold mb-0 text-primary-custom">
                 {console.log("portfolioStats.walletBalance", portfolioStats, portfolioStats.walletBalance)}
                 {formatCurrency(portfolioStats.wallet)}
@@ -948,7 +948,7 @@ const PortfolioSummary = () => {
               
               <div className="wallet-status mb-4">
                 <div className="d-flex justify-content-between align-items-center">
-                  <span className="font-inter">Wallet Balance345</span>
+                  <span className="font-inter">Wallet Balance</span>
                   <span className="font-inter fw-bold">{formatCurrency(portfolioData.wallet || 0)}</span>
                 </div>
                 <div className="progress mt-2" style={{ height: '8px' }}>
