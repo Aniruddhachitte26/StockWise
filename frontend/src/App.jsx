@@ -38,6 +38,9 @@ import { initTheme } from './config/themeConfig';
 import useAuth from './hooks/useAuth';
 import './App.css';
 import './assets/styles/theme.css';
+import { loadStripe } from '@stripe/stripe-js';
+const stripePromise = loadStripe('pk_test_51RFOTpCedU17Fc7wGrEfO14CXtqFurHULvCFQccgYf5DgPnJ9VIAOJw5RjWrlfgeXoHs6IVPqFqQDUfIRoOcii7K00cHFKj2Hy');
+
 
 // Protected route component for regular users
 const ProtectedRoute = ({ children }) => {
