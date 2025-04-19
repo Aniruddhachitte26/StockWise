@@ -1,16 +1,17 @@
 // backend/controllers/marketNewsController.js
 const axios = require('axios');
-
+const dotenv = require("dotenv");
 // Keep API key secure in backend
 const FINNHUB_API_KEY = process.env.FINNHUB_API_KEY; // Replace with your actual API key
-const FINNHUB_BASE_URL = process.env.FINNHUB_API_URL;
+const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
+dotenv.config();
 
 // Get market news
 const getMarketNews = async (req, res) => {
     try {
         console.log('Fetching market news from Finnhub API...',`${FINNHUB_BASE_URL}/news` );
         
-        const response = await axios.get(`${FINNHUB_BASE_URL}/news`, {
+        const response = await axios.get(`https://finnhub.io/api/v1/news`, {
             params: {
                 category: 'general',
                 token: FINNHUB_API_KEY

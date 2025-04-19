@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Container, Row, Col, Card, Table, Badge, Form, 
-  InputGroup, Button, Dropdown, Pagination, Spinner, Alert 
+  InputGroup, Button, Dropdown, Pagination, Spinner, Alert, Modal
 } from 'react-bootstrap';
 import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/common/Navbar';
@@ -39,6 +39,12 @@ const StockListingPage = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [watchlist, setWatchlist] = useState([]);
   const [tooltipStates, setTooltipStates] = useState({});
+  
+  // Buy modal state
+  const [showBuyModal, setShowBuyModal] = useState(false);
+  const [selectedStock, setSelectedStock] = useState(null);
+  const [quantity, setQuantity] = useState(1);
+  const [buySuccess, setBuySuccess] = useState(false);
 
   // Fetch stock data on component mount
   useEffect(() => {
@@ -208,6 +214,74 @@ const StockListingPage = () => {
   // Handle stock detail navigation - direct navigation function
   const handleStockNavigation = (symbol) => {
     navigate(`/stock-analysis/${symbol}?symbol=${symbol}`);
+  };
+  
+  // Open buy modal
+  const handleBuyClick = (stock) => {
+    setSelectedStock(stock);
+    setQuantity(1);
+    setBuySuccess(false);
+    setShowBuyModal(true);
+  };
+
+  // Execute buy transaction
+  const handleBuyStock = async () => {
+    if (!selectedStock) return;
+    
+    const storedUser = localStorage.getItem("currentUser");
+    const currentUser = storedUser ? JSON.parse(storedUser) : null;
+    const userId = currentUser?.id;
+    
+    if (!userId) {
+      alert("Please log in to buy stocks");
+      setShowBuyModal(false);
+      navigate('/login');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      
+      // Prepare transaction data
+      const transactionData = {
+        userId: userId,
+        symbol: selectedStock.symbol,
+        quantity: quantity,
+        price: selectedStock.price,
+        type: "BUY"
+      };
+      
+      // Send transaction to the backend API
+      const response = await fetch("http://localhost:3000/stocks/transaction", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(transactionData),
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Transaction failed");
+      }
+      
+      // Transaction successful
+      setBuySuccess(true);
+      
+      // Reset form after short delay
+      setTimeout(() => {
+        setShowBuyModal(false);
+        setSelectedStock(null);
+        setQuantity(1);
+        setBuySuccess(false);
+      }, 2000);
+      
+    } catch (error) {
+      console.error("Buy transaction error:", error);
+      alert(error.message || "Failed to complete transaction. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Format currency with appropriate suffixes
@@ -620,32 +694,48 @@ const StockListingPage = () => {
                           {formatVolume(stock.volume)}
                         </td>
                         <td className="text-center">
-                          <Button
-                            variant="primary"
-                            size="sm"
-                            className="me-2"
-                            onClick={() => handleStockNavigation(stock.symbol)}
-                          >
-                            <i className="bi bi-graph-up"></i> Chart
-                          </Button>
-                          <OverlayTrigger
-                            placement="top"
-                            overlay={
-                              tooltipStates[stock.symbol] ? (
-                                <Tooltip id={`tooltip-${stock.symbol}`}>
-                                  {tooltipStates[stock.symbol]}
-                                </Tooltip>
-                              ) : <></>
-                            }
-                          >
+                          <div className="d-flex justify-content-center">
                             <Button
-                              variant={watchlist.includes(stock.symbol) ? "warning" : "outline-secondary"}
+                              variant="primary"
                               size="sm"
-                              onClick={() => handleAddWatchlist(stock.symbol)}
+                              className="me-2"
+                              onClick={() => handleStockNavigation(stock.symbol)}
+                              title="View charts"
                             >
-                              <i className={`bi ${watchlist.includes(stock.symbol) ? "bi-star-fill" : "bi-star"}`}></i>
+                              <i className="bi bi-graph-up"></i>
                             </Button>
-                          </OverlayTrigger>
+                            
+                            {/* Buy button */}
+                            <Button
+                              variant="success"
+                              size="sm"
+                              className="me-2"
+                              onClick={() => handleBuyClick(stock)}
+                              title="Buy stock"
+                            >
+                              <i className="bi bi-cart-plus"></i>
+                            </Button>
+                            
+                            <OverlayTrigger
+                              placement="top"
+                              overlay={
+                                tooltipStates[stock.symbol] ? (
+                                  <Tooltip id={`tooltip-${stock.symbol}`}>
+                                    {tooltipStates[stock.symbol]}
+                                  </Tooltip>
+                                ) : <></>
+                              }
+                            >
+                              <Button
+                                variant={watchlist.includes(stock.symbol) ? "warning" : "outline-secondary"}
+                                size="sm"
+                                onClick={() => handleAddWatchlist(stock.symbol)}
+                                title={watchlist.includes(stock.symbol) ? "Remove from watchlist" : "Add to watchlist"}
+                              >
+                                <i className={`bi ${watchlist.includes(stock.symbol) ? "bi-star-fill" : "bi-star"}`}></i>
+                              </Button>
+                            </OverlayTrigger>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -847,6 +937,157 @@ const StockListingPage = () => {
           </Button>
         </div>
       </Container>
+
+      {/* Buy Stock Modal */}
+      <Modal show={showBuyModal} onHide={() => setShowBuyModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            {buySuccess ? "Purchase Successful!" : `Buy ${selectedStock?.symbol}`}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {buySuccess ? (
+            <div className="text-center">
+              <div className="mb-3">
+                <i className="bi bi-check-circle-fill text-success" style={{ fontSize: '3rem' }}></i>
+              </div>
+              <h4>Transaction Completed!</h4>
+              <p>You've successfully purchased {quantity} shares of {selectedStock?.symbol} at ${selectedStock?.price.toFixed(2)} per share.</p>
+              <p className="fw-bold">Total: ${(selectedStock?.price * quantity).toFixed(2)}</p>
+              <p className="small text-muted mt-3">You can view this transaction in your portfolio.</p>
+            </div>
+          ) : (
+            <>
+              {selectedStock && (
+                <>
+                  <div className="mb-3">
+                    <h5 className="d-flex justify-content-between">
+                      <span>{selectedStock.name} ({selectedStock.symbol})</span>
+                      <span className={selectedStock.percentChange >= 0 ? "text-success" : "text-danger"}>
+                        {selectedStock.percentChange >= 0 ? "+" : ""}
+                        {selectedStock.percentChange.toFixed(2)}%
+                      </span>
+                    </h5>
+                    <div className="fs-4 fw-bold mb-3">
+                      ${selectedStock.price.toFixed(2)}
+                    </div>
+                    
+                    <Form.Group className="mb-3">
+                      <Form.Label>Quantity</Form.Label>
+                      <div className="d-flex align-items-center">
+                        <Button 
+                          variant="outline-secondary" 
+                          onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                        >
+                          <i className="bi bi-dash"></i>
+                        </Button>
+                        <Form.Control
+                          type="number"
+                          value={quantity}
+                          onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+                          className="mx-2 text-center"
+                          min="1"
+                        />
+                        <Button 
+                          variant="outline-secondary"
+                          onClick={() => setQuantity(quantity + 1)}
+                        >
+                          <i className="bi bi-plus"></i>
+                        </Button>
+                      </div>
+                    </Form.Group>
+                    
+                    <div className="d-flex justify-content-between">
+                      <Button 
+                        variant="outline-secondary" 
+                        size="sm"
+                        onClick={() => setQuantity(5)}
+                        className="me-1"
+                      >
+                        5
+                      </Button>
+                      <Button 
+                        variant="outline-secondary" 
+                        size="sm"
+                        onClick={() => setQuantity(10)}
+                        className="me-1"
+                      >
+                        10
+                      </Button>
+                      <Button 
+                        variant="outline-secondary" 
+                        size="sm"
+                        onClick={() => setQuantity(25)}
+                        className="me-1"
+                      >
+                        25
+                      </Button>
+                      <Button 
+                        variant="outline-secondary" 
+                        size="sm"
+                        onClick={() => setQuantity(50)}
+                      >
+                        50
+                      </Button>
+                      <Button 
+                        variant="outline-secondary" 
+                        size="sm"
+                        onClick={() => setQuantity(100)}
+                      >
+                        100
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-light p-3 rounded mb-3">
+                    <div className="d-flex justify-content-between mb-2">
+                      <span>Current Price:</span>
+                      <span>${selectedStock.price.toFixed(2)}</span>
+                    </div>
+                    <div className="d-flex justify-content-between mb-2">
+                      <span>Quantity:</span>
+                      <span>{quantity}</span>
+                    </div>
+                    <div className="d-flex justify-content-between fw-bold">
+                      <span>Total Cost:</span>
+                      <span>${(selectedStock.price * quantity).toFixed(2)}</span>
+                    </div>
+                  </div>
+                  
+                  <Alert variant="info">
+                    <i className="bi bi-info-circle me-2"></i>
+                    This will be added to your portfolio immediately.
+                  </Alert>
+                </>
+              )}
+            </>
+          )}
+        </Modal.Body>
+        {!buySuccess && (
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowBuyModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="success" 
+              onClick={handleBuyStock}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-cart-check me-2"></i>
+                  Buy Now
+                </>
+              )}
+            </Button>
+          </Modal.Footer>
+        )}
+      </Modal>
 
       <Footer />
 

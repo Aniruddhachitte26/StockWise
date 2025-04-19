@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-
+import { Modal, Button, Form, Alert, Spinner } from 'react-bootstrap';
 import "./WatchlistPreview.css";
 import AppNavbar from "../../common/Navbar";
 import { useNavigate } from 'react-router-dom';
@@ -12,6 +12,7 @@ const WatchlistPreview = () => {
   const [selectedStock, setSelectedStock] = useState(null);
   const [quantity, setQuantity] = useState(1);
   const [sellPrice, setSellPrice] = useState(0);
+  const [processingTransaction, setProcessingTransaction] = useState(false);
   const navigate = useNavigate();
 
 
@@ -19,7 +20,7 @@ const WatchlistPreview = () => {
     return price.toFixed(2);
   };
 
-  const handleBuyStock = (symbol) => {
+  const handleViewDetails = (symbol) => {
     navigate(`/stock-analysis/${symbol}?symbol=${symbol}`);
   };
 
@@ -63,42 +64,98 @@ const WatchlistPreview = () => {
   };
 
   useEffect(() => {
-    const fetchWatchlist = async () => {
-      try {
-        const storedUser = localStorage.getItem("currentUser");
-        const currentUser = storedUser ? JSON.parse(storedUser) : null;
-        const response = await fetch(
-          `http://localhost:3000/stocks/watchlist/${currentUser.id}`
-        );
-        const data = await response.json();
-
-        setWatchlist(data.stockData || []);
-      } catch (error) {
-        console.error("Failed to fetch watchlist:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchWatchlist();
   }, []);
 
-  const handleTransaction = (stock, type) => {
-    setSelectedStock(stock);
-    if (type === "BUY") {
-      setShowBuyModal(true);
-    } else {
-      setSellPrice(stock.data.c); // Initialize with current price
-      setShowSellModal(true);
+  const fetchWatchlist = async () => {
+    try {
+      setLoading(true);
+      const storedUser = localStorage.getItem("currentUser");
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      
+      if (!currentUser || !currentUser.id) {
+        setWatchlist([]);
+        return;
+      }
+      
+      const response = await fetch(
+        `http://localhost:3000/stocks/watchlist/${currentUser.id}`
+      );
+      
+      if (!response.ok) {
+        throw new Error("Failed to fetch watchlist");
+      }
+      
+      const data = await response.json();
+      setWatchlist(data.stockData || []);
+    } catch (error) {
+      console.error("Failed to fetch watchlist:", error);
+      showToast("Error loading watchlist", "error");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleRemoveFromWatchlist = async (symbol) => {
+    try {
+      const storedUser = localStorage.getItem("currentUser");
+      const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      
+      if (!currentUser || !currentUser.id) {
+        showToast("Please log in to manage your watchlist", "error");
+        return;
+      }
+      
+      const response = await fetch("http://localhost:3000/stocks/watchlist/remove", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          symbol: symbol,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error("Failed to remove from watchlist");
+      }
+      
+      // Update the watchlist state
+      setWatchlist(prevWatchlist => prevWatchlist.filter(stock => stock.symbol !== symbol));
+      showToast(`Removed ${symbol} from watchlist`, "success");
+    } catch (error) {
+      console.error("Error removing from watchlist:", error);
+      showToast("Failed to remove from watchlist", "error");
+    }
+  };
+
+  const handleBuyStock = (stock) => {
+    setSelectedStock(stock);
+    setQuantity(1);
+    setShowBuyModal(true);
+  };
+
+  const handleSellStock = (stock) => {
+    setSelectedStock(stock);
+    setSellPrice(stock.data.c); // Initialize with current price
+    setQuantity(1);
+    setShowSellModal(true);
   };
 
   const handleConfirmBuy = async () => {
     try {
-      setLoading(true);
+      setProcessingTransaction(true);
       // Logic to handle buy transaction
       const storedUser = localStorage.getItem("currentUser");
       const currentUser = storedUser ? JSON.parse(storedUser) : null;
+
+      
+      if (!currentUser || !currentUser.id) {
+        showToast("Please log in to buy stocks", "error");
+        setShowBuyModal(false);
+        return;
+      }
       
       const response = await fetch("http://localhost:3000/stocks/transaction", {
         method: "POST",
@@ -132,16 +189,22 @@ const WatchlistPreview = () => {
       console.error("Error processing buy transaction:", error);
       showToast("An error occurred. Please try again.", 'error');
     } finally {
-      setLoading(false);
+      setProcessingTransaction(false);
     }
   };
 
   const handleConfirmSell = async () => {
     try {
-      setLoading(true);
+      setProcessingTransaction(true);
       // Logic to handle sell transaction
       const storedUser = localStorage.getItem("currentUser");
       const currentUser = storedUser ? JSON.parse(storedUser) : null;
+      
+      if (!currentUser || !currentUser.id) {
+        showToast("Please log in to sell stocks", "error");
+        setShowSellModal(false);
+        return;
+      }
       
       const response = await fetch("http://localhost:3000/stocks/transaction", {
         method: "POST",
@@ -173,12 +236,12 @@ const WatchlistPreview = () => {
       console.error("Error processing sell transaction:", error);
       showToast("An error occurred. Please try again.", 'error');
     } finally {
-      setLoading(false);
+      setProcessingTransaction(false);
     }
   };
 
 
-  if (loading) return (
+  if (loading && watchlist.length === 0) return (
     <div className="loading-container">
       <div className="spinner-container">
         <div className="spinner-border text-primary" role="status">
@@ -290,15 +353,22 @@ const WatchlistPreview = () => {
                         </div>
                         <div className="col-12 col-md-3 mt-2 mt-md-0">
                           <div className="d-flex flex-column gap-2 action-buttons">
-                            <button className="custom-btn-primary btn py-2 fw-medium font-inter w-100 rounded-pill" onClick={() => handleBuyStock(stock.symbol)}>
+                            <button className="custom-btn-primary btn py-2 fw-medium font-inter w-100 rounded-pill" onClick={() => handleViewDetails(stock.symbol)}>
                               <i className="bi bi-eye me-1"></i> View Details
                             </button>
                             <div className="d-flex gap-2">
-                              <button className="buy-btn btn py-2 fw-medium font-inter flex-grow-1 rounded-pill" onClick={() => handleTransaction(stock, "BUY")}>
+                              <button className="buy-btn btn py-2 fw-medium font-inter flex-grow-1 rounded-pill" onClick={() => handleBuyStock(stock)}>
                                 <i className="bi bi-cart-plus me-1"></i> Buy
                               </button>
-                              <button className="sell-btn btn py-2 fw-medium font-inter flex-grow-1 rounded-pill" onClick={() => handleTransaction(stock, "SELL")}>
+                              {/* <button className="sell-btn btn py-2 fw-medium font-inter flex-grow-1 rounded-pill" onClick={() => handleTransaction(stock, "SELL")}>
                                 <i className="bi bi-cart-dash me-1"></i> Sell
+                              </button> */}
+                              <button 
+                                className="btn btn-outline-secondary py-2 fw-medium font-inter rounded-pill" 
+                                onClick={() => handleRemoveFromWatchlist(stock.symbol)}
+                                title="Remove from watchlist"
+                              >
+                                <i className="bi bi-x-circle"></i>
                               </button>
                             </div>
                           </div>
@@ -326,269 +396,406 @@ const WatchlistPreview = () => {
       </div>
 
       {/* Buy Modal */}
-      <div className={`modal fade ${showBuyModal ? 'show' : ''}`} style={{ display: showBuyModal ? 'block' : 'none' }} tabIndex="-1">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content" style={{ borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
-            <div className="modal-header bg-primary-custom text-white">
-              <h5 className="modal-title font-poppins fw-bold">
-                <i className="bi bi-cart-plus me-2"></i>
-                Buy {selectedStock?.symbol}
-              </h5>
-              <button type="button" className="btn-close btn-close-white" onClick={() => setShowBuyModal(false)}></button>
-            </div>
-            <div className="modal-body p-4">
-              <div className="stock-price-indicator mb-4">
-                <div className="current-price text-center">
-                  <span className="label font-inter text-secondary-custom">Current Price</span>
-                  <span className="price font-poppins fw-bold fs-2 text-primary-custom d-block">
-                    ${selectedStock?.data.c.toFixed(2)}
+      <Modal show={showBuyModal} onHide={() => setShowBuyModal(false)} centered>
+        <Modal.Header closeButton className="bg-primary-custom text-white">
+          <Modal.Title>
+            <i className="bi bi-cart-plus me-2"></i>
+            Buy {selectedStock?.symbol}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          {selectedStock && (
+            <>
+              <div className="mb-3">
+                <h5 className="d-flex justify-content-between">
+                  <span>{selectedStock.symbol}</span>
+                  <span className={selectedStock.data.dp >= 0 ? "text-success" : "text-danger"}>
+                    {selectedStock.data.dp >= 0 ? "+" : ""}
+                    {selectedStock.data.dp.toFixed(2)}%
                   </span>
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <label htmlFor="quantity" className="form-label font-inter mb-2">Quantity</label>
-                <div className="quantity-selector">
-                  <button 
-                    className="quantity-btn minus" 
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  >
-                    <i className="bi bi-dash"></i>
-                  </button>
-                  <input 
-                    type="number" 
-                    className="form-control text-center" 
-                    id="quantity" 
-                    value={quantity} 
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    min="1"
-                  />
-                  <button 
-                    className="quantity-btn plus" 
-                    onClick={() => setQuantity(quantity + 1)}
-                  >
-                    <i className="bi bi-plus"></i>
-                  </button>
+                </h5>
+                <div className="fs-4 fw-bold mb-3">
+                  ${selectedStock.data.c.toFixed(2)}
                 </div>
                 
-                <div className="quantity-shortcuts mt-2">
-                  <button className="btn btn-sm btn-outline-primary me-2" onClick={() => setQuantity(5)}>5</button>
-                  <button className="btn btn-sm btn-outline-primary me-2" onClick={() => setQuantity(10)}>10</button>
-                  <button className="btn btn-sm btn-outline-primary me-2" onClick={() => setQuantity(25)}>25</button>
-                  <button className="btn btn-sm btn-outline-primary" onClick={() => setQuantity(50)}>50</button>
+                <Form.Group className="mb-3">
+                  <Form.Label>Quantity</Form.Label>
+                  <div className="d-flex align-items-center">
+                    <Button 
+                      variant="outline-secondary" 
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    >
+                      <i className="bi bi-dash"></i>
+                    </Button>
+                    <Form.Control
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+                      className="mx-2 text-center"
+                      min="1"
+                    />
+                    <Button 
+                      variant="outline-secondary"
+                      onClick={() => setQuantity(quantity + 1)}
+                    >
+                      <i className="bi bi-plus"></i>
+                    </Button>
+                  </div>
+                </Form.Group>
+                
+                <div className="d-flex justify-content-between mb-3">
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={() => setQuantity(5)}
+                    className="me-1"
+                  >
+                    5
+                  </Button>
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={() => setQuantity(10)}
+                    className="me-1"
+                  >
+                    10
+                  </Button>
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={() => setQuantity(25)}
+                    className="me-1"
+                  >
+                    25
+                  </Button>
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={() => setQuantity(50)}
+                    className="me-1"
+                  >
+                    50
+                  </Button>
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={() => setQuantity(100)}
+                  >
+                    100
+                  </Button>
                 </div>
               </div>
               
-              <div className="order-summary p-3 bg-light rounded-3 mb-4">
+              <div className="bg-light p-3 rounded mb-3">
                 <div className="d-flex justify-content-between mb-2">
-                  <span className="font-inter">Subtotal:</span>
-                  <span className="font-inter">
-                    ${selectedStock ? (selectedStock.data.c * quantity).toFixed(2) : '0.00'}
-                  </span>
+                  <span>Current Price:</span>
+                  <span>${selectedStock.data.c.toFixed(2)}</span>
                 </div>
                 <div className="d-flex justify-content-between mb-2">
-                  <span className="font-inter">Trading Fee:</span>
-                  <span className="font-inter">$0.00</span>
+                  <span>Quantity:</span>
+                  <span>{quantity}</span>
+                </div>
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Trading Fee:</span>
+                  <span>$0.00</span>
                 </div>
                 <hr />
-                <div className="d-flex justify-content-between">
-                  <span className="font-inter fw-bold">Total Cost:</span>
-                  <span className="font-poppins fw-bold fs-5 text-primary-custom">
-                    ${selectedStock ? (selectedStock.data.c * quantity).toFixed(2) : '0.00'}
-                  </span>
+                <div className="d-flex justify-content-between fw-bold">
+                  <span>Total Cost:</span>
+                  <span>${(selectedStock.data.c * quantity).toFixed(2)}</span>
                 </div>
               </div>
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-outline-secondary font-inter rounded-pill" onClick={() => setShowBuyModal(false)}>
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-primary font-inter px-4 py-2 rounded-pill" 
-                onClick={handleConfirmBuy}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <i className="bi bi-check2-circle me-2"></i>
-                    Confirm Purchase
-                  </>
-                )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+              
+              <Alert variant="info">
+                <i className="bi bi-info-circle me-2"></i>
+                This will be added to your portfolio immediately.
+              </Alert>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowBuyModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="success" 
+            onClick={handleConfirmBuy}
+            disabled={processingTransaction}
+          >
+            {processingTransaction ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-cart-check me-2"></i>
+                Buy Now
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
       
       {/* Sell Modal */}
-      <div className={`modal fade ${showSellModal ? 'show' : ''}`} style={{ display: showSellModal ? 'block' : 'none' }} tabIndex="-1">
-        <div className="modal-dialog modal-dialog-centered">
-          <div className="modal-content" style={{ borderRadius: '16px', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}>
-            <div className="modal-header bg-danger-custom text-white">
-              <h5 className="modal-title font-poppins fw-bold">
-                <i className="bi bi-cart-dash me-2"></i>
-                Sell {selectedStock?.symbol}
-              </h5>
-              <button type="button" className="btn-close btn-close-white" onClick={() => setShowSellModal(false)}></button>
-            </div>
-            <div className="modal-body p-4">
-              <div className="stock-info-card mb-4 p-3 bg-light rounded-3">
-                <div className="row">
-                  <div className="col-6 border-end">
-                    <div className="text-center">
-                      <span className="font-inter text-secondary-custom d-block mb-1">Current Price</span>
-                      <span className="font-poppins fw-bold fs-4 text-primary-custom">
-                        ${selectedStock?.data.c.toFixed(2)}
-                      </span>
+      <Modal show={showSellModal} onHide={() => setShowSellModal(false)} centered>
+        <Modal.Header closeButton className="bg-danger text-white">
+          <Modal.Title>
+            <i className="bi bi-cart-dash me-2"></i>
+            Sell {selectedStock?.symbol}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="p-4">
+          {selectedStock && (
+            <>
+              <div className="mb-3">
+                <h5 className="d-flex justify-content-between">
+                  <span>{selectedStock.symbol}</span>
+                  <span className={selectedStock.data.dp >= 0 ? "text-success" : "text-danger"}>
+                    {selectedStock.data.dp >= 0 ? "+" : ""}
+                    {selectedStock.data.dp.toFixed(2)}%
+                  </span>
+                </h5>
+                
+                <div className="stock-info-card mb-4 p-3 bg-light rounded-3">
+                  <div className="row">
+                    <div className="col-6 border-end">
+                      <div className="text-center">
+                        <span className="text-muted d-block mb-1">Current Price</span>
+                        <span className="fw-bold fs-4 text-primary">
+                          ${selectedStock.data.c.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="col-6">
+                      <div className="text-center">
+                        <span className="text-muted d-block mb-1">Previous Close</span>
+                        <span className="fw-bold fs-4 text-primary">
+                          ${selectedStock.data.pc.toFixed(2)}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                  <div className="col-6">
-                    <div className="text-center">
-                      <span className="font-inter text-secondary-custom d-block mb-1">Previous Close</span>
-                      <span className="font-poppins fw-bold fs-4 text-primary-custom">
-                        ${selectedStock?.data.pc.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <label htmlFor="sellPrice" className="form-label font-inter mb-2">Sell Price</label>
-                <div className="input-group">
-                  <span className="input-group-text">$</span>
-                  <input 
-                    type="number" 
-                    className="form-control" 
-                    id="sellPrice" 
-                    value={sellPrice} 
-                    onChange={(e) => setSellPrice(parseFloat(e.target.value) || 0)}
-                    step="0.01"
-                    min="0.01"
-                  />
-                </div>
-                <div className="price-shortcuts mt-2">
-                  <button 
-                    className="btn btn-sm btn-outline-primary me-2"
-                    onClick={() => setSellPrice(selectedStock ? selectedStock.data.c * 0.95 : 0)}
-                  >
-                    -5%
-                  </button>
-                  <button 
-                    className="btn btn-sm btn-outline-primary me-2"
-                    onClick={() => setSellPrice(selectedStock ? selectedStock.data.c : 0)}
-                  >
-                    Market
-                  </button>
-                  <button 
-                    className="btn btn-sm btn-outline-primary"
-                    onClick={() => setSellPrice(selectedStock ? selectedStock.data.c * 1.05 : 0)}
-                  >
-                    +5%
-                  </button>
-                </div>
-              </div>
-              
-              <div className="mb-4">
-                <label htmlFor="sellQuantity" className="form-label font-inter mb-2">Quantity</label>
-                <div className="quantity-selector">
-                  <button 
-                    className="quantity-btn minus" 
-                    onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                  >
-                    <i className="bi bi-dash"></i>
-                  </button>
-                  <input 
-                    type="number" 
-                    className="form-control text-center" 
-                    id="sellQuantity" 
-                    value={quantity} 
-                    onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                    min="1"
-                  />
-                  <button 
-                    className="quantity-btn plus" 
-                    onClick={() => setQuantity(quantity + 1)}
-                  >
-                    <i className="bi bi-plus"></i>
-                  </button>
                 </div>
                 
-                <div className="quantity-shortcuts mt-2">
-                  <button className="btn btn-sm btn-outline-primary me-2" onClick={() => setQuantity(5)}>5</button>
-                  <button className="btn btn-sm btn-outline-primary me-2" onClick={() => setQuantity(10)}>10</button>
-                  <button className="btn btn-sm btn-outline-primary me-2" onClick={() => setQuantity(25)}>25</button>
-                  <button className="btn btn-sm btn-outline-primary" onClick={() => setQuantity(50)}>50</button>
+                <Form.Group className="mb-3">
+                  <Form.Label>Sell Price</Form.Label>
+                  <div className="input-group">
+                    <span className="input-group-text">$</span>
+                    <Form.Control
+                      type="number"
+                      value={sellPrice}
+                      onChange={(e) => setSellPrice(parseFloat(e.target.value) || 0)}
+                      min="0.01"
+                      step="0.01"
+                    />
+                  </div>
+                </Form.Group>
+                
+                <div className="d-flex mb-3">
+                  <Button 
+                    variant="outline-secondary"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => setSellPrice(selectedStock.data.c * 0.95)}
+                  >
+                    -5%
+                  </Button>
+                  <Button 
+                    variant="outline-secondary"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => setSellPrice(selectedStock.data.c)}
+                  >
+                    Market
+                  </Button>
+                  <Button 
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={() => setSellPrice(selectedStock.data.c * 1.05)}
+                  >
+                    +5%
+                  </Button>
                 </div>
-              </div>
-              
-              <div className="order-summary p-3 bg-light rounded-3 mb-3">
-                <div className="d-flex justify-content-between mb-2">
-                  <span className="font-inter">Sell Price × Quantity:</span>
-                  <span className="font-inter">
-                    ${(sellPrice * quantity).toFixed(2)}
-                  </span>
+                
+                <Form.Group className="mb-3">
+                  <Form.Label>Quantity</Form.Label>
+                  <div className="d-flex align-items-center">
+                    <Button 
+                      variant="outline-secondary" 
+                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                    >
+                      <i className="bi bi-dash"></i>
+                    </Button>
+                    <Form.Control
+                      type="number"
+                      value={quantity}
+                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 0))}
+                      className="mx-2 text-center"
+                      min="1"
+                    />
+                    <Button 
+                      variant="outline-secondary"
+                      onClick={() => setQuantity(quantity + 1)}
+                    >
+                      <i className="bi bi-plus"></i>
+                    </Button>
+                  </div>
+                </Form.Group>
+                
+                <div className="d-flex justify-content-between mb-3">
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={() => setQuantity(5)}
+                    className="me-1"
+                  >
+                    5
+                  </Button>
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={() => setQuantity(10)}
+                    className="me-1"
+                  >
+                    10
+                  </Button>
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={() => setQuantity(25)}
+                    className="me-1"
+                  >
+                    25
+                  </Button>
+                  <Button 
+                    variant="outline-secondary" 
+                    size="sm"
+                    onClick={() => setQuantity(50)}
+                    className="me-1"
+                  >
+                    50
+                  </Button>
+                  <Button 
+                    variant="outline-secondary"
+                    size="sm"
+                    onClick={() => setQuantity(100)}
+                  >
+                    Max
+                  </Button>
                 </div>
-                <div className="d-flex justify-content-between mb-2">
-                  <span className="font-inter">Trading Fee:</span>
-                  <span className="font-inter">$0.00</span>
+                
+                <div className="bg-light p-3 rounded mb-3">
+                  <div className="d-flex justify-content-between mb-2">
+                    <span>Sell Price × Quantity:</span>
+                    <span>${(sellPrice * quantity).toFixed(2)}</span>
+                  </div>
+                  <div className="d-flex justify-content-between mb-2">
+                    <span>Trading Fee:</span>
+                    <span>$0.00</span>
+                  </div>
+                  <hr />
+                  <div className="d-flex justify-content-between fw-bold">
+                    <span>Total Revenue:</span>
+                    <span className="text-success">${(sellPrice * quantity).toFixed(2)}</span>
+                  </div>
                 </div>
-                <hr />
-                <div className="d-flex justify-content-between">
-                  <span className="font-inter fw-bold">Total Revenue:</span>
-                  <span className="font-poppins fw-bold fs-5 text-success-custom">
-                    ${(sellPrice * quantity).toFixed(2)}
-                  </span>
-                </div>
-              </div>
-              
-              {selectedStock && sellPrice < selectedStock.data.c * 0.95 && (
-                <div className="alert alert-warning" role="alert">
-                  <i className="bi bi-exclamation-triangle me-2"></i>
-                  Your sell price is significantly below current market value.
-                </div>
-              )}
-            </div>
-            <div className="modal-footer">
-              <button type="button" className="btn btn-outline-secondary font-inter rounded-pill" onClick={() => setShowSellModal(false)}>
-                Cancel
-              </button>
-              <button 
-                type="button" 
-                className="btn btn-danger font-inter px-4 py-2 rounded-pill" 
-                onClick={handleConfirmSell}
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                    Processing...
-                  </>
-                ) : (
-                  <>
-                    <i className="bi bi-check2-circle me-2"></i>
-                    Confirm Sale
-                  </>
+                
+                {sellPrice < selectedStock.data.c * 0.95 && (
+                  <Alert variant="warning">
+                    <i className="bi bi-exclamation-triangle me-2"></i>
+                    Your sell price is significantly below current market value.
+                  </Alert>
                 )}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+              </div>
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowSellModal(false)}>
+            Cancel
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={handleConfirmSell}
+            disabled={processingTransaction}
+          >
+            {processingTransaction ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Processing...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-cart-check me-2"></i>
+                Sell Now
+              </>
+            )}
+          </Button>
+        </Modal.Footer>
+      </Modal>
 
-      {(showBuyModal || showSellModal) && (
-        <div className="modal-backdrop fade show" style={{ 
-          backgroundColor: 'rgba(0,0,0,0.5)', 
-          backdropFilter: 'blur(5px)'
-        }}></div>
-      )}
+      {/* Toast container and CSS */}
       <div id="toast-container" className="position-fixed bottom-0 end-0 p-3"></div>
+      
+      <style jsx>{`
+        .toast-success,
+        .toast-error {
+          position: fixed;
+          bottom: 20px;
+          right: 20px;
+          padding: 1rem;
+          border-radius: 8px;
+          box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+          display: flex;
+          align-items: center;
+          z-index: 1060;
+          animation: toast-slide-in 0.3s ease forwards;
+          color: white;
+        }
+        
+        .toast-success {
+          background-color: var(--accent, #43A047);
+        }
+        
+        .toast-error {
+          background-color: var(--danger, #E53935);
+        }
+        
+        .toast-icon {
+          margin-right: 12px;
+          font-size: 1.5rem;
+        }
+        
+        .toast-message {
+          font-family: 'Inter', sans-serif;
+          font-size: 0.95rem;
+        }
+        
+        .toast-fade-out {
+          animation: toast-fade-out 0.3s ease forwards;
+        }
+        
+        @keyframes toast-slide-in {
+          from {
+            transform: translateX(100%);
+            opacity: 0;
+          }
+          to {
+            transform: translateX(0);
+            opacity: 1;
+          }
+        }
+        
+        @keyframes toast-fade-out {
+          from {
+            opacity: 1;
+          }
+          to {
+            opacity: 0;
+          }
+        }
+      `}</style>
     </>
   );
 };

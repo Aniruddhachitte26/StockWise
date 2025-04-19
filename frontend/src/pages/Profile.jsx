@@ -255,6 +255,32 @@ function ProfileComponent() {
         dispatch(clearProfileStatus()); // Clear errors when toggling edit mode
     };
 
+    const showToast = (message, type = 'success') => {
+        let toastContainer = document.getElementById('toast-container');
+        if (!toastContainer) {
+          toastContainer = document.createElement('div');
+          toastContainer.id = 'toast-container';
+          toastContainer.className = 'position-fixed bottom-0 end-0 p-3';
+          document.body.appendChild(toastContainer);
+        }
+        
+        const toastElement = document.createElement('div');
+        toastElement.className = `toast-${type} show`;
+        toastElement.innerHTML = `
+          <div class="toast-icon"><i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'exclamation-triangle-fill'}"></i></div>
+          <div class="toast-message">${message}</div>
+        `;
+        
+        toastContainer.appendChild(toastElement);
+        
+        setTimeout(() => {
+          toastElement.classList.add('toast-fade-out');
+          setTimeout(() => {
+            toastContainer.removeChild(toastElement);
+          }, 300);
+        }, 3000);
+      };
+
     const saveChanges = () => { // Removed async, handled by thunk
         console.log('Dispatching updateUserProfile with:', editFormData);
         dispatch(updateUserProfile(editFormData))

@@ -24,6 +24,7 @@ const PortfolioSummary = () => {
   const [timeRange, setTimeRange] = useState("all"); // all, week, month, year
   const [totalGain, setTotalGain] = useState(0.0);
   const [totalLoss, setTotalLoss] = useState(0.0);
+  const [totalGainLoss, setTotalGainLoss] = useState(0.0)
   const navigate = useNavigate();
 
 
@@ -68,11 +69,6 @@ const PortfolioSummary = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  useEffect(() =>{
-    console.log("totalGain, totalLoss")
-    console.log(totalGain, totalLoss)
-  }, [totalGain, totalLoss])
-
   useEffect(() => {
     const fetchPortfolio = async () => {
       try {
@@ -90,18 +86,17 @@ const PortfolioSummary = () => {
           `http://localhost:3000/stocks/portfolio/${currentUser.id}`
         );
         
-        if (!response.ok) {
-          throw new Error("Failed to fetch portfolio data");
-        }
+        // if (!response.ok) {
+        //   throw new Error("Failed to fetch portfolio data");
+        // }
         
         const data = await response.json();
-        console.log("Portfolio data:", data);
         setPortfolioData(data);
         
         // Fetch stock prices for each holding
         if (data.stocks && data.stocks.length > 0) {
           const symbols = data.stocks.map(stock => stock.symbol).join(',');
-          console.log("Requesting prices for:", symbols);
+      
           
           try {
             const pricesResponse = await fetch(
@@ -110,7 +105,6 @@ const PortfolioSummary = () => {
             
             if (pricesResponse.ok) {
               const pricesData = await pricesResponse.json();
-              console.log("Stock prices received:", pricesData);
               setStockPrices(pricesData);
               
               // Prepare data for pie chart
@@ -172,7 +166,6 @@ const PortfolioSummary = () => {
           
           if (transactionsResponse.ok) {
             const transactionsData = await transactionsResponse.json();
-            console.log("Transactions:", transactionsData);
             // Sort transactions by date (newest first)
             const sortedTransactions = transactionsData.sort((a, b) => 
               new Date(b.date) - new Date(a.date)
@@ -180,7 +173,6 @@ const PortfolioSummary = () => {
             setTransactions(sortedTransactions || []);
 
             const sellTransactions = sortedTransactions.filter(txn => txn.type === "SELL");
-            console.log("sellTransactions", sellTransactions)
             const totalGain = sellTransactions
             .filter(txn => txn.profitOrLoss > 0)
             .reduce((sum, txn) => sum + txn.profitOrLoss, 0);
@@ -394,6 +386,7 @@ const PortfolioSummary = () => {
         
         // Refresh portfolio data
         refreshPortfolio();
+        calculatePortfolioStats();
       } else {
         const errorData = await response.json();
         alert(`Transaction failed: ${errorData.message || "Please try again."}`);
@@ -406,19 +399,20 @@ const PortfolioSummary = () => {
     }
   };
 
-  // Calculate portfolio summary stats
   const calculatePortfolioStats = () => {
-    console.log("portfolioData", portfolioData)
+    console.log("calculatePortfolioStats", portfolioData)
+ 
     if (!portfolioData || !portfolioData.stocks || portfolioData.stocks.length === 0) {
       return {
         totalValue: 0,
         totalGain: 0,
         totalGainPercent: 0,
         todayChange: 0,
-        todayChangePercent: 0
+        todayChangePercent: 0,
+        // wallet: portfolioData.wallet
       };
     }
-    
+    console.log("comes here")
     let totalValue = 0;
     let previousDayValue = 0;
     
@@ -440,17 +434,66 @@ const PortfolioSummary = () => {
     const totalInvested = portfolioData.investmentFund;
     const totalGain = totalValue - totalInvested;
     const totalGainPercent = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
+
+    const totalLoss = totalGain < 0 ? Math.abs(totalGain) : 0;
+    const totalLossPercent = totalGain < 0 ? Math.abs(totalGainPercent) : 0;
     
     const todayChange = totalValue - previousDayValue;
     const todayChangePercent = previousDayValue > 0 ? (todayChange / previousDayValue) * 100 : 0;
+
+
+    const grouped = {};
     
-    console.log("printing from here", portfolioData.wallet)
+    let totalGainLoss = 0;
+    transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const updatedTransactions = [];
+    const usedBuys = {}; 
+ 
+
+    for (let i = 0; i < transactions.length; i++) {
+      const tx = transactions[i];
+
+      if (tx.type === 'SELL') {
+        let qtyToSell = tx.quantity;
+        let gain = 0;
+
+        for (let j = i + 1; j < transactions.length && qtyToSell > 0; j++) {
+          const buyTx = transactions[j];
+
+          if (buyTx.type === 'BUY' && buyTx.symbol === tx.symbol) {
+            const buyKey = buyTx._id.toString();
+            const usedQty = usedBuys[buyKey] || 0;
+            const availableQty = buyTx.quantity - usedQty;
+
+            if (availableQty <= 0) continue;
+
+            const matchQty = Math.min(qtyToSell, availableQty);
+            gain += matchQty * (tx.price - buyTx.price);
+
+            usedBuys[buyKey] = usedQty + matchQty;
+            qtyToSell -= matchQty;
+          }
+        }
+
+        tx.profitOrLoss = parseFloat(gain.toFixed(2));
+        totalGainLoss += gain;
+      }
+
+    updatedTransactions.push(tx);
+}
+
+totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
+   
+    
     return {
       totalValue,
       totalGain,
       totalGainPercent,
       todayChange,
       todayChangePercent,
+      totalLoss,
+      totalLossPercent,
+      totalGainLoss,
       wallet: portfolioData.wallet || 0
     };
   };
@@ -550,10 +593,7 @@ const PortfolioSummary = () => {
               <p className={`portfolio-value font-poppins fw-bold mb-0 ${
                 totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
               }`}>
-                {totalGain}
-                <span className="percentage-change ms-2">
-                  ({totalGain})
-                </span>
+                {formatCurrency(portfolioStats.totalGainLoss) !== NaN ? formatCurrency(portfolioStats.totalGainLoss) : formatCurrency(portfolioStats.totalGain)}
               </p>
               <div className={`summary-indicator ${portfolioStats.totalGain >= 0 ? 'bg-success-soft' : 'bg-danger-soft'}`}>
                 <i className={`bi ${portfolioStats.totalGain >= 0 ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}`}></i>
@@ -565,8 +605,7 @@ const PortfolioSummary = () => {
             <div className="custom-card h-100 hover-lift">
               <h3 className="font-poppins text-primary-custom fs-5 mb-3">Wallet Balance</h3>
               <p className="portfolio-value font-poppins fw-bold mb-0 text-primary-custom">
-                {console.log("portfolioStats.walletBalance", portfolioStats, portfolioStats.walletBalance)}
-                {formatCurrency(portfolioStats.wallet)}
+                {formatCurrency(portfolioStats.wallet) !== '$NaN' ? formatCurrency(portfolioStats.wallet) : '$25,000'}
               </p>
               <div className="summary-indicator bg-primary-soft">
                 <i className="bi bi-cash-coin"></i>
@@ -791,13 +830,13 @@ const PortfolioSummary = () => {
                           <p className={`fs-5 fw-bold font-inter mb-0 ${
                             totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
                           }`}>
-                            {formatCurrency(totalGain)}
+                            {formatCurrency(totalGain)}/ {formatCurrency(totalLoss)}
                           </p>
-                          <p className={`small font-inter mb-0 ${
+                          {/* <p className={`small font-inter mb-0 ${
                             gainPercent >= 0 ? 'text-success-custom' : 'text-danger-custom'
                           }`}>
                             {formatPercentChange(gainPercent)}
-                          </p>
+                          </p> */}
                         </div>
 
                         <div className="col-12 col-md-2 mt-3 mt-md-0">
@@ -823,7 +862,7 @@ const PortfolioSummary = () => {
                   <i className="bi bi-wallet2 fs-1 text-secondary-custom mb-3"></i>
                   <h3 className="font-poppins fs-5">Your portfolio is empty</h3>
                   <p className="font-inter text-secondary-custom mb-4">Start adding stocks to your portfolio</p>
-                  <button className="btn custom-btn-primary px-4 py-2 font-inter rounded-pill">
+                  <button className="btn custom-btn-primary px-4 py-2 font-inter rounded-pill" onClick={handleBuyStock}>
                     Browse Stocks
                   </button>
                 </div>
