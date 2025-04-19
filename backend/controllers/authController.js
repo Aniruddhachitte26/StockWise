@@ -61,12 +61,31 @@ const loginUser = async (req, res) => {
 		return res.status(200).json({
 			message: "Login successful.",
 			user: {
-				id: user._id,
+				// Essential fields for auth/routing
+				id: user._id, // Use 'id' or '_id' consistently (frontend expects 'id' based on logs)
+				_id: user._id, // Include _id as well if needed
 				fullName: user.fullName,
 				email: user.email,
-				type: user.type, // Include user type in the response
-                imagePath: user.imagePath,
-                verified: user.verified,
+				type: user.type,
+				// Additional fields needed for profile page display/edit form initialization
+				imagePath: user.imagePath,
+				address: user.address,
+				phone: user.phone,
+				dateOfBirth: user.dateOfBirth,
+				proof: user.proof,
+				proofType: user.proofType,
+				verified: user.verified, // Include verification status
+				createdAt: user.createdAt, // May be useful
+				updatedAt: user.updatedAt, // May be useful
+				// Include broker-specific fields if relevant for broker login
+				company: user.company,
+				licenseNumber: user.licenseNumber,
+				licenseExpiry: user.licenseExpiry,
+				specialization: user.specialization,
+				yearsOfExperience: user.yearsOfExperience,
+				brokerStatus: user.brokerStatus,
+				commission: user.commission,
+				// Exclude sensitive fields like password hash
 			},
 			token,
 		});
@@ -160,11 +179,9 @@ const registerBroker = async (req, res) => {
 		const savedUser = await user.save();
 		console.log("Broker saved successfully:", savedUser._id);
 
-		return res
-			.status(201)
-			.json({
-				message: "Broker registered successfully. Your account is pending approval.",
-			});
+		return res.status(201).json({
+			message: "Broker registered successfully. Your account is pending approval.",
+		});
 	} catch (error) {
 		console.error("Error creating broker:", error);
 		// Return the specific validation error if available
@@ -257,11 +274,29 @@ const googleLogin = async (req, res) => {
 		return res.status(200).json({
 			message: "Google login successful.",
 			user: {
-				id: user._id,
-				fullName: user.fullName,
-				email: user.email,
-				type: user.type,
-				imagePath: user.imagePath,
+				// Essential fields
+                id: user._id,
+                fullName: user.fullName,
+                email: user.email,
+                type: user.type,
+                // Additional fields
+                imagePath: user.imagePath,
+                address: user.address,
+                phone: user.phone,
+                dateOfBirth: user.dateOfBirth,
+                proof: user.proof,
+                proofType: user.proofType,
+                verified: user.verified,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
+                company: user.company,
+                licenseNumber: user.licenseNumber,
+                licenseExpiry: user.licenseExpiry,
+                specialization: user.specialization,
+                yearsOfExperience: user.yearsOfExperience,
+                brokerStatus: user.brokerStatus,
+                commission: user.commission,
+                // Exclude sensitive fields
 			},
 			token,
 		});
