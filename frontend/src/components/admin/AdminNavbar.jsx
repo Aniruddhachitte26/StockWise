@@ -5,7 +5,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTheme } from '../common/ThemeProvider';
 import useAuth from './../../hooks/useAuth';
 import { useDispatch } from 'react-redux'; // Import useDispatch
-import { logout } from '../../redux/features/authSlice';
+import { logoutUser } from '../../redux/features/authSlice';
 
 const navbarStyles = {
     container: {
@@ -26,7 +26,7 @@ const AdminNavbar = () => {
 
     const handleLogout = () => {
         // console.log("AdminNavbar: Dispatching logout action."); // Add log
-        dispatch(logout());
+        dispatch(logoutUser());
         //logout();
         navigate('/');
     };

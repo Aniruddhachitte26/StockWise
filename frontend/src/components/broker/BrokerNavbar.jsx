@@ -8,7 +8,7 @@ import { useTheme } from './../../components/common/ThemeProvider'; // Corrected
 
 // --- Redux Imports ---
 import { useDispatch } from 'react-redux'; // Import useDispatch
-import { logout } from '../../redux/features/authSlice'; // Import the logout action creator
+import { logoutUser } from '../../redux/features/authSlice'; // Import the logout action creator
 
 // Styles (keep as is or adapt to theme)
 const NavbarStyles = {
@@ -28,7 +28,7 @@ const BrokerNavbar = () => {
 
     const handleLogout = () => {
         console.log("BrokerNavbar: Dispatching logout action."); // Add log for debugging
-        dispatch(logout()); // <-- Dispatch the Redux logout action
+        dispatch(logoutUser()); // <-- Dispatch the Redux logout action
         navigate('/'); // Redirect to home or login page after logout
     };
 

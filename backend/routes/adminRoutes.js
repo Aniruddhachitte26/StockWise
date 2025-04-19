@@ -4,9 +4,9 @@ const express = require("express");
 const router = express.Router();
 const adminController = require("../controllers/adminController");
 const userController = require("../controllers/userController");
-const { 
-  authenticateUser, 
-  authorizeAdmin 
+const {
+	authenticateUser,
+	authorizeAdmin,
 } = require("../middleware/authmiddleware");
 
 // Apply authentication and admin authorization to all routes
@@ -24,5 +24,6 @@ router.put("/update-user-status", userController.updateUserDetails); // Assuming
 
 // Recent users
 router.get("/recent-users", adminController.getRecentUsers);
+router.get("/active-users", adminController.getActiveUsers);
 
 module.exports = router;
