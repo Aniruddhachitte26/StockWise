@@ -69,7 +69,6 @@ export default function ChatBot() {
   
   const options = [
     "Tell me about my portfolio",
-    "Today's stock market condition",
     "Investment recommendations"
   ];
   
