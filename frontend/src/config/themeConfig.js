@@ -1,3 +1,5 @@
+// src/config/themeConfig.js
+
 const themeConfig = {
   light: {
     primary: '#1E88E5',
@@ -9,46 +11,25 @@ const themeConfig = {
     textPrimary: '#212121',
     textSecondary: '#757575',
     border: '#E0E0E0'
-  },
-  dark: {
-    primary: '#90CAF9',
-    secondary: '#80DEEA',
-    accent: '#A5D6A7',
-    danger: '#EF9A9A',
-    neutralBg: '#121212',
-    card: '#1E1E1E',
-    textPrimary: '#E0E0E0',
-    textSecondary: '#BDBDBD',
-    border: '#2E2E2E'
   }
+  // Dark theme removed
 };
 
-// Detect preferred color scheme
+// Always return light theme
 const detectColorScheme = () => {
-  // Check for saved preference
-  const savedTheme = localStorage.getItem('stockwise-theme');
-  if (savedTheme) {
-    return savedTheme;
-  }
-  
-  // Check system preference
-  if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
-    return 'dark';
-  }
-  
   return 'light';
 };
 
-// Set theme in localStorage
-const setThemePreference = (theme) => {
-  localStorage.setItem('stockwise-theme', theme);
-  applyTheme(theme);
+// Set theme in localStorage but always use light
+const setThemePreference = () => {
+  localStorage.setItem('stockwise-theme', 'light');
+  applyTheme('light');
 };
 
-// Apply theme to document
-const applyTheme = (theme) => {
+// Apply theme to document - only applies light theme
+const applyTheme = () => {
   const root = document.documentElement;
-  const colors = themeConfig[theme];
+  const colors = themeConfig.light;
   
   // Set CSS variables
   Object.keys(colors).forEach(key => {
@@ -56,28 +37,18 @@ const applyTheme = (theme) => {
   });
   
   // Set data-theme attribute
-  document.body.setAttribute('data-theme', theme);
+  document.body.setAttribute('data-theme', 'light');
   
-  // Add/remove dark class
-  if (theme === 'dark') {
-    document.body.classList.add('dark-theme');
-  } else {
-    document.body.classList.remove('dark-theme');
-  }
+  // Remove dark class if present
+  document.body.classList.remove('dark-theme');
 };
 
-// Initialize theme
+// Initialize theme - only initializes light theme
 const initTheme = () => {
-  const theme = detectColorScheme();
-  applyTheme(theme);
+  applyTheme();
   
-  // Listen for system preference changes
-  if (window.matchMedia) {
-    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-      const newTheme = event.matches ? 'dark' : 'light';
-      setThemePreference(newTheme);
-    });
-  }
+  // Remove listener for system preference changes
+  // No need to listen for changes as we always use light theme
 };
 
 export { themeConfig, detectColorScheme, setThemePreference, applyTheme, initTheme };
