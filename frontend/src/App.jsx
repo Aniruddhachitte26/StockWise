@@ -49,6 +49,9 @@ import { initTheme } from './config/themeConfig';
 import useAuth from './hooks/useAuth';
 import './App.css';
 import './assets/styles/theme.css';
+import { loadStripe } from '@stripe/stripe-js';
+const stripePromise = loadStripe('pk_test_51RFOTpCedU17Fc7wGrEfO14CXtqFurHULvCFQccgYf5DgPnJ9VIAOJw5RjWrlfgeXoHs6IVPqFqQDUfIRoOcii7K00cHFKj2Hy');
+
 
 // ==========================
 // Protected Route (User)
@@ -294,7 +297,7 @@ const AppRoutes = () => {
     );
 };
 
-// --- Main App Component ---
+
 const App = () => {
 
     const dispatch = useDispatch();
@@ -321,10 +324,9 @@ const App = () => {
     }, [dispatch, token]); // Depend on token presence from initial state load
 
     return (
-        // AuthProvider might still be needed if some components haven't been refactored yet
-        // Once all components use Redux, AuthProvider can be removed
+
         <AuthProvider>
-            <ThemeProvider> {/* Handles light/dark theme switching */}
+            <ThemeProvider>
                 <AppRoutes />
             </ThemeProvider>
         </AuthProvider>

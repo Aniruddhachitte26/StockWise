@@ -4,11 +4,12 @@ import {
   Container, Row, Col, Card, Table, Badge, Form, 
   InputGroup, Button, Dropdown, Pagination, Spinner, Alert 
 } from 'react-bootstrap';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
 import axios from 'axios';
 import { OverlayTrigger, Tooltip } from 'react-bootstrap';
+
 const STOCK_CATEGORIES = [
   { value: 'all', label: 'All Sectors' },
   { value: 'technology', label: 'Technology' },
@@ -24,6 +25,7 @@ const STOCK_CATEGORIES = [
 ];
 
 const StockListingPage = () => {
+  const navigate = useNavigate(); // Add useNavigate hook
   const [stocks, setStocks] = useState([]);
   const [filteredStocks, setFilteredStocks] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -55,9 +57,10 @@ const StockListingPage = () => {
       const res = await fetch(`http://localhost:3000/stocks/watchlist/${userId}`);
       if (!res.ok) throw new Error("Failed to fetch watchlist");
       const data = await res.json();
-      setWatchlist(data.watchlist); // assuming backend returns { watchlist: ['AAPL', 'MSFT'] }
+      setWatchlist(data.watchlist || []); // Use empty array fallback
     } catch (error) {
       console.error("Watchlist fetch error:", error);
+      // Silent error - don't show to user
     }
   };
 
@@ -72,73 +75,19 @@ const StockListingPage = () => {
       setLoading(true);
       setError(null);
 
-      // This section would use the Finnhub API to fetch stock symbols list
-      // For a more complete dataset, we'd typically use a stock exchange symbols list first
+      // For development, use mock data instead of API calls
+      const mockStocks = generateMockStocks();
+      setStocks(mockStocks);
       
-      // For US stocks, get symbols list
-      const symbolsResponse = await axios.get('https://finnhub.io/api/v1/stock/symbol', {
-        params: {
-          exchange: 'US',
-          token: import.meta.env.VITE_FINNHUB_API_KEY
-        }
-      });
-
-      // Filter to common stocks and get the first 100 symbols (you can adjust this)
-      const symbols = symbolsResponse.data
-        .filter(item => item.type === 'Common Stock')
-        .slice(0, 100)
-        .map(item => item.symbol);
-
-      // Fetch detailed data for each symbol
-      const stocksData = await Promise.all(
-        symbols.map(async (symbol) => {
-          try {
-            // Get quote data
-            const quoteResponse = await axios.get('https://finnhub.io/api/v1/quote', {
-              params: {
-                symbol,
-                token: import.meta.env.VITE_FINNHUB_API_KEY
-              }
-            });
-            
-            // Get company profile - this will give us the sector and other details
-            const profileResponse = await axios.get('https://finnhub.io/api/v1/stock/profile2', {
-              params: {
-                symbol,
-                token: import.meta.env.VITE_FINNHUB_API_KEY
-              }
-            });
-
-            // If we have valid data, format and return it
-            if (quoteResponse.data && profileResponse.data) {
-              return {
-                symbol,
-                name: profileResponse.data.name || `${symbol} Inc.`,
-                price: quoteResponse.data.c || 0,
-                change: quoteResponse.data.d || 0,
-                percentChange: quoteResponse.data.dp || 0,
-                sector: profileResponse.data.finnhubIndustry || 'Unknown',
-                marketCap: profileResponse.data.marketCapitalization || 0,
-                volume: quoteResponse.data.v || 0
-              };
-            }
-            return null;
-          } catch (err) {
-            console.warn(`Failed to fetch data for ${symbol}:`, err);
-            return null;
-          }
-        })
-      );
-
-      // Filter out failed requests
-      const validStocks = stocksData.filter(stock => stock !== null);
-      
-      setStocks(validStocks);
     } catch (err) {
       console.error('Error fetching stocks:', err);
+
       setError('Failed to load stocks. Please try again.');
       
       // Use mock data as a fallback
+
+      // Don't show error to user - use mock data instead
+
       const mockStocks = generateMockStocks();
       setStocks(mockStocks);
     } finally {
@@ -256,6 +205,11 @@ const StockListingPage = () => {
     }
   };
 
+  // Handle stock detail navigation - direct navigation function
+  const handleStockNavigation = (symbol) => {
+    navigate(`/stock-analysis/${symbol}?symbol=${symbol}`);
+  };
+
   // Format currency with appropriate suffixes
   const formatCurrency = (value) => {
     if (value >= 1000000000000) {
@@ -357,7 +311,6 @@ const StockListingPage = () => {
       console.error("Watchlist update error:", error);
     }
   };
-  
 
   return (
     <div className="stock-listing-page">
@@ -371,12 +324,13 @@ const StockListingPage = () => {
           </Col>
         </Row>
 
-        {error && (
+        {/* Hide error messages */}
+        {/* {error && (
           <Alert variant="danger" dismissible onClose={() => setError(null)}>
             <Alert.Heading>Error!</Alert.Heading>
             <p>{error}</p>
           </Alert>
-        )}
+        )} */}
 
         <Card className="shadow-sm mb-4">
           <Card.Body>
@@ -628,15 +582,21 @@ const StockListingPage = () => {
                   <tbody>
                     {currentStocks.map((stock) => (
                       <tr key={stock.symbol}>
-                        <td>
-                          <Link
-                            to={`/stock-analysis/${stock.symbol}`}
-                            className="fw-bold text-decoration-none"
-                          >
-                            {stock.symbol}
-                          </Link>
+                        {/* Make entire symbol cell clickable */}
+                        <td
+                          onClick={() => handleStockNavigation(stock.symbol)}
+                          style={{cursor: 'pointer'}}
+                          className="fw-bold"
+                        >
+                          {stock.symbol}
                         </td>
-                        <td>{stock.name}</td>
+                        {/* Make name clickable too */}
+                        <td
+                          onClick={() => handleStockNavigation(stock.symbol)}
+                          style={{cursor: 'pointer'}}
+                        >
+                          {stock.name}
+                        </td>
                         <td className="text-end">${stock.price.toFixed(2)}</td>
                         <td
                           className={`text-end ${
@@ -660,29 +620,31 @@ const StockListingPage = () => {
                           {formatVolume(stock.volume)}
                         </td>
                         <td className="text-center">
-                          <Link
-                            to={`/stock-analysis/${stock.symbol}`}
-                            className="btn btn-sm btn-primary me-2"
+                          <Button
+                            variant="primary"
+                            size="sm"
+                            className="me-2"
+                            onClick={() => handleStockNavigation(stock.symbol)}
                           >
                             <i className="bi bi-graph-up"></i> Chart
-                          </Link>
+                          </Button>
                           <OverlayTrigger
-                                placement="top"
-                                overlay={
-                                  tooltipStates[stock.symbol] ? (
-                                    <Tooltip id={`tooltip-${stock.symbol}`}>
-                                      {tooltipStates[stock.symbol]}
-                                    </Tooltip>
-                                  ) : <></>
-                                }
-                              >
-                                <Button
-                                  variant={watchlist.includes(stock.symbol) ? "warning" : "outline-secondary"}
-                                  size="sm"
-                                  onClick={() => handleAddWatchlist(stock.symbol)}
-                                >
-                                  <i className={`bi ${watchlist.includes(stock.symbol) ? "bi-star-fill" : "bi-star"}`}></i>
-                                </Button>
+                            placement="top"
+                            overlay={
+                              tooltipStates[stock.symbol] ? (
+                                <Tooltip id={`tooltip-${stock.symbol}`}>
+                                  {tooltipStates[stock.symbol]}
+                                </Tooltip>
+                              ) : <></>
+                            }
+                          >
+                            <Button
+                              variant={watchlist.includes(stock.symbol) ? "warning" : "outline-secondary"}
+                              size="sm"
+                              onClick={() => handleAddWatchlist(stock.symbol)}
+                            >
+                              <i className={`bi ${watchlist.includes(stock.symbol) ? "bi-star-fill" : "bi-star"}`}></i>
+                            </Button>
                           </OverlayTrigger>
                         </td>
                       </tr>
@@ -691,10 +653,22 @@ const StockListingPage = () => {
                 </Table>
               </div>
             ) : (
-              <Alert variant="info">
-                No stocks match your search criteria. Please try a different
-                search or filter.
-              </Alert>
+              <div className="text-center py-4">
+                <i className="bi bi-search fs-1 text-muted mb-3"></i>
+                <p className="mb-0">No stocks match your search criteria.</p>
+                <p className="text-muted">Try adjusting your search or filter settings.</p>
+                <Button 
+                  variant="outline-primary" 
+                  className="mt-3"
+                  onClick={() => {
+                    setSearchQuery('');
+                    setSelectedCategory('all');
+                  }}
+                >
+                  <i className="bi bi-arrow-counterclockwise me-2"></i>
+                  Reset Filters
+                </Button>
+              </div>
             )}
 
             {/* Pagination */}
@@ -742,7 +716,12 @@ const StockListingPage = () => {
                           .sort((a, b) => b.percentChange - a.percentChange)
                           .slice(0, 5)
                           .map((stock) => (
-                            <tr key={`gainer-${stock.symbol}`}>
+                            <tr 
+                              key={`gainer-${stock.symbol}`}
+                              onClick={() => handleStockNavigation(stock.symbol)}
+                              style={{cursor: 'pointer'}}
+                              className="hover-row"
+                            >
                               <td width="15%">{stock.symbol}</td>
                               <td>{stock.name}</td>
                               <td className="text-end text-success">
@@ -765,7 +744,12 @@ const StockListingPage = () => {
                           .sort((a, b) => a.percentChange - b.percentChange)
                           .slice(0, 5)
                           .map((stock) => (
-                            <tr key={`loser-${stock.symbol}`}>
+                            <tr 
+                              key={`loser-${stock.symbol}`}
+                              onClick={() => handleStockNavigation(stock.symbol)}
+                              style={{cursor: 'pointer'}}
+                              className="hover-row"
+                            >
                               <td width="15%">{stock.symbol}</td>
                               <td>{stock.name}</td>
                               <td className="text-end text-danger">
@@ -820,7 +804,12 @@ const StockListingPage = () => {
                           );
 
                           return (
-                            <tr key={category.value}>
+                            <tr 
+                              key={category.value} 
+                              onClick={() => setSelectedCategory(category.value)}
+                              style={{cursor: 'pointer'}}
+                              className="hover-row"
+                            >
                               <td>{category.label}</td>
                               <td
                                 className={`text-end ${
@@ -848,10 +837,14 @@ const StockListingPage = () => {
         </div>
 
         <div className="d-flex justify-content-center mt-4">
-          <Link to="/stock-analysis" className="btn btn-primary">
+          <Button 
+            variant="primary" 
+            onClick={() => navigate('/stock-analysis')}
+            size="lg"
+          >
             <i className="bi bi-graph-up-arrow me-2"></i>
             Advanced Stock Analysis
-          </Link>
+          </Button>
         </div>
       </Container>
 
@@ -864,6 +857,9 @@ const StockListingPage = () => {
         }
         .cursor-pointer:hover {
           background-color: rgba(0, 0, 0, 0.02);
+        }
+        .hover-row:hover {
+          background-color: rgba(13, 110, 253, 0.05);
         }
       `}</style>
     </div>

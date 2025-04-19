@@ -1,5 +1,5 @@
 // src/hooks/useStock.js
-import { useState, useCallback } from 'react';
+import { useState, useCallback,useEffect } from 'react';
 import axios from 'axios';
 
 const useStock = () => {
@@ -8,7 +8,9 @@ const useStock = () => {
   const [marketSummary, setMarketSummary] = useState(null);
   const [topStocks, setTopStocks] = useState([]);
   const [marketNews, setMarketNews] = useState([]);
-
+  const [lastUpdated, setLastUpdated] = useState(new Date());
+  const [canRefresh, setCanRefresh] = useState(true);
+  const [timeRemaining, setTimeRemaining] = useState('');
   // API configuration
   const FINNHUB_API_KEY = 'd0023phr01qud9qlbgt0d0023phr01qud9qlbgtg'; // Replace with your actual API key
   const FINNHUB_BASE_URL = 'https://finnhub.io/api/v1';
@@ -19,6 +21,112 @@ const useStock = () => {
   }, []);
 
  // Update in useStock.js - fetchMarketSummary function
+//  const fetchMarketSummary = useCallback(async () => {
+//   setLoading(true);
+//   setError(null);
+  
+//   try {
+//     console.log('Fetching market summary data...');
+    
+//     // Fetch data for major indices - S&P 500 (^GSPC), NASDAQ (^IXIC), and Dow Jones (^DJI)
+//     let sp500Response, nasdaqResponse, dowResponse;
+    
+//     try {
+//       sp500Response = await axios.get(`${FINNHUB_BASE_URL}/quote`, {
+//         params: { symbol: '^GSPC', token: FINNHUB_API_KEY }
+//       });
+//       console.log('S&P 500 data:', sp500Response.data);
+//     } catch (error) {
+//       console.error('Error fetching S&P 500 data:', error);
+//       throw new Error(`S&P 500 data fetch failed: ${error.message}`);
+//     }
+    
+//     try {
+//       nasdaqResponse = await axios.get(`${FINNHUB_BASE_URL}/quote`, {
+//         params: { symbol: '^IXIC', token: FINNHUB_API_KEY }
+//       });
+//       console.log('NASDAQ data:', nasdaqResponse.data);
+//     } catch (error) {
+//       console.error('Error fetching NASDAQ data:', error);
+//       throw new Error(`NASDAQ data fetch failed: ${error.message}`);
+//     }
+    
+//     try {
+//       dowResponse = await axios.get(`${FINNHUB_BASE_URL}/quote`, {
+//         params: { symbol: '^DJI', token: FINNHUB_API_KEY }
+//       });
+//       console.log('Dow Jones data:', dowResponse.data);
+//     } catch (error) {
+//       console.error('Error fetching Dow Jones data:', error);
+//       throw new Error(`Dow Jones data fetch failed: ${error.message}`);
+//     }
+    
+//     // Generate chart data for the last 5 days (simplified mock for this example)
+//     const chartData = [
+//       { name: 'Mon', SP500: 5200, NASDAQ: 16300, DOW: 39000 },
+//       { name: 'Tue', SP500: 5180, NASDAQ: 16200, DOW: 38900 },
+//       { name: 'Wed', SP500: 5210, NASDAQ: 16350, DOW: 38950 },
+//       { name: 'Thu', SP500: 5220, NASDAQ: 16380, DOW: 38930 },
+//       { name: 'Fri', SP500: sp500Response.data.c, NASDAQ: nasdaqResponse.data.c, DOW: dowResponse.data.c }
+//     ];
+    
+//     // Format the data
+//     const formattedSummary = {
+//       indices: {
+//         SP500: { 
+//           price: sp500Response.data.c, 
+//           change: sp500Response.data.c - sp500Response.data.pc,
+//           percentChange: ((sp500Response.data.c - sp500Response.data.pc) / sp500Response.data.pc) * 100
+//         },
+//         NASDAQ: { 
+//           price: nasdaqResponse.data.c, 
+//           change: nasdaqResponse.data.c - nasdaqResponse.data.pc,
+//           percentChange: ((nasdaqResponse.data.c - nasdaqResponse.data.pc) / nasdaqResponse.data.pc) * 100
+//         },
+//         DOW: { 
+//           price: dowResponse.data.c, 
+//           change: dowResponse.data.c - dowResponse.data.pc,
+//           percentChange: ((dowResponse.data.c - dowResponse.data.pc) / dowResponse.data.pc) * 100
+//         }
+//       },
+//       chartData,
+//       lastUpdated: new Date().toLocaleString()
+//     };
+    
+//     console.log('Market summary formatted:', formattedSummary);
+//     setMarketSummary(formattedSummary);
+//     setLastUpdated(new Date()); // Add this state variable with useState
+//     setLoading(false);
+//     return formattedSummary;
+//   } catch (error) {
+//     console.error('Error fetching market summary:', error);
+//     setError('Failed to fetch market summary: ' + error.message + '. Using fallback data.');
+    
+//     // Use fallback data for development/testing
+//     const fallbackData = {
+//       indices: {
+//         SP500: { price: 5235.48, change: 15.23, percentChange: 0.29 },
+//         NASDAQ: { price: 16421.28, change: 85.42, percentChange: 0.52 },
+//         DOW: { price: 38976.08, change: -32.45, percentChange: -0.08 }
+//       },
+//       chartData: [
+//         { name: 'Mon', SP500: 5200, NASDAQ: 16300, DOW: 39000 },
+//         { name: 'Tue', SP500: 5180, NASDAQ: 16200, DOW: 38900 },
+//         { name: 'Wed', SP500: 5210, NASDAQ: 16350, DOW: 38950 },
+//         { name: 'Thu', SP500: 5220, NASDAQ: 16380, DOW: 38930 },
+//         { name: 'Fri', SP500: 5235.48, NASDAQ: 16421.28, DOW: 38976.08 }
+//       ],
+//       lastUpdated: new Date().toLocaleString()
+//     };
+    
+//     console.log('Using fallback market summary data');
+//     setMarketSummary(fallbackData);
+//     setLastUpdated(new Date()); // Add this state variable with useState
+//     setLoading(false);
+//     return fallbackData;
+//   }
+// }, [FINNHUB_API_KEY]);// Updated fetchTopStocks function in useStock.js
+// First, update your fetchMarketSummary function to bypass the API calls
 const fetchMarketSummary = useCallback(async () => {
   setLoading(true);
   setError(null);
@@ -26,79 +134,10 @@ const fetchMarketSummary = useCallback(async () => {
   try {
     console.log('Fetching market summary data...');
     
-    // Fetch data for major indices - S&P 500 (^GSPC), NASDAQ (^IXIC), and Dow Jones (^DJI)
-    let sp500Response, nasdaqResponse, dowResponse;
+    // For development, skip API calls due to CORS issues
+    console.log('Using mock data to avoid CORS issues');
     
-    try {
-      sp500Response = await axios.get(`${FINNHUB_BASE_URL}/quote`, {
-        params: { symbol: '^GSPC', token: FINNHUB_API_KEY }
-      });
-      console.log('S&P 500 data:', sp500Response.data);
-    } catch (error) {
-      console.error('Error fetching S&P 500 data:', error);
-      throw new Error(`S&P 500 data fetch failed: ${error.message}`);
-    }
-    
-    try {
-      nasdaqResponse = await axios.get(`${FINNHUB_BASE_URL}/quote`, {
-        params: { symbol: '^IXIC', token: FINNHUB_API_KEY }
-      });
-      console.log('NASDAQ data:', nasdaqResponse.data);
-    } catch (error) {
-      console.error('Error fetching NASDAQ data:', error);
-      throw new Error(`NASDAQ data fetch failed: ${error.message}`);
-    }
-    
-    try {
-      dowResponse = await axios.get(`${FINNHUB_BASE_URL}/quote`, {
-        params: { symbol: '^DJI', token: FINNHUB_API_KEY }
-      });
-      console.log('Dow Jones data:', dowResponse.data);
-    } catch (error) {
-      console.error('Error fetching Dow Jones data:', error);
-      throw new Error(`Dow Jones data fetch failed: ${error.message}`);
-    }
-    
-    // Generate chart data for the last 5 days (simplified mock for this example)
-    const chartData = [
-      { name: 'Mon', SP500: 5200, NASDAQ: 16300, DOW: 39000 },
-      { name: 'Tue', SP500: 5180, NASDAQ: 16200, DOW: 38900 },
-      { name: 'Wed', SP500: 5210, NASDAQ: 16350, DOW: 38950 },
-      { name: 'Thu', SP500: 5220, NASDAQ: 16380, DOW: 38930 },
-      { name: 'Fri', SP500: sp500Response.data.c, NASDAQ: nasdaqResponse.data.c, DOW: dowResponse.data.c }
-    ];
-    
-    // Format the data
-    const formattedSummary = {
-      indices: {
-        SP500: { 
-          price: sp500Response.data.c, 
-          change: sp500Response.data.c - sp500Response.data.pc,
-          percentChange: ((sp500Response.data.c - sp500Response.data.pc) / sp500Response.data.pc) * 100
-        },
-        NASDAQ: { 
-          price: nasdaqResponse.data.c, 
-          change: nasdaqResponse.data.c - nasdaqResponse.data.pc,
-          percentChange: ((nasdaqResponse.data.c - nasdaqResponse.data.pc) / nasdaqResponse.data.pc) * 100
-        },
-        DOW: { 
-          price: dowResponse.data.c, 
-          change: dowResponse.data.c - dowResponse.data.pc,
-          percentChange: ((dowResponse.data.c - dowResponse.data.pc) / dowResponse.data.pc) * 100
-        }
-      },
-      chartData,
-      lastUpdated: new Date().toLocaleString()
-    };
-    
-    console.log('Market summary formatted:', formattedSummary);
-    setMarketSummary(formattedSummary);
-    setLoading(false);
-    return formattedSummary;
-  } catch (error) {
-    console.error('Error fetching market summary:', error);
-    
-    // Use fallback data for development/testing
+    // Use fallback data
     const fallbackData = {
       indices: {
         SP500: { price: 5235.48, change: 15.23, percentChange: 0.29 },
@@ -115,16 +154,56 @@ const fetchMarketSummary = useCallback(async () => {
       lastUpdated: new Date().toLocaleString()
     };
     
-    console.log('Using fallback market summary data');
-    setError(`Failed to fetch market summary: ${error.message}. Using fallback data.`);
+    console.log('Market summary formatted:', fallbackData);
     setMarketSummary(fallbackData);
+    setLastUpdated(new Date());
     setLoading(false);
     return fallbackData;
+  } catch (error) {
+    console.error('Error in fetchMarketSummary:', error);
+    setError('Failed to fetch market summary: ' + error.message);
+    setLoading(false);
+    return null;
   }
-}, [FINNHUB_API_KEY]);
+}, []);
 
-// Updated fetchTopStocks function in useStock.js
+// Add this useEffect after your existing useEffect hooks
+useEffect(() => {
+  // Initial fetch when component mounts
+  fetchMarketSummary();
+  
+  // Set up timer for fetching every 5 minutes (300000 milliseconds)
+  const fetchInterval = setInterval(() => {
+    console.log("Scheduled 5-minute refresh triggered");
+    fetchMarketSummary();
+  }, 5 * 60 * 1000);
+  
+  // Clean up interval on component unmount
+  return () => clearInterval(fetchInterval);
+}, [fetchMarketSummary]);
 
+// Add this useEffect after the 5-minute interval useEffect
+useEffect(() => {
+  if (!canRefresh) {
+    const countdownInterval = setInterval(() => {
+      const now = new Date();
+      const nextRefresh = new Date(lastUpdated.getTime() + 5 * 60 * 1000);
+      const diff = Math.max(0, nextRefresh - now);
+      
+      const minutes = Math.floor(diff / 60000);
+      const seconds = Math.floor((diff % 60000) / 1000);
+      
+      setTimeRemaining(`${minutes}:${seconds < 10 ? '0' : ''}${seconds}`);
+      
+      if (diff <= 0) {
+        setCanRefresh(true);
+        clearInterval(countdownInterval);
+      }
+    }, 1000);
+    
+    return () => clearInterval(countdownInterval);
+  }
+}, [canRefresh, lastUpdated]);
 const fetchTopStocks = useCallback(async () => {
   setLoading(true);
   setError(null);
@@ -312,7 +391,15 @@ const getRandomPercentChange = () => {
       return mockMarketNews;
     }
   }, [FINNHUB_API_KEY]);
-
+// Add this with your other functions (before the return statement)
+const handleManualRefresh = () => {
+  if (canRefresh) {
+    console.log("Manual refresh triggered");
+    fetchMarketSummary();
+    setCanRefresh(false);
+    setTimeout(() => setCanRefresh(true), 5 * 60 * 1000);
+  }
+};
   return {
     loading,
     error,
@@ -322,7 +409,12 @@ const getRandomPercentChange = () => {
     fetchMarketSummary,
     fetchTopStocks,
     fetchMarketNews,
-    clearError
+    clearError,
+    handleManualRefresh,
+    canRefresh,
+    timeRemaining,
+    lastUpdated
+  
   };
 };
 
