@@ -30,7 +30,7 @@ const app = express();
 // --- Configure CORS ---
 const allowedOrigins = [
 	"http://localhost:5173", // Your local frontend dev server
-	"https://stockwise-demo.sleepysoul.cc/", // Add your deployed frontend URL here later
+	"https://stockwise-demo.sleepysoul.cc", // Add your deployed frontend URL here later
 ];
 
 const corsOptions = {
