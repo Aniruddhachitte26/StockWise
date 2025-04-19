@@ -8,98 +8,91 @@ import { useDispatch } from 'react-redux'; // Import useDispatch
 import { logout } from '../../redux/features/authSlice';
 
 const navbarStyles = {
-  container: {
-    maxWidth: '100%',
-    padding: '0 15px'
-  },
-  brand: {
-    display: 'flex',
-    alignItems: 'center'
-  }
+    container: {
+        maxWidth: '100%',
+        padding: '0 15px'
+    },
+    brand: {
+        display: 'flex',
+        alignItems: 'center'
+    }
 };
 
 const AdminNavbar = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const dispatch = useDispatch();
-  //const { logout } = useAuth();
-  
-  const handleLogout = () => {
-    console.log("AdminNavbar: Dispatching logout action."); // Add log
-    dispatch(logout());
-    //logout();
-    navigate('/');
-  };
+    const navigate = useNavigate();
+    const location = useLocation();
+    const dispatch = useDispatch();
+    //const { logout } = useAuth();
 
-  return (
-    <Navbar 
-      bg="white"
-      variant="light"
-      expand="lg" 
-      sticky="top" 
-      className="shadow-sm py-2 px-0"
-    >
-      <div style={navbarStyles.container} className="d-flex w-100 justify-content-between">
-        {/* Brand */}
-        <Navbar.Brand as={Link} to="/admin/dashboard" style={navbarStyles.brand}>
-          <img
-            src="/logo.png"
-            width="30"
-            height="30"
-            className="d-inline-block align-top me-2"
-            alt="StockWise Logo"
-          />
-          <span className="fw-bold text-primary">StockWise</span>
-        </Navbar.Brand>
+    const handleLogout = () => {
+        console.log("AdminNavbar: Dispatching logout action."); // Add log
+        dispatch(logout());
+        //logout();
+        navigate('/');
+    };
 
-        <Navbar.Toggle aria-controls="admin-navbar-nav" />
+    return (
+        <Navbar
+            bg="white"
+            variant="light"
+            expand="lg"
+            sticky="top"
+            className="shadow-sm py-2 px-0"
+        >
+            <div style={navbarStyles.container} className="d-flex w-100 justify-content-between">
+                {/* Brand */}
+                <Navbar.Brand as={Link} to="/admin/dashboard" style={navbarStyles.brand}>
+                    <img
+                        src="/logo.png"
+                        width="30"
+                        height="30"
+                        className="d-inline-block align-top me-2"
+                        alt="StockWise Logo"
+                    />
+                    <span className="fw-bold text-primary">StockWise</span>
+                </Navbar.Brand>
 
-        <Navbar.Collapse id="admin-navbar-nav">
-          {/* Main Nav Links */}
-          <Nav className="me-auto">
-            <Nav.Link 
-              as={Link} 
-              to="/admin/dashboard" 
-              className={location.pathname === '/admin/dashboard' ? 'active' : ''}
-            >
-              <i className="bi bi-speedometer2 me-1"></i> Dashboard
-            </Nav.Link>
-            <Nav.Link 
-              as={Link} 
-              to="/admin/users" 
-              className={location.pathname === '/admin/users' ? 'active' : ''}
-            >
-              <i className="bi bi-people me-1"></i> Users
-            </Nav.Link>
-            <Nav.Link 
-              as={Link} 
-              to="/admin/verify-users" 
-              className={location.pathname === '/admin/verify-users' ? 'active' : ''}
-            >
-              <i className="bi bi-check-circle me-1"></i> Verify Users
-            </Nav.Link>
-            <Nav.Link 
-              as={Link} 
-              to="/admin/stocks" 
-              className={location.pathname === '/admin/stocks' ? 'active' : ''}
-            >
-              <i className="bi bi-graph-up me-1"></i> Stocks
-            </Nav.Link>
-          </Nav>
+                <Navbar.Toggle aria-controls="admin-navbar-nav" />
 
-          {/* Logout Button only (no theme toggle) */}
-          <div className="d-flex align-items-center">
-            <Button 
-              variant="outline-primary"
-              onClick={handleLogout}
-            >
-              <i className="bi bi-box-arrow-right me-1"></i> Logout
-            </Button>
-          </div>
-        </Navbar.Collapse>
-      </div>
-    </Navbar>
-  );
+                <Navbar.Collapse id="admin-navbar-nav">
+                    {/* Main Nav Links */}
+                    <Nav className="me-auto">
+                        <Nav.Link
+                            as={Link}
+                            to="/admin/dashboard"
+                            className={location.pathname === '/admin/dashboard' ? 'active' : ''}
+                        >
+                            <i className="bi bi-speedometer2 me-1"></i> Dashboard
+                        </Nav.Link>
+                        <Nav.Link
+                            as={Link}
+                            to="/admin/users"
+                            className={location.pathname === '/admin/users' ? 'active' : ''}
+                        >
+                            <i className="bi bi-people me-1"></i> Users
+                        </Nav.Link>
+                        <Nav.Link
+                            as={Link}
+                            to="/admin/verify-users"
+                            className={location.pathname === '/admin/verify-users' ? 'active' : ''}
+                        >
+                            <i className="bi bi-check-circle me-1"></i> Verify Users
+                        </Nav.Link>
+                    </Nav>
+
+                    {/* Logout Button only (no theme toggle) */}
+                    <div className="d-flex align-items-center">
+                        <Button
+                            variant="outline-primary"
+                            onClick={handleLogout}
+                        >
+                            <i className="bi bi-box-arrow-right me-1"></i> Logout
+                        </Button>
+                    </div>
+                </Navbar.Collapse>
+            </div>
+        </Navbar>
+    );
 };
 
 export default AdminNavbar;
