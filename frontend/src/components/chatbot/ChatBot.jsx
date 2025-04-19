@@ -31,7 +31,9 @@ export default function ChatBot() {
   const sendMessage = async (messageText) => {
     const textToSend = messageText || input;
     if ((!textToSend.trim() && !messageText) || isLoading) return;
-    
+    const storedUser = localStorage.getItem("currentUser");
+    const currentUser = storedUser ? JSON.parse(storedUser) : null;
+    const userId = currentUser.id;
     const newMessage = { role: "user", content: textToSend };
     setMessages((prev) => [...prev, newMessage]);
     setInput("");
@@ -42,6 +44,7 @@ export default function ChatBot() {
       const res = await axios.post("http://localhost:3000/summary/ask", {
         sessionId,
         message: textToSend,
+        userId
       });
       setMessages((prev) => [...prev, { role: "assistant", content: res.data.reply }]);
       setShowOptions(true);

@@ -9,6 +9,7 @@ import Pagination from '../../components/common/Pagination';
 import UserDetailsModal from '../../components/admin/UserDetailsModal';
 import axios from 'axios';
 import { useTheme } from '../../components/common/ThemeProvider';
+import Footer from '../common/Footer';
 
 
   
@@ -208,6 +209,8 @@ const UsersManagementPage = () => {
           </Card.Body>
         </Card>
       </Container>
+
+      <Footer />
     </div>
   );
 };

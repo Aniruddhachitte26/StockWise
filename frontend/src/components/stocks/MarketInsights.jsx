@@ -1,6 +1,6 @@
 // src/components/stocks/MarketInsights.jsx
 import React, { useState, useEffect } from 'react';
-import { Container, Row, Col, Card, Button, Tabs, Tab, Spinner, Alert } from 'react-bootstrap';
+import { Container, Row, Col, Card, Button, Tabs, Tab, Spinner } from 'react-bootstrap';
 import { 
   ComposedChart, LineChart, Line, BarChart, Bar, AreaChart, Area,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer 
@@ -8,7 +8,6 @@ import {
 import axios from 'axios';
 
 // Constants
-const ALPHA_VANTAGE_API_KEY = 'YOUR_ALPHA_VANTAGE_API_KEY'; // Replace with your actual API key
 const DEFAULT_SYMBOLS = ['SPY', 'QQQ', 'DIA']; // ETFs tracking S&P 500, NASDAQ, and Dow Jones
 const TECH_SYMBOLS = ['AAPL', 'MSFT', 'GOOGL', 'AMZN', 'META'];
 const CRYPTO_SYMBOLS = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'DOGE-USD'];
@@ -16,7 +15,6 @@ const CRYPTO_SYMBOLS = ['BTC-USD', 'ETH-USD', 'SOL-USD', 'DOGE-USD'];
 const MarketInsights = () => {
   const [marketData, setMarketData] = useState({});
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [activeTab, setActiveTab] = useState('market');
   const [historicalData, setHistoricalData] = useState({});
   const [timeframe, setTimeframe] = useState('1mo'); // 1d, 5d, 1mo, 3mo, 6mo, 1y, 5y
@@ -26,16 +24,11 @@ const MarketInsights = () => {
     const fetchMarketData = async () => {
       try {
         setLoading(true);
-        setError(null);
         
-        // Fetch data for market indices (in production, use actual API)
-        const marketIndicesData = await fetchStockData(DEFAULT_SYMBOLS);
-        
-        // Fetch data for tech stocks
-        const techStocksData = await fetchStockData(TECH_SYMBOLS);
-        
-        // Fetch data for cryptocurrencies
-        const cryptoData = await fetchStockData(CRYPTO_SYMBOLS);
+        // Generate mock data immediately
+        const marketIndicesData = generateMockStockData(DEFAULT_SYMBOLS);
+        const techStocksData = generateMockStockData(TECH_SYMBOLS);
+        const cryptoData = generateMockStockData(CRYPTO_SYMBOLS);
         
         // Combine all data
         setMarketData({
@@ -44,12 +37,14 @@ const MarketInsights = () => {
           crypto: cryptoData
         });
         
-        // Fetch historical data for the first index (S&P 500 ETF)
-        await fetchHistoricalData(DEFAULT_SYMBOLS[0], timeframe);
+        // Generate historical data for the first index (S&P 500 ETF)
+        const mockHistorical = generateMockHistoricalData(DEFAULT_SYMBOLS[0], timeframe);
+        setHistoricalData({ [DEFAULT_SYMBOLS[0]]: mockHistorical });
         
       } catch (err) {
         console.error('Error fetching market data:', err);
-        setError('Failed to fetch market data. Please try again later.');
+        // No need to show errors to users - silently use backup data
+        provideFallbackData();
       } finally {
         setLoading(false);
       }
@@ -58,47 +53,60 @@ const MarketInsights = () => {
     fetchMarketData();
   }, []);
   
-  // Fetch historical data when timeframe changes
+  // Provide fallback data if main data fetch fails
+  const provideFallbackData = () => {
+    const fallbackIndices = generateMockStockData(DEFAULT_SYMBOLS);
+    const fallbackTech = generateMockStockData(TECH_SYMBOLS);
+    const fallbackCrypto = generateMockStockData(CRYPTO_SYMBOLS);
+    
+    setMarketData({
+      indices: fallbackIndices,
+      tech: fallbackTech,
+      crypto: fallbackCrypto
+    });
+    
+    const fallbackHistorical = generateMockHistoricalData(DEFAULT_SYMBOLS[0], '1mo');
+    setHistoricalData({ [DEFAULT_SYMBOLS[0]]: fallbackHistorical });
+  };
+  
+  // Update historical data when timeframe changes
   useEffect(() => {
     if (Object.keys(marketData).length > 0) {
       const symbol = DEFAULT_SYMBOLS[0]; // Use S&P 500 ETF as default
-      fetchHistoricalData(symbol, timeframe);
+      try {
+        const newHistoricalData = generateMockHistoricalData(symbol, timeframe);
+        setHistoricalData(prevData => ({
+          ...prevData,
+          [symbol]: newHistoricalData
+        }));
+      } catch (err) {
+        console.error(`Error generating historical data for ${symbol}:`, err);
+        // No need to show error to user
+      }
     }
   }, [timeframe, marketData]);
   
-  // Fetch historical data for a specific symbol and timeframe
-  const fetchHistoricalData = async (symbol, period) => {
-    try {
-      setLoading(true);
+  // Generate mock stock data
+  const generateMockStockData = (symbols) => {
+    const result = {};
+    
+    symbols.forEach(symbol => {
+      const basePrice = getBasePrice(symbol);
+      const change = (Math.random() * 6) - 3; // Random change between -3% and +3%
+      const changeAmount = basePrice * (change / 100);
       
-      // In production, use actual API endpoints
-      // const response = await axios.get(`https://query1.finance.yahoo.com/v8/finance/chart/${symbol}`, {
-      //   params: {
-      //     interval: '1d',
-      //     range: period
-      //   }
-      // });
-      
-      // For demo, using mock data
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 600));
-      
-      // Generate mock historical data based on symbol and period
-      const mockHistoricalData = generateMockHistoricalData(symbol, period);
-      
-      // Update state with the fetched data
-      setHistoricalData(prevData => ({
-        ...prevData,
-        [symbol]: mockHistoricalData
-      }));
-      
-      setError(null);
-    } catch (err) {
-      console.error(`Error fetching historical data for ${symbol}:`, err);
-      setError(`Failed to fetch historical data for ${symbol}. Please try again later.`);
-    } finally {
-      setLoading(false);
-    }
+      result[symbol] = {
+        symbol,
+        price: basePrice,
+        change: changeAmount,
+        changePercent: change,
+        volume: Math.floor(Math.random() * 10000000) + 1000000,
+        marketCap: basePrice * (Math.floor(Math.random() * 1000000) + 100000),
+        timestamp: new Date().toISOString()
+      };
+    });
+    
+    return result;
   };
   
   // Generate mock historical data based on symbol and timeframe
@@ -113,9 +121,9 @@ const MarketInsights = () => {
         dataPoints = 24; // Hourly data for 1 day
         startDate.setDate(startDate.getDate() - 1);
         break;
-      case '5d':
-        dataPoints = 5 * 8; // 8 points per day for 5 days
-        startDate.setDate(startDate.getDate() - 5);
+      case '1w':
+        dataPoints = 7; // Daily data for 1 week
+        startDate.setDate(startDate.getDate() - 7);
         break;
       case '1mo':
         dataPoints = 30; // Daily data for 1 month
@@ -153,10 +161,9 @@ const MarketInsights = () => {
       if (period === '1d') {
         // For 1-day data, increment by hours
         date.setHours(date.getHours() + i);
-      } else if (period === '5d') {
-        // For 5-day data, increment by hours but skip nights
-        const hour = Math.floor(i / 8) * 24 + (i % 8);
-        date.setHours(date.getHours() + hour);
+      } else if (period === '1w') {
+        // For 1-week data, increment by days
+        date.setDate(date.getDate() + i);
       } else if (period === '5y') {
         // For 5-year data, increment by weeks
         date.setDate(date.getDate() + (i * 7));
@@ -227,7 +234,7 @@ const MarketInsights = () => {
     }
     
     // Adjust volatility by timeframe
-    if (period === '1d' || period === '5d') {
+    if (period === '1d' || period === '1w') {
       // Intraday data has lower volatility
       volatility *= 0.5;
     } else if (period === '5y') {
@@ -282,9 +289,9 @@ const MarketInsights = () => {
     if (period === '1d') {
       // For 1-day data, show time
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } else if (period === '5d') {
-      // For 5-day data, show day and time
-      return `${date.toLocaleDateString([], { weekday: 'short' })} ${date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+    } else if (period === '1w') {
+      // For 1-week data, show day
+      return date.toLocaleDateString([], { weekday: 'short' });
     } else if (['1mo', '3mo', '6mo'].includes(period)) {
       // For monthly data, show month and day
       return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -384,7 +391,7 @@ const MarketInsights = () => {
           
           return (
             <Col md={4} key={symbol} className="mb-3">
-              <Card className="h-100 shadow-sm">
+              <Card className="h-100 shadow-sm hover-effect">
                 <Card.Body>
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <h5 className="mb-0">{symbol}</h5>
@@ -480,7 +487,7 @@ const MarketInsights = () => {
           
           return (
             <Col md={3} key={symbol} className="mb-3">
-              <Card className="h-100 shadow-sm">
+              <Card className="h-100 shadow-sm hover-effect">
                 <Card.Body className="text-center">
                   <h5 className="mb-2">{shortSymbol}</h5>
                   <h3 className="mb-2">{formatCurrency(data.price)}</h3>
@@ -499,19 +506,33 @@ const MarketInsights = () => {
     );
   };
   
-  // Main render
+  // Main render with improved layout and no error messages
   return (
-    <Container>
-      {error && (
-        <Alert variant="danger" className="mb-3">
-          {error}
-        </Alert>
-      )}
+    <Container className="py-4">
+      {/* Custom header */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="mb-0">Market Overview</h2>
+        <div className="d-flex align-items-center">
+          <span className="text-muted me-3">
+            <i className="bi bi-clock me-1"></i>
+            Last updated: {new Date().toLocaleTimeString()}
+          </span>
+          <Button 
+            variant="outline-primary" 
+            size="sm"
+            onClick={() => window.location.reload()}
+          >
+            <i className="bi bi-arrow-repeat me-1"></i>
+            Refresh
+          </Button>
+        </div>
+      </div>
       
+      {/* Market Chart Card */}
       <Card className="shadow-sm mb-4">
         <Card.Body>
           <div className="d-flex justify-content-between align-items-center mb-3">
-            <h4 className="mb-0">Market Overview</h4>
+            <h4 className="mb-0">Market Performance</h4>
             <div className="btn-group">
               {['1d', '1w', '1mo', '3mo', '6mo', '1y', '5y'].map(period => (
                 <Button
@@ -529,15 +550,17 @@ const MarketInsights = () => {
           {renderMarketChart()}
           
           <div className="text-muted text-end mt-2 small">
-            <em>Data updated as of {new Date().toLocaleString()}</em>
+            <em>Sample market data visualization</em>
           </div>
         </Card.Body>
       </Card>
       
+      {/* Tabs for different market data */}
       <Tabs
         activeKey={activeTab}
         onSelect={(k) => setActiveTab(k)}
         className="mb-4"
+        fill
       >
         <Tab eventKey="market" title="Market Indices">
           <Card className="shadow-sm">
@@ -569,53 +592,27 @@ const MarketInsights = () => {
           </Card>
         </Tab>
       </Tabs>
+
+      {/* Bottom section with market summary */}
+      <Card className="shadow-sm mb-4">
+        <Card.Body>
+          <h4 className="mb-3">Market Summary</h4>
+          <p>
+            Markets are showing mixed performance today with technology stocks leading gains
+            while some sectors experience profit-taking. Investors remain focused on upcoming
+            economic data releases and corporate earnings reports.
+          </p>
+          <div className="d-flex justify-content-between text-muted small">
+            <span>Data source: Sample market data</span>
+            <span>
+              <i className="bi bi-info-circle me-1"></i>
+              All values shown are for demonstration purposes
+            </span>
+          </div>
+        </Card.Body>
+      </Card>
     </Container>
   );
 };
 
 export default MarketInsights;
-  
-// Fetch stock data for multiple symbols
-const fetchStockData = async (symbols) => {
-    try {
-        // In production, use actual API endpoints
-        // const responses = await Promise.all(
-        //   symbols.map(symbol => 
-        //     axios.get(`https://api.alphavantage.co/query`, {
-        //       params: {
-        //         function: 'GLOBAL_QUOTE',
-        //         symbol: symbol,
-        //         apikey: ALPHA_VANTAGE_API_KEY
-        //       }
-        //     })
-        //   )
-        // );
-
-        // Simulate API delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-
-        // Generate mock data for the requested symbols
-        const mockData = {};
-
-        symbols.forEach(symbol => {
-            const basePrice = getBasePrice(symbol);
-            const change = (Math.random() * 6) - 3; // Random change between -3% and +3%
-            const changeAmount = basePrice * (change / 100);
-
-            mockData[symbol] = {
-                symbol,
-                price: basePrice,
-                change: changeAmount,
-                changePercent: change,
-                volume: Math.floor(Math.random() * 10000000) + 1000000,
-                marketCap: basePrice * (Math.floor(Math.random() * 1000000) + 100000),
-                timestamp: new Date().toISOString()
-            };
-        });
-
-        return mockData;
-    } catch (error) {
-        console.error('Error fetching stock data:', error);
-        throw error;
-    }
-};

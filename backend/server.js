@@ -14,6 +14,7 @@ const chatbotRoutes = require("./routes/chatbotRoutes");
 const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 const stockRoutes = require("./routes/stockRoutes");
+const paymentRoutes = require('./routes/paymentRoutes');	
 //const swaggerDocument = YAML.load("./swagger/swagger.yaml");
 
 // Load environment variables
@@ -47,6 +48,7 @@ app.use("/auth", authRoutes);
 app.use("/summary", chatbotRoutes);
 app.use("/market", marketRoutes);
 app.use("/stocks", stockRoutes);
+app.use('/api/payments', paymentRoutes);
 app.use("/broker", brokerRoutes);
 app.use('/mail', mailRoutes);
 app.use("/admin", adminRoutes);
