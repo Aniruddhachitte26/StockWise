@@ -25,7 +25,7 @@ const AdminNavbar = () => {
     //const { logout } = useAuth();
 
     const handleLogout = () => {
-        console.log("AdminNavbar: Dispatching logout action."); // Add log
+        // console.log("AdminNavbar: Dispatching logout action."); // Add log
         dispatch(logout());
         //logout();
         navigate('/');

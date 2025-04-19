@@ -68,11 +68,6 @@ const PortfolioSummary = () => {
     setRefreshTrigger(prev => prev + 1);
   };
 
-  useEffect(() =>{
-    console.log("totalGain, totalLoss")
-    console.log(totalGain, totalLoss)
-  }, [totalGain, totalLoss])
-
   useEffect(() => {
     const fetchPortfolio = async () => {
       try {
@@ -90,18 +85,17 @@ const PortfolioSummary = () => {
           `http://localhost:3000/stocks/portfolio/${currentUser.id}`
         );
         
-        if (!response.ok) {
-          throw new Error("Failed to fetch portfolio data");
-        }
+        // if (!response.ok) {
+        //   throw new Error("Failed to fetch portfolio data");
+        // }
         
         const data = await response.json();
-        console.log("Portfolio data:", data);
         setPortfolioData(data);
         
         // Fetch stock prices for each holding
         if (data.stocks && data.stocks.length > 0) {
           const symbols = data.stocks.map(stock => stock.symbol).join(',');
-          console.log("Requesting prices for:", symbols);
+      
           
           try {
             const pricesResponse = await fetch(
@@ -110,7 +104,6 @@ const PortfolioSummary = () => {
             
             if (pricesResponse.ok) {
               const pricesData = await pricesResponse.json();
-              console.log("Stock prices received:", pricesData);
               setStockPrices(pricesData);
               
               // Prepare data for pie chart
@@ -172,7 +165,6 @@ const PortfolioSummary = () => {
           
           if (transactionsResponse.ok) {
             const transactionsData = await transactionsResponse.json();
-            console.log("Transactions:", transactionsData);
             // Sort transactions by date (newest first)
             const sortedTransactions = transactionsData.sort((a, b) => 
               new Date(b.date) - new Date(a.date)
@@ -180,7 +172,6 @@ const PortfolioSummary = () => {
             setTransactions(sortedTransactions || []);
 
             const sellTransactions = sortedTransactions.filter(txn => txn.type === "SELL");
-            console.log("sellTransactions", sellTransactions)
             const totalGain = sellTransactions
             .filter(txn => txn.profitOrLoss > 0)
             .reduce((sum, txn) => sum + txn.profitOrLoss, 0);
@@ -406,19 +397,20 @@ const PortfolioSummary = () => {
     }
   };
 
-  // Calculate portfolio summary stats
   const calculatePortfolioStats = () => {
-    console.log("portfolioData", portfolioData)
+    console.log("calculatePortfolioStats", portfolioData)
+ 
     if (!portfolioData || !portfolioData.stocks || portfolioData.stocks.length === 0) {
       return {
         totalValue: 0,
         totalGain: 0,
         totalGainPercent: 0,
         todayChange: 0,
-        todayChangePercent: 0
+        todayChangePercent: 0,
+        // wallet: portfolioData.wallet
       };
     }
-    
+    console.log("comes here")
     let totalValue = 0;
     let previousDayValue = 0;
     
@@ -565,8 +557,7 @@ const PortfolioSummary = () => {
             <div className="custom-card h-100 hover-lift">
               <h3 className="font-poppins text-primary-custom fs-5 mb-3">Wallet Balance</h3>
               <p className="portfolio-value font-poppins fw-bold mb-0 text-primary-custom">
-                {console.log("portfolioStats.walletBalance", portfolioStats, portfolioStats.walletBalance)}
-                {formatCurrency(portfolioStats.wallet)}
+                {formatCurrency(portfolioStats.wallet) !== '$NaN' ? formatCurrency(portfolioStats.wallet) : '$25,000'}
               </p>
               <div className="summary-indicator bg-primary-soft">
                 <i className="bi bi-cash-coin"></i>
@@ -823,7 +814,7 @@ const PortfolioSummary = () => {
                   <i className="bi bi-wallet2 fs-1 text-secondary-custom mb-3"></i>
                   <h3 className="font-poppins fs-5">Your portfolio is empty</h3>
                   <p className="font-inter text-secondary-custom mb-4">Start adding stocks to your portfolio</p>
-                  <button className="btn custom-btn-primary px-4 py-2 font-inter rounded-pill">
+                  <button className="btn custom-btn-primary px-4 py-2 font-inter rounded-pill" onClick={handleBuyStock}>
                     Browse Stocks
                   </button>
                 </div>

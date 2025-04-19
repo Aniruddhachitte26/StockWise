@@ -99,7 +99,7 @@ const WatchlistPreview = () => {
       // Logic to handle buy transaction
       const storedUser = localStorage.getItem("currentUser");
       const currentUser = storedUser ? JSON.parse(storedUser) : null;
-      
+
       const response = await fetch("http://localhost:3000/stocks/transaction", {
         method: "POST",
         headers: {
@@ -297,9 +297,9 @@ const WatchlistPreview = () => {
                               <button className="buy-btn btn py-2 fw-medium font-inter flex-grow-1 rounded-pill" onClick={() => handleTransaction(stock, "BUY")}>
                                 <i className="bi bi-cart-plus me-1"></i> Buy
                               </button>
-                              <button className="sell-btn btn py-2 fw-medium font-inter flex-grow-1 rounded-pill" onClick={() => handleTransaction(stock, "SELL")}>
+                              {/* <button className="sell-btn btn py-2 fw-medium font-inter flex-grow-1 rounded-pill" onClick={() => handleTransaction(stock, "SELL")}>
                                 <i className="bi bi-cart-dash me-1"></i> Sell
-                              </button>
+                              </button> */}
                             </div>
                           </div>
                         </div>
