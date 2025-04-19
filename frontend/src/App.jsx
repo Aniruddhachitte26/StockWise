@@ -268,7 +268,7 @@ const AppRoutes = () => {
     );
 };
 
-// --- Main App Component ---
+
 const App = () => {
 
     const dispatch = useDispatch();
@@ -295,10 +295,9 @@ const App = () => {
     }, [dispatch, token]); // Depend on token presence from initial state load
 
     return (
-        // AuthProvider might still be needed if some components haven't been refactored yet
-        // Once all components use Redux, AuthProvider can be removed
+
         <AuthProvider>
-            <ThemeProvider> {/* Handles light/dark theme switching */}
+            <ThemeProvider>
                 <AppRoutes />
             </ThemeProvider>
         </AuthProvider>
