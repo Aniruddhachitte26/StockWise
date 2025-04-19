@@ -152,3 +152,67 @@ Follow these steps to set up and run the StockWise project locally.
 git clone https://github.com/Aniruddhachitte26/StockWise.git
 cd StockWise
 ```
+
+2. Setup Backend:
+```bash
+cd backend
+npm install
+```
+
+3. Configure Environment Variables:
+```bash
+Create a .env file in the backend directory with the following variables:
+# Server
+PORT=3000
+
+# Database
+MONGO_URI=your_mongodb_connection_string
+
+# JWT
+JWT_SECRET=your_jwt_secret
+
+# Redis (for OTP)
+REDIS_HOST=your_redis_host
+REDIS_PORT=your_redis_port
+REDIS_PASSWORD=your_redis_password
+REDIS_USERNAME=your_redis_username
+
+# Email Service (for notifications and OTP)
+EMAIL_USERNAME=your_email_address
+EMAIL_PASSWORD=your_email_app_password
+
+# Frontend URL (for email links)
+FRONTEND_URL=http://localhost:5173
+
+# APIs
+FINNHUB_API_KEY=your_finnhub_api_key
+FINNHUB_API_URL=https://finnhub.io/api/v1
+OPENROUTER_API_KEY=your_openrouter_api_key
+GOOGLE_CLIENT_ID=your_google_client_id
+STRIPE_SECRET_KEY=your_stripe_secret_key
+```
+
+4. Setup Frontend:
+
+```bash
+cd ../frontend
+npm install
+```
+
+
+5. Run Both Applications:
+
+Backend:
+
+```bash
+cd backend
+npm run dev
+```
+Frontend:
+
+```bash
+cd frontend
+npm run dev
+```
+
+The frontend will be available at http://localhost:5173 and the backend will run on http://localhost:3000.
