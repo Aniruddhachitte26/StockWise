@@ -3,7 +3,6 @@ import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext'; // Keep AuthProvider temporarily if components still rely on it, but aim to remove
 import ThemeProvider from './components/common/ThemeProvider'; // Your Theme Provider
-import Loader from './components/common/Loader';
 
 // --- Redux Imports ---
 import { useDispatch, useSelector } from 'react-redux';
@@ -51,94 +50,124 @@ import './App.css';
 import './assets/styles/theme.css';
 import { loadStripe } from '@stripe/stripe-js';
 const stripePromise = loadStripe('pk_test_51RFOTpCedU17Fc7wGrEfO14CXtqFurHULvCFQccgYf5DgPnJ9VIAOJw5RjWrlfgeXoHs6IVPqFqQDUfIRoOcii7K00cHFKj2Hy');
+// Add this to your App.jsx file
 
-
-// ==========================
-// Protected Route (User)
-// ==========================
+const VerifiedRoute = ({ children }) => {
+    const { isAuthenticated, user, status } = useSelector(state => state.auth);
+    const location = useLocation();
+    
+    // Handle loading state
+    if (status === 'idle' || status === 'loading') {
+        console.log("VerifiedRoute: Auth status loading/idle");
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>;
+    }
+    
+    // If not authenticated, redirect to login
+    if (!isAuthenticated) {
+        console.log("VerifiedRoute: Not authenticated, redirecting to login.");
+        return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    
+    // Check verification status with more flexible conditions
+    // This will accept both string "approved" and boolean true values
+    const isApproved = user?.verified === "approved" || user?.verified === true;
+    
+    console.log("VerifiedRoute - User verification status:", user?.verified);
+    console.log("VerifiedRoute - Type of verification:", typeof user?.verified);
+    console.log("VerifiedRoute - Is approved:", isApproved);
+    
+    // If authenticated but not approved, redirect to profile with a message
+    if (!isApproved) {
+        // Use alert to notify user
+        alert("Your account is pending verification. This feature will be available once your account is approved.");
+        return <Navigate to="/profile" replace />;
+    }
+    
+    // If authenticated and approved, render children
+    console.log("VerifiedRoute: Approved, rendering children.");
+    return children;
+};
+// Protected route component for regular users
 const ProtectedRoute = ({ children }) => {
     const { isAuthenticated, status } = useSelector(state => state.auth);
     const location = useLocation();
 
     console.log(`ProtectedRoute Check: Status=${status}, IsAuth=${isAuthenticated}`);
 
-    // Show loader if status is 'loading' OR if 'idle' but authentication might still succeed (token exists)
-    if (status === 'loading' || (status === 'idle' && isAuthenticated)) {
-        console.log("ProtectedRoute: Auth status loading/idle (verification pending), showing loader.");
-        return <Loader fullScreen text="Verifying Authentication..." />;
+    // Handle loading state
+    if (status === 'idle' || status === 'loading') {
+        console.log("ProtectedRoute: Auth status loading/idle");
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>; // Replace with Loader component if desired
     }
 
-    // If definitely not authenticated (after loading/idle check), redirect
+    // If not authenticated after checking, redirect to login
     if (!isAuthenticated) {
         console.log("ProtectedRoute: Not authenticated, redirecting to login.");
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // Authenticated, render the requested component
+    // If authenticated, render the child component
     console.log("ProtectedRoute: Authenticated, rendering children.");
     return children;
 };
 
-// ==========================
-// Admin Route
-// ==========================
+// Admin route component with role check
 const AdminRoute = ({ children }) => {
     const { isAuthenticated, status, user } = useSelector(state => state.auth);
     const location = useLocation();
 
     console.log(`AdminRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${user?.type}`);
 
-    // Show loader if status is 'loading' OR if 'idle' but authentication might still succeed
-    if (status === 'loading' || (status === 'idle' && isAuthenticated)) {
-        console.log("AdminRoute: Auth status loading/idle (verification pending), showing loader.");
-        return <Loader fullScreen text="Verifying Authentication..." />;
+    // Handle loading state
+    if (status === 'idle' || status === 'loading') {
+        console.log("AdminRoute: Auth status loading/idle");
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>; // Replace with Loader component if desired
     }
 
-    // If definitely not authenticated
+    // If not authenticated, redirect to login
     if (!isAuthenticated) {
         console.log("AdminRoute: Not authenticated, redirecting to login.");
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // Authenticated, now check role
+    // Check if the authenticated user is an admin
     if (user?.type !== 'admin') {
-        console.log("AdminRoute: User is authenticated but not admin, redirecting to user dashboard.");
+        console.log("AdminRoute: User is not admin, redirecting to user dashboard.");
         return <Navigate to="/dashboard" replace />; // Redirect non-admins
     }
 
-    // Authenticated and is an admin
+    // If authenticated and is an admin, render the child component
     console.log("AdminRoute: Authenticated and Admin, rendering children.");
     return children;
 };
 
-// ==========================
-// Broker Route
-// ==========================
+// Broker route component with role check
 const BrokerRoute = ({ children }) => {
-    const { isAuthenticated, status, user } = useSelector(state => state.auth);
+    // Use context-based auth hook instead of Redux
+    const { isAuthenticated, currentUser, loading } = useAuth();
     const location = useLocation();
 
-    console.log(`BrokerRoute Check: Status=${status}, IsAuth=${isAuthenticated}, UserType=${user?.type}`);
+    console.log(`BrokerRoute Check: Loading=${loading}, IsAuth=${isAuthenticated}, UserType=${currentUser?.type}`);
 
-    // Show loader if status is 'loading' OR if 'idle' but authentication might still succeed
-    if (status === 'loading' || (status === 'idle' && isAuthenticated)) {
-        console.log("BrokerRoute: Auth status loading/idle (verification pending), showing loader.");
-        return <Loader fullScreen text="Verifying Authentication..." />;
+    // Handle loading state from context
+    if (loading) {
+        console.log("BrokerRoute: Auth status loading");
+        return <div style={{ textAlign: 'center', marginTop: '50px' }}>Loading Authentication...</div>;
     }
 
-    // If definitely not authenticated
+    // If not authenticated, redirect to login
     if (!isAuthenticated) {
         console.log("BrokerRoute: Not authenticated, redirecting to login.");
         return <Navigate to="/login" state={{ from: location }} replace />;
     }
 
-    // Authenticated, now check role
-    if (user?.type !== 'broker') {
-        console.log("BrokerRoute: User is authenticated but not broker, redirecting to user dashboard.");
-        return <Navigate to="/dashboard" replace />; // Redirect non-brokers
+    // Check if the authenticated user is a broker
+    if (currentUser?.type !== 'broker') {
+        console.log("BrokerRoute: User is not broker, redirecting to user dashboard.");
+        return <Navigate to="/dashboard" replace />;
     }
 
-    // Authenticated and is a broker
+    // If authenticated and is a broker, render the child component
     console.log("BrokerRoute: Authenticated and Broker, rendering children.");
     return children;
 };
@@ -203,17 +232,17 @@ const AppRoutes = () => {
                 <Route
                     path="/watchlist"
                     element={
-                        <ProtectedRoute>
+                        <VerifiedRoute>
                             <WatchlistPreview />
-                        </ProtectedRoute>
+                        </VerifiedRoute>
                     }
                 />
                 <Route
                     path="/portfolio"
                     element={
-                        <ProtectedRoute>
+                        <VerifiedRoute>
                             <PortfolioSummary />
-                        </ProtectedRoute>
+                        </VerifiedRoute>
                     }
                 />
 

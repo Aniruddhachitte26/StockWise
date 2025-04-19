@@ -50,7 +50,7 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    proof: {
+    proof: {  
       type: String,
       default: null,
     },
