@@ -550,10 +550,10 @@ const PortfolioSummary = () => {
               <p className={`portfolio-value font-poppins fw-bold mb-0 ${
                 totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
               }`}>
-                {totalGain}
-                <span className="percentage-change ms-2">
+                {totalGain}/{totalLoss}
+                {/* <span className="percentage-change ms-2">
                   ({totalGain})
-                </span>
+                </span> */}
               </p>
               <div className={`summary-indicator ${portfolioStats.totalGain >= 0 ? 'bg-success-soft' : 'bg-danger-soft'}`}>
                 <i className={`bi ${portfolioStats.totalGain >= 0 ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}`}></i>
@@ -791,13 +791,13 @@ const PortfolioSummary = () => {
                           <p className={`fs-5 fw-bold font-inter mb-0 ${
                             totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
                           }`}>
-                            {formatCurrency(totalGain)}
+                            {formatCurrency(totalGain)}/ {formatCurrency(totalLoss)}
                           </p>
-                          <p className={`small font-inter mb-0 ${
+                          {/* <p className={`small font-inter mb-0 ${
                             gainPercent >= 0 ? 'text-success-custom' : 'text-danger-custom'
                           }`}>
                             {formatPercentChange(gainPercent)}
-                          </p>
+                          </p> */}
                         </div>
 
                         <div className="col-12 col-md-2 mt-3 mt-md-0">
