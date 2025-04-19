@@ -14,6 +14,14 @@ const initialState = {
 	isAuthenticated: token ? true : false,
 	status: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
 	error: null,
+	passwordResetStatus: "idle", // 'idle' | 'sending_otp' | 'otp_sent' | 'resetting' | 'reset_success' | 'reset_failed'
+	passwordResetError: null,
+	profileUpdateStatus: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
+	profileUpdateError: null,
+	passwordChangeStatus: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
+	passwordChangeError: null,
+	documentUploadStatus: "idle", // 'idle' | 'loading' | 'succeeded' | 'failed'
+	documentUploadError: null,
 };
 
 // --- Async Thunks ---
@@ -193,6 +201,256 @@ export const verifyAuth = createAsyncThunk(
 	}
 );
 
+// --- Request Password Reset OTP Thunk ---
+export const requestPasswordReset = createAsyncThunk(
+	"auth/requestPasswordReset",
+	async (email, { rejectWithValue }) => {
+		console.log(
+			"AuthSlice: Dispatching requestPasswordReset thunk for email:",
+			email
+		);
+		try {
+			// Example using axios directly:
+			const response = await axios.post(
+				`${
+					authService.API_URL ||
+					"http://localhost:3000"
+				}/auth/forgot-password`,
+				{ email } // Send email in the request body
+			);
+			console.log(
+				"AuthSlice: Forgot password backend response:",
+				response.data
+			);
+			// Expected backend response: { message: 'If an account exists...' }
+			// Return the success message to potentially display in the component
+			return response.data.message;
+		} catch (error) {
+			const message =
+				error.response?.data?.error ||
+				error.message ||
+				"Failed to request password reset OTP.";
+			console.error(
+				"AuthSlice: Request password reset failed:",
+				message
+			);
+			// Even on backend error, often we want to show the generic frontend message
+			// But we can still capture the real error here for logging or specific handling
+			return rejectWithValue(message);
+		}
+	}
+);
+
+// --- Reset Password with OTP Thunk ---
+export const resetPasswordWithOtp = createAsyncThunk(
+	"auth/resetPasswordWithOtp",
+	async (credentials, { rejectWithValue }) => {
+		// credentials expected: { email, otp, password, confirmPassword }
+		console.log(
+			"AuthSlice: Dispatching resetPasswordWithOtp thunk for email:",
+			credentials.email
+		);
+		try {
+			// Example using axios directly:
+			const response = await axios.post(
+				`${
+					authService.API_URL ||
+					"http://localhost:3000"
+				}/auth/reset-password-otp`,
+				credentials // Send all necessary data
+			);
+			console.log(
+				"AuthSlice: Reset password with OTP backend response:",
+				response.data
+			);
+			// Expected backend response: { message: 'Password has been reset successfully.' }
+			return response.data.message; // Return success message
+		} catch (error) {
+			const message =
+				error.response?.data?.error ||
+				error.message ||
+				"Failed to reset password.";
+			console.error(
+				"AuthSlice: Reset password with OTP failed:",
+				message
+			);
+			return rejectWithValue(message);
+		}
+	}
+);
+
+// --- NEW: Update User Profile Thunk ---
+export const updateUserProfile = createAsyncThunk(
+	"auth/updateUserProfile",
+	async (profileData, { getState, rejectWithValue }) => {
+		// profileData should contain fields to update, e.g., { _id, fullName, email, phone, address }
+		console.log(
+			"AuthSlice: Dispatching updateUserProfile thunk with data:",
+			profileData
+		);
+		const { token } = getState().auth; // Get token for auth header
+		if (!token) return rejectWithValue("Authentication required.");
+		if (!profileData._id)
+			return rejectWithValue(
+				"User ID missing for profile update."
+			);
+
+		try {
+			// Assuming backend expects PATCH /user/update-profile (adjust if needed)
+			// The service function should be created or use axios directly
+			// Example using axios directly:
+			const response = await axios.patch(
+				`${
+					authService.API_URL ||
+					"http://localhost:3000"
+				}/user/update-profile`, // Ensure endpoint matches backend
+				profileData, // Send updated data
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			);
+			console.log(
+				"AuthSlice: Update profile backend response:",
+				response.data
+			);
+			// Expected backend response: { message: '...', user: { updated user data } }
+
+			// --- IMPORTANT: Update localStorage with the NEW user data ---
+			if (response.data && response.data.user) {
+				localStorage.setItem(
+					"currentUser",
+					JSON.stringify(response.data.user)
+				);
+			}
+			// ---
+
+			return response.data; // Return { message, user }
+		} catch (error) {
+			const message =
+				error.response?.data?.message ||
+				error.response?.data?.error ||
+				error.message ||
+				"Failed to update profile.";
+			console.error(
+				"AuthSlice: Update profile failed:",
+				message
+			);
+			return rejectWithValue(message);
+		}
+	}
+);
+
+// --- NEW: Change User Password (from Profile) Thunk ---
+export const changeUserPassword = createAsyncThunk(
+	"auth/changeUserPassword",
+	async (passwordData, { getState, rejectWithValue }) => {
+		// passwordData expected: { currentPassword, newPassword, confirmPassword }
+		console.log("AuthSlice: Dispatching changeUserPassword thunk");
+		const { token, user } = getState().auth; // Get token and user ID
+        console.log("inside thunk user is: ",user);
+        
+		if (!token) return rejectWithValue("Authentication required.");
+		if (!user || !user._id)
+			return rejectWithValue("User ID not found.");
+
+		try {
+			// Example using axios directly:
+			const response = await axios.patch(
+				// Using PATCH, adjust if backend uses POST
+				`${
+					authService.API_URL ||
+					"http://localhost:3000"
+				}/auth/change-password/${user._id}`, // Endpoint requires user ID
+				passwordData,
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			);
+			console.log(
+				"AuthSlice: Change password backend response:",
+				response.data
+			);
+			// Expected backend response: { message: 'Password changed successfully' }
+			return response.data.message; // Return success message
+		} catch (error) {
+			const message =
+				error.response?.data?.message ||
+				error.response?.data?.error ||
+				error.message ||
+				"Failed to change password.";
+			console.error(
+				"AuthSlice: Change password failed:",
+				message
+			);
+			return rejectWithValue(message);
+		}
+	}
+);
+
+// --- NEW: Upload Proof Document Thunk ---
+export const uploadProofDocument = createAsyncThunk(
+	"auth/uploadProofDocument",
+	async ({ formData }, { getState, rejectWithValue }) => {
+		// Pass formData directly
+		// formData expected to contain: proof (file), userId, proofType
+		console.log("AuthSlice: Dispatching uploadProofDocument thunk");
+		const { token } = getState().auth;
+		if (!token) return rejectWithValue("Authentication required.");
+
+		try {
+			// Example using axios directly:
+			const response = await axios.post(
+				`${
+					authService.API_URL ||
+					"http://localhost:3000"
+				}/user/uploadProof`,
+				formData, // Send formData directly
+				{
+					headers: {
+						"Content-Type":
+							"multipart/form-data", // Important for file uploads
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			);
+			console.log(
+				"AuthSlice: Upload proof backend response:",
+				response.data
+			);
+			// Expected backend response: { message, proof, proofType }
+
+			// --- IMPORTANT: Update localStorage with the NEW user data ---
+			// Fetch the updated user data or merge the proof info
+			const updatedUser = {
+				...getState().auth.user,
+				proof: response.data.proof,
+				proofType: response.data.proofType,
+			};
+			localStorage.setItem(
+				"currentUser",
+				JSON.stringify(updatedUser)
+			);
+			// ---
+
+			return response.data; // Return { message, proof, proofType }
+		} catch (error) {
+			const message =
+				error.response?.data?.error ||
+				error.message ||
+				"Failed to upload document.";
+			console.error(
+				"AuthSlice: Upload proof failed:",
+				message
+			);
+			return rejectWithValue(message);
+		}
+	}
+);
+
 // --- Slice Definition ---
 const authSlice = createSlice({
 	name: "auth",
@@ -218,6 +476,15 @@ const authSlice = createSlice({
 			state.isAuthenticated = false;
 			state.status = "idle"; // Reset status to idle
 			state.error = null; // Clear any existing errors
+			// Reset profile statuses on logout
+			state.profileUpdateStatus = "idle";
+			state.profileUpdateError = null;
+			state.passwordChangeStatus = "idle";
+			state.passwordChangeError = null;
+			state.documentUploadStatus = "idle";
+			state.documentUploadError = null;
+			state.passwordResetStatus = "idle";
+			state.passwordResetError = null;
 
 			console.log(
 				"AuthSlice: State AFTER logout:",
@@ -226,6 +493,21 @@ const authSlice = createSlice({
 		},
 		clearError: (state) => {
 			state.error = null;
+			state.profileUpdateError = null;
+			state.passwordChangeError = null;
+			state.documentUploadError = null;
+		},
+		clearPasswordResetStatus: (state) => {
+			state.passwordResetStatus = "idle";
+			state.passwordResetError = null;
+		},
+		clearProfileStatus: (state) => {
+			state.profileUpdateStatus = "idle";
+			state.profileUpdateError = null;
+			state.passwordChangeStatus = "idle";
+			state.passwordChangeError = null;
+			state.documentUploadStatus = "idle";
+			state.documentUploadError = null;
 		},
 		// Potentially add reducers to update user profile info synchronously if needed
 	},
@@ -393,27 +675,163 @@ const authSlice = createSlice({
 				state.token = null;
 				// localStorage/header cleared within the thunk's catch block
 			})
-            .addCase(registerBroker.pending, (state) => {
-                state.status = 'loading';
-                state.error = null;
-            })
-            .addCase(registerBroker.fulfilled, (state, action) => {
-                state.status = 'succeeded';
-                // Registration successful. User is NOT logged in yet.
-                // Status is 'succeeded' but isAuthenticated remains false.
-                // Component should likely show the success message and maybe redirect to login.
-                console.log("Broker registration succeeded:", action.payload?.message);
-                // We might want to store the success message in state temporarily?
-                // state.successMessage = action.payload?.message; // Example
-            })
-            .addCase(registerBroker.rejected, (state, action) => {
-                state.status = 'failed';
-                state.error = action.payload; // Error message from rejectWithValue
-            });
+			.addCase(registerBroker.pending, (state) => {
+				state.status = "loading";
+				state.error = null;
+			})
+			.addCase(registerBroker.fulfilled, (state, action) => {
+				state.status = "succeeded";
+				// Registration successful. User is NOT logged in yet.
+				// Status is 'succeeded' but isAuthenticated remains false.
+				// Component should likely show the success message and maybe redirect to login.
+				console.log(
+					"Broker registration succeeded:",
+					action.payload?.message
+				);
+				// We might want to store the success message in state temporarily?
+				// state.successMessage = action.payload?.message; // Example
+			})
+			.addCase(registerBroker.rejected, (state, action) => {
+				state.status = "failed";
+				state.error = action.payload; // Error message from rejectWithValue
+			})
+			// Request OTP
+			.addCase(requestPasswordReset.pending, (state) => {
+				state.passwordResetStatus = "sending_otp";
+				state.passwordResetError = null;
+				state.error = null; // Clear general error
+			})
+			.addCase(
+				requestPasswordReset.fulfilled,
+				(state, action) => {
+					state.passwordResetStatus = "otp_sent";
+					// Success message is returned in action.payload, handle display in component
+				}
+			)
+			.addCase(
+				requestPasswordReset.rejected,
+				(state, action) => {
+					state.passwordResetStatus =
+						"reset_failed"; // Use a general failed state
+					state.passwordResetError =
+						action.payload;
+				}
+			)
+
+			// Reset with OTP
+			.addCase(resetPasswordWithOtp.pending, (state) => {
+				state.passwordResetStatus = "resetting";
+				state.passwordResetError = null;
+				state.error = null;
+			})
+			.addCase(
+				resetPasswordWithOtp.fulfilled,
+				(state, action) => {
+					state.passwordResetStatus =
+						"reset_success";
+					// Password reset was successful. User needs to log in again.
+					// State remains unauthenticated. Success message in action.payload.
+				}
+			)
+			.addCase(
+				resetPasswordWithOtp.rejected,
+				(state, action) => {
+					state.passwordResetStatus =
+						"reset_failed";
+					state.passwordResetError =
+						action.payload;
+				}
+			)
+			// Update User Profile
+			.addCase(updateUserProfile.pending, (state) => {
+				state.profileUpdateStatus = "loading";
+				state.profileUpdateError = null;
+			})
+			.addCase(
+				updateUserProfile.fulfilled,
+				(state, action) => {
+					state.profileUpdateStatus = "succeeded";
+					// --- IMPORTANT: Update user state with data from backend ---
+					if (
+						action.payload &&
+						action.payload.user
+					) {
+						state.user = {
+							...state.user,
+							...action.payload.user,
+						}; // Merge updates
+					}
+					state.profileUpdateError = null;
+					// localStorage updated in thunk
+				}
+			)
+			.addCase(
+				updateUserProfile.rejected,
+				(state, action) => {
+					state.profileUpdateStatus = "failed";
+					state.profileUpdateError =
+						action.payload;
+				}
+			)
+
+			// Change User Password
+			.addCase(changeUserPassword.pending, (state) => {
+				state.passwordChangeStatus = "loading";
+				state.passwordChangeError = null;
+			})
+			.addCase(
+				changeUserPassword.fulfilled,
+				(state, action) => {
+					state.passwordChangeStatus =
+						"succeeded";
+					state.passwordChangeError = null;
+					// Optionally store success message: state.passwordChangeSuccess = action.payload;
+				}
+			)
+			.addCase(
+				changeUserPassword.rejected,
+				(state, action) => {
+					state.passwordChangeStatus = "failed";
+					state.passwordChangeError =
+						action.payload;
+				}
+			)
+
+			// Upload Proof Document
+			.addCase(uploadProofDocument.pending, (state) => {
+				state.documentUploadStatus = "loading";
+				state.documentUploadError = null;
+			})
+			.addCase(
+				uploadProofDocument.fulfilled,
+				(state, action) => {
+					state.documentUploadStatus =
+						"succeeded";
+					// --- IMPORTANT: Update user state with new proof info ---
+					if (state.user && action.payload) {
+						state.user.proof =
+							action.payload.proof;
+						state.user.proofType =
+							action.payload.proofType;
+						state.user.verified = "pending"; // Assume upload requires re-verification
+					}
+					state.documentUploadError = null;
+					// localStorage updated in thunk
+				}
+			)
+			.addCase(
+				uploadProofDocument.rejected,
+				(state, action) => {
+					state.documentUploadStatus = "failed";
+					state.documentUploadError =
+						action.payload;
+				}
+			);
 	},
 });
 
 // --- Exports ---
-export const { logout, clearError } = authSlice.actions;
+export const { logout, clearError, clearPasswordResetStatus, clearProfileStatus } =
+	authSlice.actions;
 
 export default authSlice.reducer;
