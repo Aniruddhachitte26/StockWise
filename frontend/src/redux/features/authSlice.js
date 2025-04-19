@@ -161,17 +161,30 @@ const authSlice = createSlice({
 	reducers: {
 		// Synchronous action to log out
 		logout: (state) => {
+			console.log("AuthSlice: Executing logout reducer.");
+			console.log(
+				"AuthSlice: State BEFORE logout:",
+				JSON.stringify(state)
+			);
+
+			// Clear local storage
 			localStorage.removeItem("token");
 			localStorage.removeItem("currentUser");
-			authService.setAuthToken(null); // Clear axios header
+			// Clear Axios header
+			authService.setAuthToken(null); // Call the service function to clear header
+
+			// Reset Redux state
 			state.user = null;
 			state.token = null;
 			state.isAuthenticated = false;
-			state.status = "idle";
-			state.error = null;
-			console.log("Redux logout executed");
+			state.status = "idle"; // Reset status to idle
+			state.error = null; // Clear any existing errors
+
+			console.log(
+				"AuthSlice: State AFTER logout:",
+				JSON.stringify(state)
+			);
 		},
-		// Synchronous action to clear errors
 		clearError: (state) => {
 			state.error = null;
 		},

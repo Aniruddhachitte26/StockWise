@@ -4,13 +4,13 @@ import React, { useState } from 'react';
 import { Modal, Button, Badge, Row, Col, Table, Form } from 'react-bootstrap';
 import { useTheme } from '../common/ThemeProvider';
 
-const UserDetailsModal = ({ 
-  user, 
-  show, 
-  onHide, 
-  onApprove = null,
-  onReject = null,
-  onReverify = null
+const UserDetailsModal = ({
+    user,
+    show,
+    onHide,
+    onApprove = null,
+    onReject = null,
+    onReverify = null
 }) => {
   const { currentTheme } = useTheme();
   const [verificationNote, setVerificationNote] = useState('');
@@ -159,38 +159,68 @@ const UserDetailsModal = ({
           </Col>
         </Row>
         
-        {/* Verification Documents Section */}
         {user.proof && (
-          <div 
-            className="mt-4 p-3 rounded"
-            style={{
-              backgroundColor: currentTheme === 'dark' ? '#1a1a1a' : '#f8f9fa',
-              border: '1px solid var(--border)'
-            }}
-          >
-            <h5 style={{ color: 'var(--textPrimary)' }}>Verification Documents</h5>
-            <Row>
-              <Col md={6}>
-                <p style={{ color: 'var(--textPrimary)', marginBottom: '0.5rem' }}>
-                  <strong>Document Type:</strong> {user.proofType || 'Not specified'}
-                </p>
-              </Col>
-              <Col md={6}>
-                <p style={{ color: 'var(--textPrimary)', marginBottom: '0.5rem' }}>
-                  <Button 
-                    variant="link" 
-                    style={{ color: 'var(--primary)' }}
-                    onClick={() => window.open(`/uploads/images/${user.proof}`, '_blank')}
-                  >
-                    <i className="bi bi-file-earmark-text me-1"></i>
-                    View Document
-                  </Button>
-                </p>
-              </Col>
-            </Row>
-          </div>
-        )}
-        
+  <div 
+    className="mt-4 p-3 rounded"
+    style={{
+      backgroundColor: currentTheme === 'dark' ? '#1a1a1a' : '#f8f9fa',
+      border: '1px solid var(--border)'
+    }}
+  >
+    <h5 style={{ color: 'var(--textPrimary)' }}>Verification Documents</h5>
+    <Row>
+      <Col md={4}>
+        <p style={{ color: 'var(--textPrimary)', marginBottom: '0.5rem' }}>
+          <strong>Document Type:</strong> {user.proofType === "driving license" ? "Driver's License" : 
+                                        user.proofType === "passport" ? "Passport" : 
+                                        user.proofType || 'Not specified'}
+        </p>
+      </Col>
+      <Col md={4}>
+        <p style={{ color: 'var(--textPrimary)', marginBottom: '0.5rem' }}>
+          <strong>Upload Date:</strong> {user.updatedAt ? new Date(user.updatedAt).toLocaleDateString() : 'N/A'}
+        </p>
+      </Col>
+      <Col md={4} className="text-end">
+        <Button 
+          variant="link" 
+          style={{ color: 'var(--primary)' }}
+          onClick={() => window.open(`http://localhost:3000/images/${user.proof}`, '_blank')}
+        >
+          <i className="bi bi-file-earmark-text me-1"></i>
+          View Document
+        </Button>
+      </Col>
+    </Row>
+    {user.proof && (
+      <div className="mt-3 text-center">
+        <img 
+          src={`http://localhost:3000/images/${user.proof}`}
+          alt="Verification Document" 
+          style={{ 
+            maxWidth: '100%', 
+            maxHeight: '300px', 
+            objectFit: 'contain',
+            border: '1px solid var(--border)',
+            borderRadius: '4px'
+          }}
+          onError={(e) => {
+            // If image fails to load (e.g. if it's a PDF)
+            e.target.style.display = 'none';
+            const fallback = document.createElement('div');
+            fallback.innerHTML = `
+              <div class="p-5 text-center" style="border: 1px solid var(--border); border-radius: 4px;">
+                <i class="bi bi-file-earmark-pdf fs-1 text-danger"></i>
+                <p class="mt-2">Document not viewable in preview. Click "View Document" to open.</p>
+              </div>
+            `;
+            e.target.parentNode.appendChild(fallback);
+          }}
+        />
+      </div>
+    )}
+  </div>
+)}
         {/* Verification Actions Section - Only show for pending users */}
         {user.verified === 'pending' && (
           <>

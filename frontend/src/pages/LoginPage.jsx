@@ -1,28 +1,31 @@
 // frontend/src/pages/LoginPage.jsx
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
+// Import Link and useLocation for navigation and state reading
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { Formik } from 'formik';
-import { loginSchema } from '../validations/schemas'; // Assuming this schema is correct
+import { loginSchema } from '../validations/schemas'; // Ensure this schema is correct
 
 // Common Components
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
-import GoogleLoginButton from '../components/common/GoogleLoginButton'; // Ensure this uses Redux dispatch internally
+import GoogleLoginButton from '../components/common/GoogleLoginButton';
 
 // --- Redux Imports ---
 import { useDispatch, useSelector } from 'react-redux';
-import { loginUser, clearError, googleLoginHandler } from '../redux/features/authSlice'; // Adjust path if needed
+import { loginUser, clearError } from '../redux/features/authSlice'; // Adjust path if needed
 
 const LoginPage = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
-    const location = useLocation();
+    const location = useLocation(); // Hook to access location object
 
     // --- Select state from Redux store ---
-    // state.auth should match the key used in your store.js reducer object
     const { status, error, isAuthenticated, user } = useSelector(state => state.auth);
     const loading = status === 'loading'; // Derive loading state from status
+
+    // --- State for success message from navigation ---
+    const [successMessage, setSuccessMessage] = useState('');
 
     // Determine where to redirect after login
     const from = location.state?.from?.pathname || '/dashboard';
@@ -31,13 +34,9 @@ const LoginPage = () => {
     // Redirects user if already authenticated, handles admin/user roles
     useEffect(() => {
         if (isAuthenticated) {
-            if (user?.type === 'admin') {
-                console.log("Admin detected, redirecting to /admin/dashboard");
-                navigate('/admin/dashboard', { replace: true });
-            } else {
-                console.log(`User detected, redirecting to ${from}`);
-                navigate(from, { replace: true });
-            }
+            const targetPath = user?.type === 'admin' ? '/admin/dashboard' : from;
+            console.log(`Login Page: Authenticated (${user?.type || 'user'}), redirecting to ${targetPath}`);
+            navigate(targetPath, { replace: true });
         }
     }, [isAuthenticated, navigate, from, user]);
 
@@ -49,36 +48,55 @@ const LoginPage = () => {
         return () => {
             dispatch(clearError());
         };
-    }, [dispatch, location]);
+    }, [dispatch, location.key]); // Use location.key to trigger on navigation changes
+
+    // --- Effect to check for success message from navigation state ---
+    useEffect(() => {
+        if (location.state?.message) {
+            setSuccessMessage(location.state.message);
+            // Clear the state from location history after displaying
+            // Use navigate with replace: true and empty state
+            window.history.replaceState({}, document.title) // Simpler way to clear state without causing re-render loop
+            // navigate(location.pathname, { replace: true, state: {} }); // Alternative method
+        }
+        // Clear success message if a Redux error occurs later
+        if (error) {
+            setSuccessMessage('');
+        }
+    }, [location.state, navigate, location.pathname, error]); // Add error to dependencies
 
     // --- Form Submission Handler ---
     const handleSubmit = (values, { setSubmitting }) => {
         console.log('Attempting login with credentials:', values);
-        // Dispatch the loginUser async thunk action
+        // Clear previous messages on new submission attempt
+        setSuccessMessage('');
+        dispatch(clearError());
+
         dispatch(loginUser({ email: values.email, password: values.password }))
-            .unwrap() // Optional: .unwrap() can be used to handle promise result directly here if needed
+            .unwrap()
             .catch((err) => {
-                // Error is already handled by the slice and set in the Redux state
                 console.error("Login dispatch rejected:", err);
             })
             .finally(() => {
-                // We rely on the 'status' from Redux state for loading,
-                // but we can keep Formik's submitting state synced if needed.
-                // Setting it based on Redux state is tricky, maybe just set to false?
                 setSubmitting(false);
             });
     };
 
     // --- Error Alert Close Handler ---
     const handleAlertClose = () => {
-        dispatch(clearError()); // Dispatch action to clear the error in Redux state
+        dispatch(clearError());
+    };
+
+    // --- Success Alert Close Handler ---
+    const handleSuccessAlertClose = () => {
+        setSuccessMessage('');
     };
 
     return (
         <>
             <Navbar />
 
-            <Container className="py-5" style={{ minHeight: 'calc(100vh - 120px)' }}> {/* Adjust minHeight based on Navbar/Footer */}
+            <Container className="py-5" style={{ minHeight: 'calc(100vh - 120px)' }}>
                 <Row className="justify-content-center">
                     <Col md={8} lg={6}>
                         <Card className="auth-card shadow-lg border-0">
@@ -88,11 +106,19 @@ const LoginPage = () => {
                                     <p className="text-muted">Sign in to access your StockWise account</p>
                                 </div>
 
-                                {/* Display error from Redux state */}
-                                {error && (
+                                {/* Display Success Message (only if no error) */}
+                                {successMessage && !error && (
+                                    <Alert variant="success" dismissible onClose={handleSuccessAlertClose}>
+                                        <i className="bi bi-check-circle-fill me-2"></i>
+                                        {successMessage}
+                                    </Alert>
+                                )}
+
+                                {/* Display Error Message (only if no success message) */}
+                                {error && !successMessage && (
                                     <Alert variant="danger" dismissible onClose={handleAlertClose} className="d-flex align-items-center">
                                         <i className="bi bi-exclamation-triangle-fill me-2"></i>
-                                        {error} {/* Display the error message from Redux state */}
+                                        {error}
                                     </Alert>
                                 )}
 
@@ -107,19 +133,19 @@ const LoginPage = () => {
                                         touched,
                                         handleChange,
                                         handleBlur,
-                                        handleSubmit: formikSubmit, // Rename to avoid conflict
-                                        isSubmitting, // Formik's submitting state
+                                        handleSubmit: formikSubmit,
+                                        isSubmitting,
                                     }) => {
-                                        // Function to handle input changes and clear Redux error
+                                        // Function to handle input changes and clear messages
                                         const handleInputChange = (e) => {
                                             handleChange(e); // Call original Formik handler
-                                            if (error) {
-                                                dispatch(clearError()); // Clear Redux error state when user types
-                                            }
+                                            if (error) dispatch(clearError()); // Clear Redux error
+                                            if (successMessage) setSuccessMessage(''); // Clear success message
                                         };
 
                                         return (
                                             <Form noValidate onSubmit={formikSubmit}>
+                                                {/* Email Input */}
                                                 <Form.Group className="mb-3 position-relative" controlId="loginEmail">
                                                     <Form.Label>Email address</Form.Label>
                                                     <Form.Control
@@ -136,6 +162,7 @@ const LoginPage = () => {
                                                     </Form.Control.Feedback>
                                                 </Form.Group>
 
+                                                {/* Password Input */}
                                                 <Form.Group className="mb-3 position-relative" controlId="loginPassword">
                                                     <Form.Label>Password</Form.Label>
                                                     <Form.Control
@@ -152,6 +179,7 @@ const LoginPage = () => {
                                                     </Form.Control.Feedback>
                                                 </Form.Group>
 
+                                                {/* Remember Me & Forgot Password Link */}
                                                 <div className="d-flex justify-content-between align-items-center mb-4">
                                                     <Form.Check
                                                         type="checkbox"
@@ -159,11 +187,13 @@ const LoginPage = () => {
                                                         label="Remember me"
                                                         name="rememberMe" // Added name for potential future use
                                                     />
+                                                    {/* Forgot Password Link */}
                                                     <Link to="/forgot-password" className="text-decoration-none small">
                                                         Forgot Password?
                                                     </Link>
                                                 </div>
 
+                                                {/* Submit Button */}
                                                 <div className="d-grid gap-2">
                                                     <Button
                                                         variant="primary"
@@ -186,15 +216,17 @@ const LoginPage = () => {
                                     }}
                                 </Formik>
 
+                                {/* Divider */}
                                 <div className="auth-divider my-4">
                                     <span>OR</span>
                                 </div>
 
+                                {/* Google Login Button */}
                                 <div className="d-grid gap-2 mb-4">
-                                    {/* GoogleLoginButton should ideally dispatch googleLoginHandler internally */}
                                     <GoogleLoginButton />
                                 </div>
 
+                                {/* Sign Up Link */}
                                 <div className="text-center">
                                     <p className="mb-0 text-muted">
                                         Don't have an account?{' '}

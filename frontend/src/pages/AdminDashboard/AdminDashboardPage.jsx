@@ -1,13 +1,12 @@
-// src/components/admin/AdminDashboardPage.jsx
-
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Table, Badge, Alert, Button } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import AdminNavbar from './../../components/admin/AdminNavbar';
 import Loader from './../../components/common/Loader';
 import { LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { useTheme } from '../../components/common/themeProvider';
+import { useTheme } from '../../components/common/ThemeProvider';
 import axios from 'axios';
+import Footer from '../../components/common/Footer';
 
 // API URL
 const API_URL = "http://localhost:3000";
@@ -404,6 +403,8 @@ const AdminDashboardPage = () => {
           </Card.Body>
         </Card>
       </Container>
+
+      <Footer/>
     </>
   );
 };
