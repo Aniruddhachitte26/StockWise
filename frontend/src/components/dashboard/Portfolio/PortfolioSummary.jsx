@@ -24,6 +24,7 @@ const PortfolioSummary = () => {
   const [timeRange, setTimeRange] = useState("all"); // all, week, month, year
   const [totalGain, setTotalGain] = useState(0.0);
   const [totalLoss, setTotalLoss] = useState(0.0);
+  const [totalGainLoss, setTotalGainLoss] = useState(0.0)
   const navigate = useNavigate();
 
 
@@ -385,6 +386,7 @@ const PortfolioSummary = () => {
         
         // Refresh portfolio data
         refreshPortfolio();
+        calculatePortfolioStats();
       } else {
         const errorData = await response.json();
         alert(`Transaction failed: ${errorData.message || "Please try again."}`);
@@ -432,17 +434,66 @@ const PortfolioSummary = () => {
     const totalInvested = portfolioData.investmentFund;
     const totalGain = totalValue - totalInvested;
     const totalGainPercent = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
+
+    const totalLoss = totalGain < 0 ? Math.abs(totalGain) : 0;
+    const totalLossPercent = totalGain < 0 ? Math.abs(totalGainPercent) : 0;
     
     const todayChange = totalValue - previousDayValue;
     const todayChangePercent = previousDayValue > 0 ? (todayChange / previousDayValue) * 100 : 0;
+
+
+    const grouped = {};
     
-    console.log("printing from here", portfolioData.wallet)
+    let totalGainLoss = 0;
+    transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+    const updatedTransactions = [];
+    const usedBuys = {}; 
+ 
+
+    for (let i = 0; i < transactions.length; i++) {
+      const tx = transactions[i];
+
+      if (tx.type === 'SELL') {
+        let qtyToSell = tx.quantity;
+        let gain = 0;
+
+        for (let j = i + 1; j < transactions.length && qtyToSell > 0; j++) {
+          const buyTx = transactions[j];
+
+          if (buyTx.type === 'BUY' && buyTx.symbol === tx.symbol) {
+            const buyKey = buyTx._id.toString();
+            const usedQty = usedBuys[buyKey] || 0;
+            const availableQty = buyTx.quantity - usedQty;
+
+            if (availableQty <= 0) continue;
+
+            const matchQty = Math.min(qtyToSell, availableQty);
+            gain += matchQty * (tx.price - buyTx.price);
+
+            usedBuys[buyKey] = usedQty + matchQty;
+            qtyToSell -= matchQty;
+          }
+        }
+
+        tx.profitOrLoss = parseFloat(gain.toFixed(2));
+        totalGainLoss += gain;
+      }
+
+    updatedTransactions.push(tx);
+}
+
+totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
+   
+    
     return {
       totalValue,
       totalGain,
       totalGainPercent,
       todayChange,
       todayChangePercent,
+      totalLoss,
+      totalLossPercent,
+      totalGainLoss,
       wallet: portfolioData.wallet || 0
     };
   };
@@ -542,10 +593,7 @@ const PortfolioSummary = () => {
               <p className={`portfolio-value font-poppins fw-bold mb-0 ${
                 totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
               }`}>
-                {totalGain}/{totalLoss}
-                {/* <span className="percentage-change ms-2">
-                  ({totalGain})
-                </span> */}
+                {formatCurrency(portfolioStats.totalGainLoss) !== NaN ? formatCurrency(portfolioStats.totalGainLoss) : formatCurrency(portfolioStats.totalGain)}
               </p>
               <div className={`summary-indicator ${portfolioStats.totalGain >= 0 ? 'bg-success-soft' : 'bg-danger-soft'}`}>
                 <i className={`bi ${portfolioStats.totalGain >= 0 ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}`}></i>
