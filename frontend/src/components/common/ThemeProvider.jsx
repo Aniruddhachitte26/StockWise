@@ -2,52 +2,24 @@ import React, { createContext, useContext, useEffect, useState } from 'react';
 import { detectColorScheme, setThemePreference, initTheme } from '../../config/themeConfig';
 
 // Create context
-const ThemeContext = createContext();
+const ThemeContext = createContext({
+  currentTheme: 'light',
+  toggleTheme: () => {}
+});
 
-export const useTheme = () => {
-  const context = useContext(ThemeContext);
-  if (!context) {
-    throw new Error('useTheme must be used within a ThemeProvider');
-  }
-  return context;
-};
+export const useTheme = () => useContext(ThemeContext);
 
 const ThemeProvider = ({ children }) => {
-  const [currentTheme, setCurrentTheme] = useState('light');
-  
-  useEffect(() => {
-    // Initialize theme on component mount
-    initTheme();
-    setCurrentTheme(detectColorScheme());
-    
-    // Add event listener for system theme changes
-    const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-    
-    const handleChange = (e) => {
-      const newTheme = e.matches ? 'dark' : 'light';
-      setCurrentTheme(newTheme);
-      setThemePreference(newTheme);
-    };
-    
-    mediaQuery.addEventListener('change', handleChange);
-    
-    // Cleanup
-    return () => {
-      mediaQuery.removeEventListener('change', handleChange);
-    };
-  }, []);
-  
-  // Toggle theme function
-  const toggleTheme = () => {
-    const newTheme = currentTheme === 'light' ? 'dark' : 'light';
-    setCurrentTheme(newTheme);
-    setThemePreference(newTheme);
+  // Since we only support light theme, we create a simplified provider
+  const contextValue = {
+    currentTheme: 'light',
+    toggleTheme: () => console.log('Theme toggle disabled - only light theme is supported')
   };
   
   return (
-    <ThemeContext.Provider value={{ currentTheme, toggleTheme }}>
-      {children}
-    </ThemeContext.Provider>
+    <ThemeContext.Provider value={contextValue}>
+    {children}
+  </ThemeContext.Provider>
   );
 };
 
