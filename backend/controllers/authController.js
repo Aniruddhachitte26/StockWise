@@ -65,6 +65,8 @@ const loginUser = async (req, res) => {
 				fullName: user.fullName,
 				email: user.email,
 				type: user.type, // Include user type in the response
+                imagePath: user.imagePath,
+                verified: user.verified,
 			},
 			token,
 		});

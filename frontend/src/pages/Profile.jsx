@@ -1,989 +1,749 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import AppNavbar from "../components/common/Navbar";
 import axios from "axios";
 import WalletComponent from "../pages/WalletComponent";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
+import { Container, Row, Col, Card, Form, Button, Alert, Spinner, Badge, InputGroup } from 'react-bootstrap'; // <-- Added InputGroup here // Added Alert, Spinner, Badge
+import Loader from '../components/common/Loader'; // Import Loader
+import Footer from '../components/common/Footer'; // Import Footer
+import PasswordStrengthMeter from '../components/common/PasswordStrengthMeter';
+
+// --- Redux Imports ---
+import { useDispatch, useSelector } from 'react-redux';
+import {
+    updateUserProfile,
+    changeUserPassword,
+    uploadProofDocument,
+    clearProfileStatus // Action to clear specific profile status/errors
+} from '../redux/features/authSlice';
+
+import { API_URL } from '../config/constants';
 
 const stripePromise = loadStripe(
-  "pk_test_51RFOTpCedU17Fc7wGrEfO14CXtqFurHULvCFQccgYf5DgPnJ9VIAOJw5RjWrlfgeXoHs6IVPqFqQDUfIRoOcii7K00cHFKj2Hy"
+    "pk_test_51RFOTpCedU17Fc7wGrEfO14CXtqFurHULvCFQccgYf5DgPnJ9VIAOJw5RjWrlfgeXoHs6IVPqFqQDUfIRoOcii7K00cHFKj2Hy"
 );
 const styles = {
-  root: {
-    "--primary": "#1E88E5",
-    "--primary-light": "#90CAF9",
-    "--secondary": "#00ACC1",
-    "--secondary-light": "#80DEEA",
-    "--accent": "#43A047",
-    "--accent-light": "#A5D6A7",
-    "--danger": "#E53935",
-    "--danger-light": "#EF9A9A",
-    "--warning": "#FFC107",
-    "--neutral-bg": "#F9FAFB",
-    "--card-bg": "#FFFFFF",
-    "--text-primary": "#212121",
-    "--text-secondary": "#757575",
-    "--border": "#E0E0E0",
-    fontFamily: "'Inter', sans-serif",
-  },
-  card: {
-    backgroundColor: "var(--card-bg)",
-    border: "none",
-    borderRadius: "12px",
-    boxShadow: "0 5px 15px rgba(0, 0, 0, 0.05)",
-    transition: "all 0.3s ease",
-  },
-  profileHeader: {
-    background: "linear-gradient(120deg, var(--primary), var(--secondary))",
-    height: "150px",
-    borderRadius: "12px 12px 0 0",
-  },
-  profileImgContainer: {
-    position: "relative",
-    marginTop: "-75px",
-    zIndex: 1,
-  },
-  profileImg: {
-    width: "150px",
-    height: "150px",
-    border: "5px solid white",
-    boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
-  },
-  editAvatar: {
-    position: "absolute",
-    bottom: "0",
-    right: "0",
-    backgroundColor: "var(--primary)",
-    border: "none",
-    borderRadius: "50%",
-    width: "40px",
-    height: "40px",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    boxShadow: "0 3px 10px rgba(0, 0, 0, 0.1)",
-    transition: "all 0.3s ease",
-    color: "white",
-  },
-  heading: {
-    fontFamily: "'Poppins', sans-serif",
-  },
-  verifiedBadge: {
-    backgroundColor: "var(--accent-light)",
-    color: "var(--accent)",
-    padding: "0.5em 0.8em",
-    borderRadius: "6px",
-    fontWeight: 500,
-  },
-  primaryBtn: {
-    backgroundColor: "var(--primary)",
-    borderColor: "var(--primary)",
-    boxShadow: "0 2px 5px rgba(30, 136, 229, 0.2)",
-    transition: "all 0.3s ease",
-  },
-  secondaryBtn: {
-    backgroundColor: "var(--secondary)",
-    borderColor: "var(--secondary)",
-    boxShadow: "0 2px 5px rgba(0, 172, 193, 0.2)",
-  },
-  tabItem: {
-    cursor: "pointer",
-    padding: "1rem",
-    borderRadius: "8px",
-    transition: "all 0.3s ease",
-    "&:hover": {
-      backgroundColor: "rgba(30, 136, 229, 0.05)",
+    root: {
+        "--primary": "#1E88E5",
+        "--primary-light": "#90CAF9",
+        "--secondary": "#00ACC1",
+        "--secondary-light": "#80DEEA",
+        "--accent": "#43A047",
+        "--accent-light": "#A5D6A7",
+        "--danger": "#E53935",
+        "--danger-light": "#EF9A9A",
+        "--warning": "#FFC107",
+        "--neutral-bg": "#F9FAFB",
+        "--card-bg": "#FFFFFF",
+        "--text-primary": "#212121",
+        "--text-secondary": "#757575",
+        "--border": "#E0E0E0",
+        fontFamily: "'Inter', sans-serif",
     },
-  },
-  activeTab: {
-    backgroundColor: "var(--primary-light)",
-    color: "var(--primary)",
-  },
-  formControl: {
-    borderRadius: "8px",
-    borderColor: "var(--border)",
-    padding: "0.6rem 1rem",
-  },
-  formLabel: {
-    color: "var(--text-secondary)",
-    fontWeight: 500,
-    marginBottom: "0.5rem",
-  },
-  documentPreview: {
-    maxWidth: "100%",
-    maxHeight: "200px",
-    objectFit: "contain",
-    borderRadius: "8px",
-    border: "1px solid var(--border)",
-    backgroundColor: "#f8f9fa",
-  },
+    card: {
+        backgroundColor: "var(--card-bg)",
+        border: "none",
+        borderRadius: "12px",
+        boxShadow: "0 5px 15px rgba(0, 0, 0, 0.05)",
+        transition: "all 0.3s ease",
+    },
+    profileHeader: {
+        background: "linear-gradient(120deg, var(--primary), var(--secondary))",
+        height: "150px",
+        borderRadius: "12px 12px 0 0",
+    },
+    profileImgContainer: {
+        position: "relative",
+        marginTop: "-75px",
+        zIndex: 1,
+    },
+    profileImg: {
+        width: "150px",
+        height: "150px",
+        border: "5px solid white",
+        boxShadow: "0 5px 15px rgba(0, 0, 0, 0.1)",
+    },
+    editAvatar: {
+        position: "absolute",
+        bottom: "0",
+        right: "0",
+        backgroundColor: "var(--primary)",
+        border: "none",
+        borderRadius: "50%",
+        width: "40px",
+        height: "40px",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        boxShadow: "0 3px 10px rgba(0, 0, 0, 0.1)",
+        transition: "all 0.3s ease",
+        color: "white",
+    },
+    heading: {
+        fontFamily: "'Poppins', sans-serif",
+    },
+    verifiedBadge: {
+        backgroundColor: "var(--accent-light)",
+        color: "var(--accent)",
+        padding: "0.5em 0.8em",
+        borderRadius: "6px",
+        fontWeight: 500,
+    },
+    primaryBtn: {
+        backgroundColor: "var(--primary)",
+        borderColor: "var(--primary)",
+        boxShadow: "0 2px 5px rgba(30, 136, 229, 0.2)",
+        transition: "all 0.3s ease",
+    },
+    secondaryBtn: {
+        backgroundColor: "var(--secondary)",
+        borderColor: "var(--secondary)",
+        boxShadow: "0 2px 5px rgba(0, 172, 193, 0.2)",
+    },
+    tabItem: {
+        cursor: "pointer",
+        padding: "1rem",
+        borderRadius: "8px",
+        transition: "all 0.3s ease",
+        "&:hover": {
+            backgroundColor: "rgba(30, 136, 229, 0.05)",
+        },
+    },
+    activeTab: {
+        backgroundColor: "var(--primary-light)",
+        color: "var(--primary)",
+    },
+    formControl: {
+        borderRadius: "8px",
+        borderColor: "var(--border)",
+        padding: "0.6rem 1rem",
+    },
+    formLabel: {
+        color: "var(--text-secondary)",
+        fontWeight: 500,
+        marginBottom: "0.5rem",
+    },
+    documentPreview: {
+        maxWidth: "100%",
+        maxHeight: "200px",
+        objectFit: "contain",
+        borderRadius: "8px",
+        border: "1px solid var(--border)",
+        backgroundColor: "#f8f9fa",
+    },
 };
 
 function ProfileComponent() {
-  const [activeSection, setActiveSection] = useState("personal");
-  const [isEditing, setIsEditing] = useState(false);
-  const [userData, setUserData] = useState({});
-  const [loading, setLoading] = useState(true);
+    const dispatch = useDispatch();
+    const fileInputRef = useRef(null);
 
-  // Document upload state
-  const [proofType, setProofType] = useState("");
-  const [uploadSuccess, setUploadSuccess] = useState(false);
-  const [uploadError, setUploadError] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
+    // --- Select state from Redux store ---
+    const {
+        user, // Get user data directly from Redux
+        status: authStatus, // General auth status
+        profileUpdateStatus, profileUpdateError,
+        passwordChangeStatus, passwordChangeError,
+        documentUploadStatus, documentUploadError
+    } = useSelector(state => state.auth);
 
-  const fileInputRef = useRef(null);
+    // --- Local State for UI Control and Forms ---
+    const [activeSection, setActiveSection] = useState('personal');
+    const [isEditing, setIsEditing] = useState(false);
+    // Local state for the *editing* form, initialized from Redux state
+    const [editFormData, setEditFormData] = useState({});
+    // Local state for password change form
+    const [passwordFormData, setPasswordFormData] = useState({
+        currentPassword: '', newPassword: '', confirmPassword: ''
+    });
+    // Local state for document upload
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [proofType, setProofType] = useState(''); // Local state for selection before upload
 
-  useEffect(() => {
-    const fetchUserDetails = async () => {
-      const storedUser = localStorage.getItem("currentUser");
-      const currentUser = storedUser ? JSON.parse(storedUser) : null;
-
-      console.log("currentUser is", currentUser?.id);
-
-      if (!currentUser?.id) {
-        console.warn("No user ID found in localStorage.");
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await axios.get(
-          `http://localhost:3000/user/${currentUser.id}`
-        );
-        console.log("User data response:", response.data);
-        setUserData(response.data);
-
-        // Set proofType from loaded data
-        if (response.data.proofType) {
-          setProofType(response.data.proofType);
+    // --- Initialize edit form data and proof type from Redux user state ---
+    useEffect(() => {
+        if (user) {
+            console.log("user", user);
+            
+            console.log("imagePath",user.imagePath);
+            
+            if (isEditing) {
+                // Populate edit form only when entering edit mode or if user changes
+                if (!editFormData._id || editFormData._id !== user.id) {
+                    setEditFormData({
+                        _id: user.id, // Needed for update request
+                        fullName: user.fullName || '',
+                        email: user.email || '', // Usually email shouldn't be editable here
+                        phone: user.phone || '',
+                        address: user.address || '',
+                    });
+                }
+            } else {
+                setEditFormData({}); // Clear local edit state when not editing
+            }
+            // Always try to set proof type from Redux state
+            setProofType(user.proofType || '');
+        } else {
+            // Handle case where user is somehow null after initial load (e.g., error during verifyAuth)
+            setEditFormData({});
+            setProofType('');
         }
-      } catch (error) {
-        console.error("Error fetching user details:", error);
-      } finally {
-        setLoading(false);
-      }
+    }, [user, isEditing]); // Rerun when user (from Redux) or edit mode changes
+
+    // --- Clear specific profile errors on mount/unmount ---
+    useEffect(() => {
+        dispatch(clearProfileStatus());
+        return () => {
+            dispatch(clearProfileStatus());
+        };
+    }, [dispatch]);
+
+    // --- Form Input Handlers ---
+    const handleEditFormChange = (e) => {
+        const { name, value } = e.target;
+        setEditFormData(prev => ({ ...prev, [name]: value }));
+        if (profileUpdateError) dispatch(clearProfileStatus());
     };
 
-    fetchUserDetails();
-  }, []);
+    const handlePasswordFormChange = (e) => {
+        const { name, value } = e.target;
+        setPasswordFormData(prev => ({ ...prev, [name]: value }));
+        if (passwordChangeError) dispatch(clearProfileStatus());
+    };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setUserData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
-  };
+    const handleProofTypeChange = (e) => {
+        setProofType(e.target.value);
+        setSelectedFile(null); // Reset file if type changes
+        if (documentUploadError) dispatch(clearProfileStatus());
+    };
 
-  const handlePasswordChange = async () => {
-    const storedUser = localStorage.getItem("currentUser");
-    const currentUser = storedUser ? JSON.parse(storedUser) : null;
-    const { currentPassword, newPassword, confirmPassword } = userData;
-
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      alert("Please fill in all password fields");
-      return;
-    }
-
-    if (newPassword !== confirmPassword) {
-      alert("New passwords do not match");
-      return;
-    }
-
-    try {
-      const response = await axios.patch(
-        `http://localhost:3000/auth/change-password/${currentUser.id}`,
-        {
-          currentPassword,
-          newPassword,
-          confirmPassword,
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+    const handleFileSelection = (event) => {
+        const file = event.target.files[0];
+        if (!file) {
+            setSelectedFile(null); // Clear selection if user cancels
+            return;
         }
-      );
+        // Validation...
+        if (file.size > 5 * 1024 * 1024) { alert("File size exceeds 5MB limit"); return; }
+        const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+        if (!validTypes.includes(file.type)) { alert("Invalid file type (JPG, PNG, JPEG only)."); return; }
 
-      alert("Password changed successfully");
-      // Clear password fields
-      setUserData((prev) => ({
-        ...prev,
-        currentPassword: "",
-        newPassword: "",
-        confirmPassword: "",
-      }));
-    } catch (error) {
-      alert(error.response?.data?.message || "Failed to change password");
-      console.error("Password change error:", error);
-    }
-  };
+        setSelectedFile(file);
+        if (documentUploadError) dispatch(clearProfileStatus());
 
-  const handleSelectFileClick = () => {
-    if (!proofType) {
-      alert("Please select a document type first");
-      return;
-    }
+        // --- Trigger upload immediately after selection ---
+        // Optional: You could have a separate "Upload" button appear instead
+        handleDocumentUpload(file);
+    };
 
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
-  };
-
-  const handleFileChange = async (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-
-    setIsUploading(true);
-    setUploadError(null);
-    setUploadSuccess(false);
-
-    // Verify file size (5MB max)
-    if (file.size > 5 * 1024 * 1024) {
-      setUploadError("File size exceeds 5MB limit");
-      setIsUploading(false);
-      return;
-    }
-
-    // Verify file type
-    const validTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "application/pdf",
-    ];
-    if (!validTypes.includes(file.type)) {
-      setUploadError("Invalid file type. Please upload a JPG, PNG or PDF file");
-      setIsUploading(false);
-      return;
-    }
-
-    // Create FormData
-    const formData = new FormData();
-    formData.append("proof", file);
-    formData.append("userId", userData._id);
-    formData.append("proofType", proofType);
-
-    try {
-      const response = await axios.post(
-        "http://localhost:3000/user/uploadProof",
-        formData,
-        {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
-          },
+    const handleSelectFileClick = () => {
+        if (!proofType) {
+            alert("Please select a document type first.");
+            return;
         }
-      );
-
-      console.log("Document uploaded:", response.data);
-      setUploadSuccess(true);
-
-      // Update user data with the new proof information
-      setUserData((prev) => ({
-        ...prev,
-        proof: response.data.proof,
-        proofType: response.data.proofType,
-      }));
-    } catch (error) {
-      console.error(
-        "Upload failed:",
-        error.response?.data?.error || error.message
-      );
-      setUploadError(
-        error.response?.data?.error || "Failed to upload document"
-      );
-    } finally {
-      setIsUploading(false);
-      // Reset file input
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
-  };
-
-  const toggleEdit = () => {
-    setIsEditing(!isEditing);
-  };
-
-  const saveChanges = async () => {
-    console.log("Saving user data:", userData);
-    try {
-      const res = await axios.patch(
-        "http://localhost:3000/user/update-profile",
-        userData,
-        {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        // Clear any previously selected file before opening dialog
+        setSelectedFile(null);
+        if (fileInputRef.current) {
+            fileInputRef.current.value = ""; // Reset the input value
+            fileInputRef.current.click();
         }
-      );
+    };
 
-      console.log("Updated user:", res.data.user);
-      setIsEditing(false);
-      alert("Profile updated successfully");
-    } catch (err) {
-      console.error("Error updating profile", err);
-      alert("Failed to update profile");
-    }
-  };
+    // --- Action Handlers ---
+    const toggleEdit = () => {
+        setIsEditing(!isEditing);
+        dispatch(clearProfileStatus()); // Clear errors when toggling edit mode
+    };
 
-  const getVerificationStatusBadge = () => {
-    switch (userData.verified) {
-      case "approved":
+    const saveChanges = () => { // Removed async, handled by thunk
+        console.log('Dispatching updateUserProfile with:', editFormData);
+        dispatch(updateUserProfile(editFormData))
+            .unwrap()
+            .then(() => {
+                alert("Profile updated successfully!");
+                setIsEditing(false); // Exit edit mode on success
+            })
+            .catch((err) => {
+                console.error("Profile update failed in component:", err);
+                // Error state is already set in Redux (profileUpdateError)
+                // Alert is handled by the Alert component reading Redux state
+            });
+    };
+
+    const handlePasswordChangeSubmit = (e) => { // Removed async
+        e.preventDefault();
+        if (passwordFormData.newPassword !== passwordFormData.confirmPassword) {
+            dispatch(clearProfileStatus()); // Clear previous status first
+            // Set error directly (or create a dedicated sync action)
+            dispatch({ type: 'auth/changeUserPassword/rejected', payload: "New passwords do not match." });
+            return;
+        }
+        console.log('Dispatching changeUserPassword');
+        dispatch(changeUserPassword(passwordFormData))
+            .unwrap()
+            .then((message) => {
+                alert(message || "Password changed successfully!");
+                setPasswordFormData({ currentPassword: '', newPassword: '', confirmPassword: '' }); // Clear form
+            })
+            .catch((err) => {
+                console.error("Password change failed in component:", err);
+                // Error state (passwordChangeError) is set by the rejected thunk
+            });
+    };
+
+    const handleDocumentUpload = (fileToUpload) => {
+        if (!fileToUpload) {
+            console.error("Upload handler called without a file.");
+            return;
+        }
+        if (!proofType) { // Double check type
+            alert("Please select the document type.");
+            return;
+        }
+
+        console.log("Profile.jsx: User state before creating FormData:", user.id); // <-- ADD THIS LOG
+
+        if (!user || !user.id) { // <-- ADD THIS CHECK
+            console.error("Upload Error: User ID is missing in Redux state!");
+            alert("Could not upload document: User information is missing. Please refresh.");
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("proof", fileToUpload); // Use the passed file
+        formData.append("userId", user.id);
+        formData.append("proofType", proofType);
+
+        console.log('Dispatching uploadProofDocument');
+        dispatch(uploadProofDocument({ formData }))
+            .unwrap()
+            .then((payload) => {
+                alert(payload.message || "Document uploaded successfully! It will be reviewed.");
+                setSelectedFile(null); // Clear file selection on success
+                // User state updated by reducer
+            })
+            .catch((err) => {
+                console.error("Document upload failed in component:", err);
+                setSelectedFile(null); // Clear file selection on error too
+                // Error state set by reducer
+            });
+    };
+
+    // --- Verification Badge Logic (using Redux user state) ---
+    const getVerificationStatusBadge = () => {
+        if (!user) return null;
+        const status = user.verified || 'pending';
+        // ... (badge logic remains the same as before) ...
+        switch (status) {
+            case 'approved': return <Badge bg="success" style={styles.verifiedBadge}><i className="bi bi-check-circle-fill me-1"></i> Approved</Badge>;
+            case 'rejected': return <Badge bg="danger" style={styles.verifiedBadge}><i className="bi bi-x-circle-fill me-1"></i> Rejected</Badge>;
+            case 'pending': default: return <Badge bg="warning" text="dark" style={styles.verifiedBadge}><i className="bi bi-hourglass-split me-1"></i> Pending Verification</Badge>;
+        }
+    };
+
+    // --- Render Logic ---
+    // Use general authStatus for initial page load check
+    if (authStatus === 'loading' || authStatus === 'idle' || !user) {
         return (
-          <span
-            style={{
-              backgroundColor: "var(--accent-light)",
-              color: "var(--accent)",
-              padding: "0.5em 0.8em",
-              borderRadius: "6px",
-              fontWeight: 500,
-            }}
-          >
-            <i className="bi bi-check-circle-fill me-1"></i>
-            Approved
-          </span>
-        );
-      case "rejected":
-        return (
-          <span
-            style={{
-              backgroundColor: "var(--danger-light)",
-              color: "var(--danger)",
-              padding: "0.5em 0.8em",
-              borderRadius: "6px",
-              fontWeight: 500,
-            }}
-          >
-            <i className="bi bi-x-circle-fill me-1"></i>
-            Rejected
-          </span>
-        );
-      case "pending":
-      default:
-        return (
-          <span
-            style={{
-              backgroundColor: "var(--warning)",
-              color: "#856404",
-              padding: "0.5em 0.8em",
-              borderRadius: "6px",
-              fontWeight: 500,
-            }}
-          >
-            <i className="bi bi-hourglass-split me-1"></i>
-            Pending Verification
-          </span>
+            <>
+                <AppNavbar />
+                <Loader fullScreen text="Loading Profile..." />
+                <Footer />
+            </>
         );
     }
-  };
 
-  if (loading) {
+    // Derive specific loading states for buttons/disabling inputs
+    const isSavingProfile = profileUpdateStatus === 'loading';
+    const isChangingPassword = passwordChangeStatus === 'loading';
+    const isUploadingDocument = documentUploadStatus === 'loading';
+
     return (
-      <div>
-        <AppNavbar />
-        <div
-          className="d-flex justify-content-center align-items-center"
-          style={{ height: "100vh" }}
-        >
-          <div className="spinner-border text-primary" role="status">
-            <span className="visually-hidden">Loading...</span>
-          </div>
-        </div>
-      </div>
-    );
-  }
+        <div style={{ backgroundColor: 'var(--neutral-bg)' }}>
+            <AppNavbar />
+            <div style={styles.root} className="container py-5">
+                <Row>
+                    {/* Left Column */}
+                    <Col lg={4} className="mb-4">
+                        {/* Profile Card */}
+                        <Card style={styles.card} className="mb-4 shadow-sm">
+                            <div style={styles.profileHeader}></div>
+                            <Card.Body className="text-center pt-0">
+                                {/* Profile Image */}
+                                <div style={styles.profileImgContainer} className="d-inline-block">
+                                    <img src={user.imagePath || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.fullName || 'U')}&background=random`} className="rounded-circle" alt="Profile" style={styles.profileImg} />
+                                    <Button style={styles.editAvatar} title="Change Profile Picture" size="sm" disabled> {/* TODO: Implement upload */}
+                                        <i className="bi bi-camera-fill"></i>
+                                    </Button>
+                                </div>
+                                {/* Name, Address, Status */}
+                                <h4 style={styles.heading} className="mt-3 mb-1">{user.fullName}</h4>
+                                <p className="text-secondary mb-2">
+                                    {user.address ? <><i className="bi bi-geo-alt-fill me-1"></i>{user.address}</> : "Address not set"}
+                                </p>
+                                <div className="mb-3">{getVerificationStatusBadge()}</div>
+                                {/* Edit/Save Buttons */}
+                                <div className="d-grid gap-2">
+                                    {!isEditing ? (
+                                        <Button variant="primary" style={styles.primaryBtn} onClick={toggleEdit} disabled={isSavingProfile}>
+                                            <i className="bi bi-pencil-fill me-2"></i>Edit Profile
+                                        </Button>
+                                    ) : (
+                                        <Button variant="success" style={{ ...styles.primaryBtn, backgroundColor: 'var(--accent)', borderColor: 'var(--accent)' }} onClick={saveChanges} disabled={isSavingProfile}>
+                                            {isSavingProfile ? <><Spinner size="sm" className="me-2" />Saving...</> : <><i className="bi bi-check-lg me-1"></i>Save Changes</>}
+                                        </Button>
+                                    )}
+                                    {isEditing && (
+                                        <Button variant="outline-secondary" onClick={toggleEdit} disabled={isSavingProfile}>Cancel</Button>
+                                    )}
+                                </div>
+                            </Card.Body>
+                        </Card>
 
-  return (
-    <div>
-      <AppNavbar />
-      <div style={styles.root} className="container py-5">
-        <div className="row">
-          {/* Left Column */}
-          <div className="col-lg-4 mb-4">
-            {/* Profile Card */}
-            <div style={styles.card} className="card mb-4">
-              <div style={styles.profileHeader}></div>
-              <div className="card-body text-center pt-0">
-                <div
-                  style={styles.profileImgContainer}
-                  className="d-inline-block"
-                >
-                  <img
-                    src={
-                      userData.imagePath || "https://via.placeholder.com/150"
-                    }
-                    className="rounded-circle"
-                    alt="Profile"
-                    style={styles.profileImg}
-                  />
-                  <button style={styles.editAvatar}>
-                    <i className="bi bi-camera-fill"></i>
-                  </button>
-                </div>
-                <h4 style={styles.heading} className="mt-3 mb-1">
-                  {userData.fullName}
-                </h4>
-                <p className="text-secondary mb-2">
-                  <i className="bi bi-geo-alt-fill me-1"></i>
-                  {userData.address || "No address provided"}
-                </p>
-                <div className="mb-3">{getVerificationStatusBadge()}</div>
-                <div className="d-grid gap-2">
-                  <button
-                    className="btn btn-primary"
-                    style={styles.primaryBtn}
-                    onClick={toggleEdit}
-                  >
-                    <i className="bi bi-pencil-fill me-2"></i>Edit Profile
-                  </button>
-                </div>
-              </div>
-            </div>
+                        {/* Navigation Tabs */}
+                        <Card style={styles.card} className="shadow-sm">
+                            <div className="card-body p-4">
+                                <h5 style={styles.heading} className="mb-3">Profile Management</h5>
 
-            {/* Navigation Tabs */}
-            <div style={styles.card} className="card">
-              <div className="card-body p-4">
-                <h5 style={styles.heading} className="mb-3">
-                  Profile Management
-                </h5>
-
-                <div
-                  style={{
-                    ...styles.tabItem,
-                    ...(activeSection === "personal" ? styles.activeTab : {}),
-                  }}
-                  className="mb-2 d-flex align-items-center"
-                  onClick={() => setActiveSection("personal")}
-                >
-                  <i className="bi bi-person-fill me-3 fs-5"></i>
-                  <div>
-                    <h6 className="mb-0" style={styles.heading}>
-                      Personal Info
-                    </h6>
-                    <small className="text-secondary">
-                      Manage your details
-                    </small>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    ...styles.tabItem,
-                    ...(activeSection === "security" ? styles.activeTab : {}),
-                  }}
-                  className="mb-2 d-flex align-items-center"
-                  onClick={() => setActiveSection("security")}
-                >
-                  <i className="bi bi-shield-lock-fill me-3 fs-5"></i>
-                  <div>
-                    <h6 className="mb-0" style={styles.heading}>
-                      Security
-                    </h6>
-                    <small className="text-secondary">Update password</small>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    ...styles.tabItem,
-                    ...(activeSection === "wallet" ? styles.activeTab : {}),
-                  }}
-                  className="mb-2 d-flex align-items-center"
-                  onClick={() => setActiveSection("wallet")}
-                >
-                  <i className="bi bi-wallet2 me-3 fs-5"></i>
-                  <div>
-                    <h6 className="mb-0" style={styles.heading}>
-                      Wallet
-                    </h6>
-                    <small className="text-secondary">Manage your funds</small>
-                  </div>
-                </div>
-
-                <div
-                  style={{
-                    ...styles.tabItem,
-                    ...(activeSection === "documents" ? styles.activeTab : {}),
-                  }}
-                  className="mb-2 d-flex align-items-center"
-                  onClick={() => setActiveSection("documents")}
-                >
-                  <i className="bi bi-file-earmark-text-fill me-3 fs-5"></i>
-                  <div>
-                    <h6 className="mb-0" style={styles.heading}>
-                      Documents
-                    </h6>
-                    <small className="text-secondary">
-                      Upload verification
-                    </small>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Right Column */}
-          <div className="col-lg-8">
-            {/* Personal Information Section */}
-            {activeSection === "personal" && (
-              <div style={styles.card} className="card mb-4">
-                <div className="card-body p-4">
-                  <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h4 style={styles.heading} className="card-title mb-0">
-                      <i className="bi bi-person-fill me-2 text-primary"></i>
-                      Personal Information
-                    </h4>
-                    {!isEditing ? (
-                      <button
-                        className="btn btn-sm btn-outline-primary rounded-pill px-3"
-                        onClick={toggleEdit}
-                      >
-                        <i className="bi bi-pencil-fill me-1"></i>
-                        Edit
-                      </button>
-                    ) : (
-                      <button
-                        className="btn btn-sm btn-primary rounded-pill px-3"
-                        onClick={saveChanges}
-                      >
-                        <i className="bi bi-check-lg me-1"></i>
-                        Save
-                      </button>
-                    )}
-                  </div>
-
-                  <form>
-                    <div className="row g-3 mb-3">
-                      <div className="col-md-6">
-                        <label htmlFor="fullName" style={styles.formLabel}>
-                          Full Name
-                        </label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          id="fullName"
-                          name="fullName"
-                          value={userData.fullName || ""}
-                          onChange={handleChange}
-                          disabled={!isEditing}
-                          style={styles.formControl}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="row g-3 mb-3">
-                      <div className="col-md-6">
-                        <label htmlFor="email" style={styles.formLabel}>
-                          Email Address
-                        </label>
-                        <div className="input-group">
-                          <span className="input-group-text">
-                            <i className="bi bi-envelope"></i>
-                          </span>
-                          <input
-                            type="email"
-                            className="form-control"
-                            id="email"
-                            name="email"
-                            value={userData.email || ""}
-                            onChange={handleChange}
-                            disabled={!isEditing}
-                            style={styles.formControl}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-md-6">
-                        <label htmlFor="phone" style={styles.formLabel}>
-                          Phone Number
-                        </label>
-                        <div className="input-group">
-                          <span className="input-group-text">
-                            <i className="bi bi-telephone"></i>
-                          </span>
-                          <input
-                            type="tel"
-                            className="form-control"
-                            id="phone"
-                            name="phone"
-                            value={userData.phone || ""}
-                            onChange={handleChange}
-                            disabled={!isEditing}
-                            style={styles.formControl}
-                          />
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mb-3">
-                      <label htmlFor="address" style={styles.formLabel}>
-                        Address
-                      </label>
-                      <div className="input-group">
-                        <span className="input-group-text">
-                          <i className="bi bi-geo-alt"></i>
-                        </span>
-                        <textarea
-                          className="form-control"
-                          id="address"
-                          name="address"
-                          rows="3"
-                          value={userData.address || ""}
-                          onChange={handleChange}
-                          disabled={!isEditing}
-                          style={styles.formControl}
-                        ></textarea>
-                      </div>
-                    </div>
-                  </form>
-                </div>
-              </div>
-            )}
-
-            {/* Security Section */}
-            {activeSection === "security" && (
-              <div style={styles.card} className="card mb-4">
-                <div className="card-body p-4">
-                  <h4 style={styles.heading} className="card-title mb-4">
-                    <i className="bi bi-shield-lock-fill me-2 text-primary"></i>
-                    Change Password
-                  </h4>
-
-                  <form>
-                    <div className="mb-3">
-                      <label htmlFor="currentPassword" style={styles.formLabel}>
-                        Current Password
-                      </label>
-                      <div className="input-group">
-                        <span className="input-group-text">
-                          <i className="bi bi-key"></i>
-                        </span>
-                        <input
-                          type="password"
-                          className="form-control"
-                          id="currentPassword"
-                          name="currentPassword"
-                          value={userData.currentPassword || ""}
-                          onChange={handleChange}
-                          style={styles.formControl}
-                        />
-                      </div>
-                    </div>
-
-                    <div className="mb-3">
-                      <label htmlFor="newPassword" style={styles.formLabel}>
-                        New Password
-                      </label>
-                      <div className="input-group">
-                        <span className="input-group-text">
-                          <i className="bi bi-lock"></i>
-                        </span>
-                        <input
-                          type="password"
-                          className="form-control"
-                          id="newPassword"
-                          name="newPassword"
-                          value={userData.newPassword || ""}
-                          onChange={handleChange}
-                          style={styles.formControl}
-                        />
-                      </div>
-                      <div className="form-text">
-                        Password must be at least 8 characters with letters,
-                        numbers, and symbols
-                      </div>
-                    </div>
-
-                    <div className="mb-4">
-                      <label htmlFor="confirmPassword" style={styles.formLabel}>
-                        Confirm New Password
-                      </label>
-                      <div className="input-group">
-                        <span className="input-group-text">
-                          <i className="bi bi-lock-fill"></i>
-                        </span>
-                        <input
-                          type="password"
-                          className="form-control"
-                          id="confirmPassword"
-                          name="confirmPassword"
-                          value={userData.confirmPassword || ""}
-                          onChange={handleChange}
-                          style={styles.formControl}
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      className="btn btn-primary"
-                      style={styles.primaryBtn}
-                      onClick={handlePasswordChange}
-                    >
-                      <i className="bi bi-check-circle me-2"></i>
-                      Update Password
-                    </button>
-                  </form>
-                </div>
-              </div>
-            )}
-
-            {/* Wallet Section */}
-            {activeSection === "wallet" && (
-              <Elements stripe={stripePromise}>
-                <WalletComponent onClose={() => setActiveSection("personal")} />
-              </Elements>
-            )}
-
-            {/* Documents Section */}
-            {activeSection === "documents" && (
-              <div style={styles.card} className="card mb-4">
-                <div className="card-body p-4">
-                  <h4 style={styles.heading} className="card-title mb-4">
-                    <i className="bi bi-file-earmark-text-fill me-2 text-primary"></i>
-                    Verification Documents
-                  </h4>
-
-                  <div className="row mb-4">
-                    {/* Existing Document Card */}
-                    {userData.proof && (
-                      <div className="col-md-6 mb-3">
-                        <div className="card h-100">
-                          <div className="card-body">
-                            <div className="d-flex align-items-center mb-3">
-                              <div
-                                className="me-3"
-                                style={{
-                                  width: "40px",
-                                  height: "40px",
-                                  backgroundColor: "rgba(30, 136, 229, 0.1)",
-                                  borderRadius: "8px",
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                }}
-                              >
-                                <i className="bi bi-file-earmark-text fs-4 text-primary"></i>
-                              </div>
-                              <div>
-                                <h6 className="mb-0">Verification Document</h6>
-                                <small className="text-secondary">
-                                  {userData.proofType === "driving license"
-                                    ? "Driver's License"
-                                    : userData.proofType === "passport"
-                                    ? "Passport"
-                                    : "Document"}
-                                </small>
-                              </div>
-                            </div>
-
-                            {/* Document Preview */}
-                            <div className="text-center mb-3">
-                              <img
-                                src={`http://localhost:3000/images/${userData.proof}`}
-                                alt="Document Preview"
-                                style={styles.documentPreview}
-                                onError={(e) => {
-                                  // If error loading image (e.g., if it's a PDF)
-                                  e.target.style.display = "none";
-                                  const fallbackElement =
-                                    document.createElement("div");
-                                  fallbackElement.innerHTML = `
-                                    <div class="p-4 text-center" style="border: 1px solid var(--border); border-radius: 8px;">
-                                      <i class="bi bi-file-earmark-pdf fs-1 text-danger"></i>
-                                      <p class="mt-2 mb-0">Document preview not available</p>
+                                {/* Personal Info Tab */}
+                                <div
+                                    style={{ ...styles.tabItem, ...(activeSection === 'personal' ? styles.activeTab : {}) }}
+                                    className="mb-2 d-flex align-items-center"
+                                    onClick={() => setActiveSection('personal')}
+                                >
+                                    <i className="bi bi-person-fill me-3 fs-5"></i>
+                                    <div>
+                                        <h6 className="mb-0" style={styles.heading}>Personal Info</h6>
+                                        <small className="text-secondary">Manage your details</small>
                                     </div>
-                                  `;
-                                  e.target.parentNode.appendChild(
-                                    fallbackElement
-                                  );
-                                }}
-                              />
+                                </div>
+
+                                {/* Security Tab */}
+                                <div
+                                    style={{ ...styles.tabItem, ...(activeSection === 'security' ? styles.activeTab : {}) }}
+                                    className="mb-2 d-flex align-items-center"
+                                    onClick={() => setActiveSection('security')}
+                                >
+                                    <i className="bi bi-shield-lock-fill me-3 fs-5"></i>
+                                    <div>
+                                        <h6 className="mb-0" style={styles.heading}>Security</h6>
+                                        <small className="text-secondary">Update password</small>
+                                    </div>
+                                </div>
+
+                                {/* Wallet Tab */}
+                                <div
+                                    style={{ ...styles.tabItem, ...(activeSection === 'wallet' ? styles.activeTab : {}) }}
+                                    className="mb-2 d-flex align-items-center"
+                                    onClick={() => setActiveSection('wallet')}
+                                >
+                                    <i className="bi bi-wallet2 me-3 fs-5"></i>
+                                    <div>
+                                        <h6 className="mb-0" style={styles.heading}>Wallet</h6>
+                                        <small className="text-secondary">Manage your funds</small>
+                                    </div>
+                                </div>
+
+                                {/* Documents Tab */}
+                                <div
+                                    style={{ ...styles.tabItem, ...(activeSection === 'documents' ? styles.activeTab : {}) }}
+                                    className="mb-2 d-flex align-items-center"
+                                    onClick={() => setActiveSection('documents')}
+                                >
+                                    <i className="bi bi-file-earmark-text-fill me-3 fs-5"></i>
+                                    <div>
+                                        <h6 className="mb-0" style={styles.heading}>Documents</h6>
+                                        <small className="text-secondary">Upload verification</small>
+                                    </div>
+                                </div>
                             </div>
+                        </Card>
+                    </Col>
 
-                            <div className="d-flex justify-content-between align-items-center">
-                              <span
-                                className="badge"
-                                style={{
-                                  backgroundColor:
-                                    userData.verified === "approved"
-                                      ? "var(--accent-light)"
-                                      : userData.verified === "rejected"
-                                      ? "var(--danger-light)"
-                                      : "var(--warning)",
-                                  color:
-                                    userData.verified === "approved"
-                                      ? "var(--accent)"
-                                      : userData.verified === "rejected"
-                                      ? "var(--danger)"
-                                      : "#856404",
-                                }}
-                              >
-                                <i
-                                  className={`bi bi-${
-                                    userData.verified === "approved"
-                                      ? "check-circle-fill"
-                                      : userData.verified === "rejected"
-                                      ? "x-circle-fill"
-                                      : "hourglass-split"
-                                  } me-1`}
-                                ></i>
-                                {userData.verified === "approved"
-                                  ? "Approved"
-                                  : userData.verified === "rejected"
-                                  ? "Rejected"
-                                  : "Pending"}
-                              </span>
-                              <button
-                                className="btn btn-sm btn-outline-secondary"
-                                onClick={() =>
-                                  window.open(
-                                    `http://localhost:3000/images/${userData.proof}`,
-                                    "_blank"
-                                  )
-                                }
-                              >
-                                <i className="bi bi-eye me-1"></i>
-                                View
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
+                    {/* Right Column */}
+                    <Col lg={8}>
+                        {/* Personal Information Section */}
+                        {activeSection === 'personal' && (
+                            <Card style={styles.card} className="mb-4 shadow-sm">
+                                <Card.Body className="p-4">
+                                    {/* Section Header */}
+                                    <div className="d-flex justify-content-between align-items-center mb-4">
+                                        <h4 style={styles.heading} className="card-title mb-0"><i className="bi bi-person-fill me-2 text-primary"></i>Personal Information</h4>
+                                        {/* Add Edit/Save Button Logic Here */}
+                                        {!isEditing ? (
+                                            <Button
+                                                variant="outline-primary" // Use outline for edit
+                                                size="sm"
+                                                className="rounded-pill px-3"
+                                                onClick={toggleEdit}
+                                                disabled={isSavingProfile} // Disable if any profile save is in progress
+                                            >
+                                                <i className="bi bi-pencil-fill me-1"></i>
+                                                Edit
+                                            </Button>
+                                        ) : (
+                                            <div className="d-flex gap-2"> {/* Group Save/Cancel */}
+                                                <Button
+                                                    variant="success" // Use success for save
+                                                    size="sm"
+                                                    className="rounded-pill px-3"
+                                                    onClick={saveChanges}
+                                                    disabled={isSavingProfile} // Disable while saving
+                                                >
+                                                    {isSavingProfile ? (
+                                                        <>
+                                                            <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-1" />
+                                                            Saving...
+                                                        </>
+                                                    ) : (
+                                                        <><i className="bi bi-check-lg me-1"></i>Save</>
+                                                    )}
+                                                </Button>
+                                                <Button
+                                                    variant="outline-secondary" // Cancel button
+                                                    size="sm"
+                                                    className="rounded-pill px-3"
+                                                    onClick={toggleEdit} // Calls toggleEdit to exit editing mode
+                                                    disabled={isSavingProfile} // Disable while saving
+                                                >
+                                                    Cancel
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Profile Update Error Alert */}
+                                    {profileUpdateError && <Alert variant="danger" dismissible onClose={() => dispatch(clearProfileStatus())}><i className="bi bi-exclamation-triangle-fill me-2"></i>{profileUpdateError}</Alert>}
+                                    {/* Form using editFormData when editing, or user data when viewing */}
+                                    <Form>
+                                        <Row className="g-3 mb-3">
+                                            <Col md={12}> {/* Full Name */}
+                                                <Form.Group controlId="displayFullName">
+                                                    <Form.Label style={styles.formLabel}>Full Name</Form.Label>
+                                                    <Form.Control type="text" name="fullName"
+                                                        value={isEditing ? editFormData.fullName : user.fullName}
+                                                        onChange={handleEditFormChange} disabled={!isEditing || isSavingProfile} style={styles.formControl} />
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
+                                        <Row className="g-3 mb-3">
+                                            <Col md={6}> {/* Email */}
+                                                <Form.Group controlId="displayEmail">
+                                                    <Form.Label style={styles.formLabel}>Email Address</Form.Label>
+                                                    <InputGroup><InputGroup.Text><i className="bi bi-envelope"></i></InputGroup.Text>
+                                                        <Form.Control type="email" name="email"
+                                                            value={isEditing ? editFormData.email : user.email}
+                                                            onChange={handleEditFormChange} disabled={!isEditing || isSavingProfile} style={styles.formControl} />
+                                                    </InputGroup>
+                                                </Form.Group>
+                                            </Col>
+                                            <Col md={6}> {/* Phone */}
+                                                <Form.Group controlId="displayPhone">
+                                                    <Form.Label style={styles.formLabel}>Phone Number</Form.Label>
+                                                    <InputGroup><InputGroup.Text><i className="bi bi-telephone"></i></InputGroup.Text>
+                                                        <Form.Control type="tel" name="phone"
+                                                            value={isEditing ? editFormData.phone : user.phone || ''}
+                                                            onChange={handleEditFormChange} disabled={!isEditing || isSavingProfile} style={styles.formControl} />
+                                                    </InputGroup>
+                                                </Form.Group>
+                                            </Col>
+                                        </Row>
+                                        {/* Address */}
+                                        <Form.Group className="mb-3" controlId="displayAddress">
+                                            <Form.Label style={styles.formLabel}>Address</Form.Label>
+                                            <InputGroup><InputGroup.Text><i className="bi bi-geo-alt"></i></InputGroup.Text>
+                                                <Form.Control as="textarea" name="address" rows={3}
+                                                    value={isEditing ? editFormData.address : user.address || ''}
+                                                    onChange={handleEditFormChange} disabled={!isEditing || isSavingProfile} style={styles.formControl} />
+                                            </InputGroup>
+                                        </Form.Group>
+                                    </Form>
+                                </Card.Body>
+                            </Card>
+                        )}
 
-                    {/* Upload New Document */}
-                    <div
-                      className={
-                        userData.proof ? "col-md-6 mb-3" : "col-md-12 mb-3"
-                      }
-                    >
-                      <div
-                        className="card h-100 border-dashed"
-                        style={{
-                          borderStyle: "dashed",
-                          borderColor: "var(--border)",
-                        }}
-                      >
-                        <div className="card-body d-flex flex-column align-items-center justify-content-center text-center p-4">
-                          <div
-                            style={{
-                              width: "60px",
-                              height: "60px",
-                              backgroundColor: "rgba(30, 136, 229, 0.1)",
-                              borderRadius: "50%",
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "center",
-                              marginBottom: "1rem",
-                            }}
-                          >
-                            <i className="bi bi-upload fs-4 text-primary"></i>
-                          </div>
-                          <h6 style={styles.heading}>
-                            {userData.proof
-                              ? "Update Document"
-                              : "Upload Document"}
-                          </h6>
-                          <p className="text-secondary small mb-3">
-                            Supported formats: PDF, JPG, PNG (Max: 5MB)
-                          </p>
+                        {/* Security Section */}
+                        {activeSection === 'security' && (
+                            <Card style={styles.card} className="mb-4 shadow-sm">
+                                <Card.Body className="p-4">
+                                    <h4 style={styles.heading} className="card-title mb-4"><i className="bi bi-shield-lock-fill me-2 text-primary"></i>Change Password</h4>
+                                    {/* Password Change Error/Success Alerts */}
+                                    {passwordChangeError && <Alert variant="danger" dismissible onClose={() => dispatch(clearProfileStatus())}><i className="bi bi-exclamation-triangle-fill me-2"></i>{passwordChangeError}</Alert>}
+                                    {passwordChangeStatus === 'succeeded' && <Alert variant="success" dismissible onClose={() => dispatch(clearProfileStatus())}><i className="bi bi-check-circle-fill me-2"></i>Password updated successfully!</Alert>}
+                                    {/* Password Change Form */}
+                                    <Form onSubmit={handlePasswordChangeSubmit}>
+                                        {/* Current Password */}
+                                        <Form.Group className="mb-3" controlId="currentPassword"><Form.Label style={styles.formLabel}>Current Password</Form.Label><InputGroup><InputGroup.Text><i className="bi bi-key"></i></InputGroup.Text><Form.Control type="password" name="currentPassword" value={passwordFormData.currentPassword} onChange={handlePasswordFormChange} style={styles.formControl} required disabled={isChangingPassword} /></InputGroup></Form.Group>
+                                        {/* New Password */}
+                                        <Form.Group className="mb-3" controlId="newPassword"><Form.Label style={styles.formLabel}>New Password</Form.Label><InputGroup><InputGroup.Text><i className="bi bi-lock"></i></InputGroup.Text><Form.Control type="password" name="newPassword" value={passwordFormData.newPassword} onChange={handlePasswordFormChange} style={styles.formControl} required disabled={isChangingPassword} /></InputGroup><PasswordStrengthMeter password={passwordFormData.newPassword} /><Form.Text className="text-muted">Min 8 chars, upper, lower, number, symbol.</Form.Text></Form.Group>
+                                        {/* Confirm New Password */}
+                                        <Form.Group className="mb-4" controlId="confirmPassword"><Form.Label style={styles.formLabel}>Confirm New Password</Form.Label><InputGroup><InputGroup.Text><i className="bi bi-lock-fill"></i></InputGroup.Text><Form.Control type="password" name="confirmPassword" value={passwordFormData.confirmPassword} onChange={handlePasswordFormChange} style={styles.formControl} required disabled={isChangingPassword} /></InputGroup></Form.Group>
+                                        {/* Submit Button */}
+                                        <Button type="submit" variant="primary" style={styles.primaryBtn} disabled={isChangingPassword}>
+                                            {isChangingPassword ? <><Spinner size="sm" className="me-2" />Updating...</> : <><i className="bi bi-check-circle me-2"></i>Update Password</>}
+                                        </Button>
+                                    </Form>
+                                </Card.Body>
+                            </Card>
+                        )}
 
-                          {/* Document Type Selection */}
-                          <div className="form-group mb-3 w-100">
-                            <select
-                              className="form-control"
-                              value={proofType}
-                              onChange={(e) => setProofType(e.target.value)}
-                              style={styles.formControl}
-                            >
-                              <option value="">Select Document Type</option>
-                              <option value="driving license">
-                                Driver's License
-                              </option>
-                              <option value="passport">Passport</option>
-                            </select>
-                          </div>
+                        {/* Wallet Section (Keep as is, uses Stripe Elements) */}
+                        {activeSection === 'wallet' && (
+                            <Elements stripe={stripePromise}>
+                                <WalletComponent onClose={() => setActiveSection('personal')} />
+                            </Elements>
+                        )}
 
-                          {/* Status Messages */}
-                          {uploadSuccess && (
-                            <div className="alert alert-success w-100 py-2">
-                              <i className="bi bi-check-circle me-2"></i>
-                              Document uploaded successfully
-                            </div>
-                          )}
+                        {/* Documents Section */}
+                        {activeSection === 'documents' && (
+                            <Card style={styles.card} className="mb-4 shadow-sm">
+                                <Card.Body className="p-4">
+                                    <h4 style={styles.heading} className="card-title mb-4"><i className="bi bi-file-earmark-text-fill me-2 text-primary"></i>Verification Documents</h4>
+                                    {/* Document Upload Error/Success Alerts */}
+                                    {documentUploadError && <Alert variant="danger" dismissible onClose={() => dispatch(clearProfileStatus())}><i className="bi bi-exclamation-triangle-fill me-2"></i>{documentUploadError}</Alert>}
+                                    {documentUploadStatus === 'succeeded' && <Alert variant="success" dismissible onClose={() => dispatch(clearProfileStatus())}><i className="bi bi-check-circle-fill me-2"></i>Document uploaded successfully! Status set to Pending.</Alert>}
+                                    {/* Document Display and Upload Form */}
+                                    <Row className="mb-4">
+                                        {/* Existing Document Display Section */}
+                                        {user.proof && ( // Conditionally render this block only if user.proof has a value
+                                            <Col md={6} className="mb-3">
+                                                <Card className="h-100 shadow-sm"> {/* Added shadow */}
+                                                    <Card.Body>
+                                                        {/* Header */}
+                                                        <div className="d-flex align-items-center mb-3 pb-3 border-bottom">
+                                                            <div
+                                                                className="me-3 flex-shrink-0"
+                                                                style={{
+                                                                    width: '45px',
+                                                                    height: '45px',
+                                                                    backgroundColor: 'rgba(30, 136, 229, 0.1)', // Use theme variable if preferred
+                                                                    borderRadius: '8px',
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    justifyContent: 'center',
+                                                                }}
+                                                            >
+                                                                {/* Choose icon based on file type if possible, default to text */}
+                                                                <i className={`bi ${user.proof.endsWith('.pdf') ? 'bi-file-earmark-pdf' : 'bi-file-earmark-image'} fs-4 text-primary`}></i>
+                                                            </div>
+                                                            <div>
+                                                                <h6 className="mb-0 fw-semibold">Uploaded Verification Document</h6>
+                                                                <small className="text-secondary text-capitalize">
+                                                                    {user.proofType || 'Document'} {/* Display proofType */}
+                                                                </small>
+                                                            </div>
+                                                        </div>
 
-                          {uploadError && (
-                            <div className="alert alert-danger w-100 py-2">
-                              <i className="bi bi-exclamation-triangle me-2"></i>
-                              {uploadError}
-                            </div>
-                          )}
+                                                        {/* Document Preview */}
+                                                        {/* Attempt to show image preview, provide fallback message for non-images like PDF */}
+                                                        <div className="text-center mb-3 document-preview-container">
+                                                            <img
+                                                                // Construct the full URL to the image on the backend server
+                                                                src={`${API_URL || 'http://localhost:3000'}/images/${user.proof}`}
+                                                                alt="Document Preview"
+                                                                style={styles.documentPreview} // Use your defined styles
+                                                                // Add error handling for non-image files or load failures
+                                                                onError={(e) => {
+                                                                    e.target.style.display = 'none'; // Hide the broken image icon
+                                                                    const parent = e.target.parentNode;
+                                                                    // Avoid adding multiple fallbacks if already present
+                                                                    if (!parent.querySelector('.preview-fallback')) {
+                                                                        const fallbackElement = document.createElement('div');
+                                                                        fallbackElement.className = 'preview-fallback p-4 text-center'; // Add class for potential future targeting
+                                                                        fallbackElement.style = "border: 1px dashed var(--border); border-radius: 8px; background-color: rgba(0,0,0,0.02);";
+                                                                        fallbackElement.innerHTML = `
+                                    <i class="bi bi-eye-slash fs-1 text-secondary"></i>
+                                    <p class="mt-2 mb-0 small text-secondary">Preview not available for this file type.</p>
+                                `;
+                                                                        parent.appendChild(fallbackElement);
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </div>
 
-                          {/* Upload Button */}
-                          <button
-                            className="btn btn-primary"
-                            style={styles.primaryBtn}
-                            onClick={handleSelectFileClick}
-                            disabled={isUploading || !proofType}
-                          >
-                            {isUploading ? (
-                              <>
-                                <span
-                                  className="spinner-border spinner-border-sm me-2"
-                                  role="status"
-                                  aria-hidden="true"
-                                ></span>
-                                Uploading...
-                              </>
-                            ) : (
-                              <>
-                                <i className="bi bi-plus-lg me-2"></i>
-                                {userData.proof
-                                  ? "Update Document"
-                                  : "Select Document"}
-                              </>
-                            )}
-                          </button>
-                          <input
-                            type="file"
-                            accept=".pdf,.jpg,.jpeg,.png"
-                            ref={fileInputRef}
-                            style={{ display: "none" }}
-                            onChange={handleFileChange}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                                                        {/* Status Badge and View Button */}
+                                                        <div className="d-flex justify-content-between align-items-center">
+                                                            {getVerificationStatusBadge()} {/* Use the existing function */}
+                                                            <Button
+                                                                variant="outline-primary" // Changed variant for better visibility
+                                                                size="sm"
+                                                                // Construct the full URL for viewing/downloading
+                                                                onClick={() => window.open(`${API_URL || 'http://localhost:3000'}/images/${user.proof}`, '_blank')}
+                                                                title="View Full Document"
+                                                            >
+                                                                <i className="bi bi-eye me-1"></i>
+                                                                View
+                                                            </Button>
+                                                        </div>
+                                                    </Card.Body>
+                                                </Card>
+                                            </Col>
+                                        )}
+                                        {/* Upload Form */}
+                                        <Col md={user.proof ? 6 : 12} className="mb-3">
+                                            <Card className="h-100 border-dashed" style={{ borderStyle: 'dashed', borderColor: 'var(--border)' }}>
+                                                <Card.Body className="d-flex flex-column align-items-center justify-content-center text-center p-4">
+                                                    {/* ... Upload Icon, Title, Help Text ... */}
+                                                    <div style={{/* icon styles */ }}><i className="bi bi-upload fs-4 text-primary"></i></div>
+                                                    <h6 style={styles.heading}>{user.proof ? "Update" : "Upload"} Document</h6>
+                                                    <p className="text-secondary small mb-3">Supports PDF, JPG, PNG (Max: 5MB).</p>
 
-                  {/* Information and Help Text */}
-                  <div className="alert alert-info">
-                    <i className="bi bi-info-circle me-2"></i>
-                    <strong>Why do we need this?</strong> Document verification
-                    helps us confirm your identity and increases the security of
-                    your account. Your document will be reviewed by our team
-                    within 24-48 hours. You'll receive a notification when your
-                    verification is complete.
-                  </div>
+                                                    {/* Document Type Selection */}
+                                                    <Form.Group className="mb-3 w-100">
+                                                        <Form.Label style={styles.formLabel}>Document Type</Form.Label>
+                                                        <Form.Select value={proofType} onChange={handleProofTypeChange} style={styles.formControl} disabled={isUploadingDocument}>
+                                                            <option value="">-- Select Type --</option>
+                                                            <option value="driving license">Driver's License</option>
+                                                            <option value="passport">Passport</option>
+                                                        </Form.Select>
+                                                    </Form.Group>
 
-                  {userData.verified === "rejected" && (
-                    <div className="alert alert-danger mt-3">
-                      <i className="bi bi-exclamation-triangle me-2"></i>
-                      <strong>Your verification was rejected.</strong> Please
-                      upload a clearer image of your identification document.
-                      Make sure all details are visible and the document is
-                      valid.
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
+                                                    {/* Status Messages */}
+                                                    {documentUploadStatus === 'succeeded' && <Alert variant="success" className="w-100 py-2"><i className="bi bi-check-circle me-2"></i>Document uploaded successfully!</Alert>}
+                                                    {documentUploadError && <Alert variant="danger" className="w-100 py-2"><i className="bi bi-exclamation-triangle me-2"></i>{documentUploadError}</Alert>}
+
+                                                    {/* Display Selected File Name */}
+                                                    {selectedFile && !isUploadingDocument && <p className="small text-muted mb-2">Selected: {selectedFile.name}</p>}
+
+                                                    {/* Hidden File Input */}
+                                                    <input type="file" accept=".pdf,.jpg,.jpeg,.png" ref={fileInputRef} style={{ display: "none" }} onChange={handleFileSelection} />
+
+                                                    {/* Button to Trigger File Selection */}
+                                                    <Button
+                                                        variant="primary"
+                                                        style={styles.primaryBtn}
+                                                        onClick={handleSelectFileClick} // <-- Calls function to click hidden input
+                                                        disabled={isUploadingDocument || !proofType} // <-- Disabled only if uploading or no type selected
+                                                    >
+                                                        {isUploadingDocument ? (
+                                                            <>
+                                                                <Spinner as="span" animation="border" size="sm" role="status" aria-hidden="true" className="me-2" />
+                                                                Uploading...
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <i className="bi bi-paperclip me-2"></i> {/* Changed Icon */}
+                                                                {user.proof ? "Select New Document" : "Select Document"}
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                    {/* Removed the old button that tried to do the upload directly */}
+
+                                                </Card.Body>
+                                            </Card>
+                                        </Col>
+                                    </Row>
+                                    {/* Info/Help Text Alerts (keep as is) */}
+                                    <Alert variant="info" className="mt-3"><i className="bi bi-info-circle me-2"></i>Document verification helps secure your account...</Alert>
+                                    {user.verified === "rejected" && <Alert variant="danger" className="mt-3"><i className="bi bi-exclamation-triangle me-2"></i>Your previous document was rejected...</Alert>}
+                                </Card.Body>
+                            </Card>
+                        )}
+                    </Col>
+                </Row>
+            </div>
+            <Footer /> {/* Add Footer */}
         </div>
-      </div>
-    </div>
-  );
+    );
 }
 
 export default ProfileComponent;

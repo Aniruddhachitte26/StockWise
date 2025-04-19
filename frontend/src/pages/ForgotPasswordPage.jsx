@@ -2,12 +2,14 @@
 import React, { useState, useEffect } from 'react';
 import { Container, Row, Col, Card, Form, Button, Alert, Spinner } from 'react-bootstrap';
 import { Formik } from 'formik';
-import * as Yup from 'yup'; // Import Yup for validation
-import axios from 'axios';
+import * as Yup from 'yup';
 import Navbar from '../components/common/Navbar';
 import Footer from '../components/common/Footer';
-import { API_URL } from '../config/constants';
 import { Link, useNavigate } from 'react-router-dom';
+
+// --- Redux Imports ---
+import { useDispatch, useSelector } from 'react-redux';
+import { requestPasswordReset, clearPasswordResetStatus, clearError } from '../redux/features/authSlice'; // Import thunk and clear action
 
 // Validation Schema
 const forgotPasswordSchema = Yup.object().shape({
@@ -17,46 +19,60 @@ const forgotPasswordSchema = Yup.object().shape({
 });
 
 const ForgotPasswordPage = () => {
+    const dispatch = useDispatch();
     const navigate = useNavigate();
-    const [message, setMessage] = useState('');
-    const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
 
-    // Clear messages when component unmounts
+    // --- Select state from Redux store ---
+    // Use the specific password reset status and error fields
+    const { passwordResetStatus, passwordResetError } = useSelector(state => state.auth);
+    const loading = passwordResetStatus === 'sending_otp'; // Check specific status for loading
+
+    // --- Local State (Optional: for displaying success message if not storing in Redux) ---
+    const [successMessage, setSuccessMessage] = useState('');
+
+    // --- Clear Redux error/status on mount/unmount ---
     useEffect(() => {
+        dispatch(clearPasswordResetStatus()); // Clear password reset specific state
+        // Or use dispatch(clearError()); if it also clears passwordResetError
         return () => {
-            setMessage('');
-            setError('');
+            dispatch(clearPasswordResetStatus());
         };
-    }, []);
+    }, [dispatch]);
 
+    // --- Form Submission Handler ---
     const handleSubmit = async (values, { setSubmitting }) => {
-        setLoading(true);
-        setMessage('');
-        setError('');
-        try {
-            // Call the backend endpoint
-            const response = await axios.post(`${API_URL}/auth/forgot-password`, {
-                email: values.email,
-            });
-            console.log("OTP request successful, navigating to reset page with email:", values.email);
-            navigate('/reset-password', { state: { email: values.email } });
-            // Display the generic success message from the backend
-            //setMessage(response.data.message || "If an account exists, an OTP has been sent.");
+        console.log('Requesting password reset OTP for:', values.email);
+        setSuccessMessage(''); // Clear previous success message
+        dispatch(clearPasswordResetStatus()); // Clear previous errors/status
 
-        } catch (err) {
-            const errorMessage = err.response?.data?.error || err.message || "An error occurred. Please try again.";
-            // Avoid showing specific "user not found" errors for security
-            if (errorMessage.toLowerCase().includes('user not found')) {
-                setMessage("If an account exists, an OTP has been sent."); // Show generic message
-            } else {
-                setError(errorMessage);
-            }
-            console.error("Forgot Password Error:", err);
+        try {
+            // Dispatch the requestPasswordReset async thunk
+            const resultAction = await dispatch(requestPasswordReset(values.email)).unwrap();
+
+            // On success (even if user doesn't exist, backend sends generic message)
+            console.log("OTP request successful:", resultAction);
+            setSuccessMessage(resultAction || "If an account with that email exists, an OTP has been sent."); // Use message from backend
+
+            // --- Navigation on Success ---
+            // Wait a bit for user to see the message, then navigate
+            setTimeout(() => {
+                navigate('/reset-password', { state: { email: values.email } });
+            }, 2000); // 2-second delay
+
+        } catch (rejectedValueOrSerializedError) {
+            // Error state is set by the rejected thunk in Redux
+            console.error('Request password reset failed:', rejectedValueOrSerializedError);
+            // No need to set local error, rely on passwordResetError from Redux
         } finally {
-            setLoading(false);
-            setSubmitting(false);
+            // We rely on Redux status for loading, setSubmitting might not be needed
+            setSubmitting(loading);
         }
+    };
+
+    // --- Alert Close Handler ---
+    const handleAlertClose = () => {
+        dispatch(clearPasswordResetStatus()); // Clear Redux state
+        setSuccessMessage(''); // Clear local success message
     };
 
     return (
@@ -70,12 +86,25 @@ const ForgotPasswordPage = () => {
                                 <div className="text-center mb-4">
                                     <h2 className="fw-bold">Forgot Your Password?</h2>
                                     <p className="text-muted">
-                                        Enter your email address below and we'll send you an OTP to reset your password.
+                                        Enter your email address below. If an account exists, we'll send an OTP to reset your password.
                                     </p>
                                 </div>
 
-                                {message && <Alert variant="success">{message}</Alert>}
-                                {error && <Alert variant="danger">{error}</Alert>}
+                                {/* Display Success Message (Local State) */}
+                                {successMessage && !passwordResetError && (
+                                    <Alert variant="success" dismissible onClose={handleAlertClose}>
+                                        <i className="bi bi-check-circle-fill me-2"></i>
+                                        {successMessage}
+                                    </Alert>
+                                )}
+
+                                {/* Display Error from Redux state */}
+                                {passwordResetError && !successMessage && (
+                                    <Alert variant="danger" dismissible onClose={handleAlertClose}>
+                                        <i className="bi bi-exclamation-triangle-fill me-2"></i>
+                                        {passwordResetError}
+                                    </Alert>
+                                )}
 
                                 <Formik
                                     initialValues={{ email: '' }}
@@ -90,44 +119,54 @@ const ForgotPasswordPage = () => {
                                         handleBlur,
                                         handleSubmit: formikSubmit,
                                         isSubmitting,
-                                    }) => (
-                                        <Form noValidate onSubmit={formikSubmit}>
-                                            <Form.Group className="mb-4 position-relative" controlId="forgotPassEmail">
-                                                <Form.Label>Email address</Form.Label>
-                                                <Form.Control
-                                                    type="email"
-                                                    placeholder="Enter your registered email"
-                                                    name="email"
-                                                    value={values.email}
-                                                    onChange={handleChange}
-                                                    onBlur={handleBlur}
-                                                    isInvalid={touched.email && !!errors.email}
-                                                    disabled={loading || message} // Disable after successful request
-                                                />
-                                                <Form.Control.Feedback type="invalid" tooltip>
-                                                    {errors.email}
-                                                </Form.Control.Feedback>
-                                            </Form.Group>
+                                    }) => {
+                                        // Handle input change and clear messages/errors
+                                        const handleInputChange = (e) => {
+                                            handleChange(e);
+                                            if (passwordResetError) dispatch(clearPasswordResetStatus());
+                                            if (successMessage) setSuccessMessage('');
+                                        };
 
-                                            <div className="d-grid gap-2">
-                                                <Button
-                                                    variant="primary"
-                                                    type="submit"
-                                                    disabled={loading || isSubmitting || message} // Disable if loading or success message shown
-                                                    size="lg"
-                                                >
-                                                    {loading ? (
-                                                        <>
-                                                            <Spinner animation="border" size="sm" className="me-2" />
-                                                            Sending...
-                                                        </>
-                                                    ) : (
-                                                        'Send Reset OTP'
-                                                    )}
-                                                </Button>
-                                            </div>
-                                        </Form>
-                                    )}
+                                        return (
+                                            <Form noValidate onSubmit={formikSubmit}>
+                                                <Form.Group className="mb-4 position-relative" controlId="forgotPassEmail">
+                                                    <Form.Label>Email address</Form.Label>
+                                                    <Form.Control
+                                                        type="email"
+                                                        placeholder="Enter your registered email"
+                                                        name="email"
+                                                        value={values.email}
+                                                        onChange={handleInputChange} // Use wrapped handler
+                                                        onBlur={handleBlur}
+                                                        isInvalid={touched.email && !!errors.email}
+                                                        // Disable field after successful OTP request
+                                                        disabled={loading || !!successMessage}
+                                                    />
+                                                    <Form.Control.Feedback type="invalid" tooltip>
+                                                        {errors.email}
+                                                    </Form.Control.Feedback>
+                                                </Form.Group>
+
+                                                <div className="d-grid gap-2">
+                                                    <Button
+                                                        variant="primary"
+                                                        type="submit"
+                                                        disabled={loading || isSubmitting || !!successMessage} // Disable if loading or success
+                                                        size="lg"
+                                                    >
+                                                        {loading ? (
+                                                            <>
+                                                                <Spinner animation="border" size="sm" className="me-2" />
+                                                                Sending OTP...
+                                                            </>
+                                                        ) : (
+                                                            'Send Reset OTP'
+                                                        )}
+                                                    </Button>
+                                                </div>
+                                            </Form>
+                                        );
+                                    }}
                                 </Formik>
 
                                 <div className="text-center mt-4">
