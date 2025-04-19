@@ -8,6 +8,7 @@ import Pagination from '../common/Pagination';
 import UserDetailsModal from './UserDetailsModal';
 import axios from 'axios';
 import { useTheme } from '../common/ThemeProvider';
+import Footer from '../common/Footer';
 
 const API_URL = "http://localhost:3000"; // Update based on your backend URL
 
@@ -720,6 +721,8 @@ fetchedUsers = fetchedUsers.filter(user => user.type !== 'admin');
                         handleResetToPending(viewingUser);
                     } : null}
             />
+
+            <Footer/>
         </div>
     );
 };
