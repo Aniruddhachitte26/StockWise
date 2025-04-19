@@ -356,7 +356,7 @@ const getRandomPercentChange = () => {
       return formattedNews;
     } catch (error) {
       console.error('Error fetching market news:', error);
-      setError('Failed to fetch market news. Please try again later.');
+      //setError('Failed to fetch market news. Please try again later.');
       setLoading(false);
       
       // Return mock data as fallback
