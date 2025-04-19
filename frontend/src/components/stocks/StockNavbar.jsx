@@ -336,7 +336,7 @@ const StockNavbar = () => {
         <Container>
           <Navbar.Brand href="#" className="d-flex align-items-center">
             <i className="bi bi-graph-up-arrow me-2"></i>
-            <span>StockWise</span>
+            <span>       </span><span>           </span>
           </Navbar.Brand>
           
           <Navbar.Toggle aria-controls="stock-navbar-nav" />

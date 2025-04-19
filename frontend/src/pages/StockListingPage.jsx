@@ -81,7 +81,13 @@ const StockListingPage = () => {
       
     } catch (err) {
       console.error('Error fetching stocks:', err);
+
+      setError('Failed to load stocks. Please try again.');
+      
+      // Use mock data as a fallback
+
       // Don't show error to user - use mock data instead
+
       const mockStocks = generateMockStocks();
       setStocks(mockStocks);
     } finally {
