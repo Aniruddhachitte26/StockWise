@@ -730,7 +730,7 @@ function ProfileComponent() {
             {/* Wallet Section */}
             {activeSection === "wallet" && (
               <Elements stripe={stripePromise}>
-                <WalletComponent onClose={() => setActiveSection("wallet")} />
+                <WalletComponent onClose={() => setActiveSection("personal")} />
               </Elements>
             )}
 
