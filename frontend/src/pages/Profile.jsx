@@ -307,6 +307,33 @@ function ProfileComponent() {
     setIsEditing(!isEditing);
   };
 
+
+  const showToast = (message, type = 'success') => {
+    let toastContainer = document.getElementById('toast-container');
+    if (!toastContainer) {
+      toastContainer = document.createElement('div');
+      toastContainer.id = 'toast-container';
+      toastContainer.className = 'position-fixed bottom-0 end-0 p-3';
+      document.body.appendChild(toastContainer);
+    }
+    
+    const toastElement = document.createElement('div');
+    toastElement.className = `toast-${type} show`;
+    toastElement.innerHTML = `
+      <div class="toast-icon"><i class="bi bi-${type === 'success' ? 'check-circle-fill' : 'exclamation-triangle-fill'}"></i></div>
+      <div class="toast-message">${message}</div>
+    `;
+    
+    toastContainer.appendChild(toastElement);
+    
+    setTimeout(() => {
+      toastElement.classList.add('toast-fade-out');
+      setTimeout(() => {
+        toastContainer.removeChild(toastElement);
+      }, 300);
+    }, 3000);
+  };
+
   const saveChanges = async () => {
     console.log("Saving user data:", userData);
     try {
@@ -320,10 +347,10 @@ function ProfileComponent() {
 
       console.log("Updated user:", res.data.user);
       setIsEditing(false);
-      alert("Profile updated successfully");
+      showToast("Profile updated successfully")
     } catch (err) {
       console.error("Error updating profile", err);
-      alert("Failed to update profile");
+      // alert("Failed to update profile");
     }
   };
 
@@ -981,6 +1008,7 @@ function ProfileComponent() {
             )}
           </div>
         </div>
+        <div id="toast-container" className="position-fixed bottom-0 end-0 p-3"></div>
       </div>
     </div>
   );

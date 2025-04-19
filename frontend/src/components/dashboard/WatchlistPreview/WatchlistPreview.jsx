@@ -149,6 +149,7 @@ const WatchlistPreview = () => {
       // Logic to handle buy transaction
       const storedUser = localStorage.getItem("currentUser");
       const currentUser = storedUser ? JSON.parse(storedUser) : null;
+
       
       if (!currentUser || !currentUser.id) {
         showToast("Please log in to buy stocks", "error");
@@ -359,9 +360,9 @@ const WatchlistPreview = () => {
                               <button className="buy-btn btn py-2 fw-medium font-inter flex-grow-1 rounded-pill" onClick={() => handleBuyStock(stock)}>
                                 <i className="bi bi-cart-plus me-1"></i> Buy
                               </button>
-                              <button className="sell-btn btn py-2 fw-medium font-inter flex-grow-1 rounded-pill" onClick={() => handleSellStock(stock)}>
+                              {/* <button className="sell-btn btn py-2 fw-medium font-inter flex-grow-1 rounded-pill" onClick={() => handleTransaction(stock, "SELL")}>
                                 <i className="bi bi-cart-dash me-1"></i> Sell
-                              </button>
+                              </button> */}
                               <button 
                                 className="btn btn-outline-secondary py-2 fw-medium font-inter rounded-pill" 
                                 onClick={() => handleRemoveFromWatchlist(stock.symbol)}
