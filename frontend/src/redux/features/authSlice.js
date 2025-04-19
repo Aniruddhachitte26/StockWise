@@ -91,6 +91,45 @@ export const googleLoginHandler = createAsyncThunk(
 	}
 );
 
+export const registerBroker = createAsyncThunk(
+	"auth/registerBroker",
+	async (brokerData, { rejectWithValue }) => {
+		// brokerData expected: { fullName, email, password, phone, company, licenseNumber, experience }
+		console.log(
+			"AuthSlice: Dispatching registerBroker thunk with data:",
+			brokerData
+		);
+		try {
+			// Ensure your authService has a function for this or call axios directly
+			// Example using axios directly:
+			const response = await axios.post(
+				`${
+					authService.API_URL ||
+					"http://localhost:3000"
+				}/auth/broker-register`,
+				brokerData
+				// No Authorization header needed for registration
+			);
+			console.log(
+				"AuthSlice: Broker registration backend response:",
+				response.data
+			);
+			// Expected backend response: { message: 'Broker registered successfully...' }
+			return response.data; // Return success message or relevant data
+		} catch (error) {
+			const message =
+				error.response?.data?.error ||
+				error.message ||
+				"Broker registration failed";
+			console.error(
+				"AuthSlice: Broker registration failed:",
+				message
+			);
+			return rejectWithValue(message);
+		}
+	}
+);
+
 // Thunk to verify token / fetch user data on app load
 export const verifyAuth = createAsyncThunk(
 	"auth/verifyAuth",
@@ -353,7 +392,24 @@ const authSlice = createSlice({
 				state.user = null;
 				state.token = null;
 				// localStorage/header cleared within the thunk's catch block
-			});
+			})
+            .addCase(registerBroker.pending, (state) => {
+                state.status = 'loading';
+                state.error = null;
+            })
+            .addCase(registerBroker.fulfilled, (state, action) => {
+                state.status = 'succeeded';
+                // Registration successful. User is NOT logged in yet.
+                // Status is 'succeeded' but isAuthenticated remains false.
+                // Component should likely show the success message and maybe redirect to login.
+                console.log("Broker registration succeeded:", action.payload?.message);
+                // We might want to store the success message in state temporarily?
+                // state.successMessage = action.payload?.message; // Example
+            })
+            .addCase(registerBroker.rejected, (state, action) => {
+                state.status = 'failed';
+                state.error = action.payload; // Error message from rejectWithValue
+            });
 	},
 });
 
