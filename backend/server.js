@@ -40,16 +40,18 @@ const corsOptions = {
 		if (!origin || allowedOrigins.indexOf(origin) !== -1) {
 			callback(null, true);
 		} else {
-			console.warn(`CORS blocked for origin: ${origin}`); // Log blocked origins
+			console.warn(`CORS blocked for origin: ${origin}`);
 			callback(new Error("Not allowed by CORS"));
 		}
 	},
-	methods: "GET,HEAD,PUT,PATCH,POST,DELETE", // Allow common methods
-	credentials: true, // Allow cookies/authorization headers
-	optionsSuccessStatus: 204, // For preflight requests
+	methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+	credentials: true,
+	optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
+
+app.options("*", cors(corsOptions));
 
 // Connect to MongoDB
 connectDB();
