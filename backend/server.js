@@ -53,6 +53,13 @@ app.use(cors(corsOptions));
 
 app.options("*", cors(corsOptions));
 
+app.use((req, res, next) => {
+	res.header("Access-Control-Allow-Origin", "*"); // OR use the specific origin for more security
+	res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH,OPTIONS");
+	res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+	next();
+});
+
 // Connect to MongoDB
 connectDB();
 connectRedis();
@@ -61,6 +68,10 @@ connectRedis();
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+app.use((req, res, next) => {
+	console.log(`[${req.method}] ${req.originalUrl}`);
+	next();
+});
 // Make the uploads folder accessible
 app.use("/images", express.static("uploads/images"));
 
