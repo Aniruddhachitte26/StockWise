@@ -15,7 +15,6 @@ const swaggerUi = require("swagger-ui-express");
 const YAML = require("yamljs");
 const stockRoutes = require("./routes/stockRoutes");
 const paymentRoutes = require("./routes/paymentRoutes");
-//const swaggerDocument = YAML.load("./swagger/swagger.yaml");
 
 // Load environment variables
 dotenv.config();
@@ -29,15 +28,13 @@ const app = express();
 
 // --- Configure CORS ---
 const allowedOrigins = [
-	"http://localhost:5173", // Your local frontend dev server
-	"https://stockwise-demo.sleepysoul.cc", // Add your deployed frontend URL here later
+	"http://localhost:5173",
+	"https://stockwise-demo.sleepysoul.cc",
 ];
 
 const corsOptions = {
 	origin: function (origin, callback) {
-		// Allow requests with no origin (like mobile apps or curl requests)
-		// or allow specific origins
-		if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+		if (!origin || allowedOrigins.includes(origin)) {
 			callback(null, true);
 		} else {
 			console.warn(`CORS blocked for origin: ${origin}`);
@@ -45,40 +42,32 @@ const corsOptions = {
 		}
 	},
 	methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+	allowedHeaders: ["Content-Type", "Authorization"],
 	credentials: true,
 	optionsSuccessStatus: 204,
 };
 
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // Handle preflight requests
 
-app.options("*", cors(corsOptions));
-
-app.use((req, res, next) => {
-	res.header("Access-Control-Allow-Origin", "*"); // OR use the specific origin for more security
-	res.header("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,PATCH,OPTIONS");
-	res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-	next();
-});
-
-// Connect to MongoDB
-connectDB();
-connectRedis();
-
-// Middleware
+// --- Middleware ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// --- Log all incoming requests
 app.use((req, res, next) => {
 	console.log(`[${req.method}] ${req.originalUrl}`);
 	next();
 });
-// Make the uploads folder accessible
+
+// --- Make uploads accessible
 app.use("/images", express.static("uploads/images"));
 
-// Swagger documentation route
-// app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+// --- Connect DB and Redis ---
+connectDB();
+connectRedis();
 
-// Routes
+// --- Routes ---
 app.use("/user", userRoutes);
 app.use("/auth", authRoutes);
 app.use("/summary", chatbotRoutes);
@@ -89,26 +78,23 @@ app.use("/broker", brokerRoutes);
 app.use("/mail", mailRoutes);
 app.use("/admin", adminRoutes);
 
-// Default route
+// --- Default route
 app.get("/", (req, res) => {
 	res.send("Hello from the server...!");
 });
 
-// Error handling middleware
+// --- Error handler
 app.use((err, req, res, next) => {
 	console.error(err.stack);
 	res.status(500).json({ error: "Server error" });
 });
 
-// Start server
+// --- Start Server ---
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
 	console.log(`Server running on port ${PORT}`);
-    console.log("this is hosting branch");
-    
-	console.log(
-		`Swagger documentation available at http://localhost:${PORT}/api-docs`
-	);
+	console.log("this is hosting branch");
+	console.log(`Swagger documentation available at http://localhost:${PORT}/api-docs`);
 });
 
 module.exports = app;
