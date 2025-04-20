@@ -30,7 +30,7 @@ const PortfolioSummary = () => {
 
   // Generate consistent colors for stocks
   const COLORS = ['#1E88E5', '#00ACC1', '#43A047', '#E53935', '#FF9800', '#9C27B0', '#3F51B5', '#F44336'];
-  
+
   const formatPrice = (price) => {
     return price.toFixed(2);
   };
@@ -43,16 +43,16 @@ const PortfolioSummary = () => {
     navigate("/stocks");
   };
 
-  const handleStockDetailsNavigation = (symbol) =>{
+  const handleStockDetailsNavigation = (symbol) => {
     navigate(`/stock-analysis/${symbol}?symbol=${symbol}`);
   }
 
   const formatCurrency = (value) => {
-    return new Intl.NumberFormat('en-US', { 
-      style: 'currency', 
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
       currency: 'USD',
       minimumFractionDigits: 2,
-      maximumFractionDigits: 2 
+      maximumFractionDigits: 2
     }).format(value);
   };
 
@@ -76,43 +76,43 @@ const PortfolioSummary = () => {
         // Get user from local storage
         const storedUser = localStorage.getItem("currentUser");
         const currentUser = storedUser ? JSON.parse(storedUser) : null;
-        
+
         if (!currentUser) {
           throw new Error("User not found. Please log in again.");
         }
-        
+
         // Fetch portfolio data from API
         const response = await fetch(
           `http://localhost:3000/stocks/portfolio/${currentUser.id}`
         );
-        
+
         // if (!response.ok) {
         //   throw new Error("Failed to fetch portfolio data");
         // }
-        
+
         const data = await response.json();
         setPortfolioData(data);
-        
+
         // Fetch stock prices for each holding
         if (data.stocks && data.stocks.length > 0) {
           const symbols = data.stocks.map(stock => stock.symbol).join(',');
-      
-          
+
+
           try {
             const pricesResponse = await fetch(
               `http://localhost:3000/stocks/prices?symbols=${symbols}`
             );
-            
+
             if (pricesResponse.ok) {
               const pricesData = await pricesResponse.json();
               setStockPrices(pricesData);
-              
+
               // Prepare data for pie chart
               const chartItems = data.stocks.map((stock, index) => {
                 // Use current price if available, otherwise use average price
                 const currentPrice = pricesData[stock.symbol] ? pricesData[stock.symbol].c : stock.averagePrice;
                 const value = stock.quantity * currentPrice;
-                
+
                 return {
                   name: stock.symbol,
                   value: value,
@@ -123,12 +123,12 @@ const PortfolioSummary = () => {
                   averagePrice: stock.averagePrice
                 };
               });
-              
+
               console.log("Chart data prepared:", chartItems);
               setChartData(chartItems);
             } else {
               console.error("Failed to fetch stock prices, using fallback");
-              
+
               // Fallback to using average prices
               const fallbackChartData = data.stocks.map((stock, index) => ({
                 name: stock.symbol,
@@ -138,12 +138,12 @@ const PortfolioSummary = () => {
                 price: stock.averagePrice,
                 averagePrice: stock.averagePrice
               }));
-              
+
               setChartData(fallbackChartData);
             }
           } catch (pricesError) {
             console.error("Error fetching prices:", pricesError);
-            
+
             // Fallback to using average prices
             const fallbackChartData = data.stocks.map((stock, index) => ({
               name: stock.symbol,
@@ -153,34 +153,34 @@ const PortfolioSummary = () => {
               price: stock.averagePrice,
               averagePrice: stock.averagePrice
             }));
-            
+
             setChartData(fallbackChartData);
           }
         }
-        
+
         // Fetch transaction history using the new API endpoint
         try {
           const transactionsResponse = await fetch(
             `http://localhost:3000/stocks/transactions/${currentUser.id}`
           );
-          
+
           if (transactionsResponse.ok) {
             const transactionsData = await transactionsResponse.json();
             // Sort transactions by date (newest first)
-            const sortedTransactions = transactionsData.sort((a, b) => 
+            const sortedTransactions = transactionsData.sort((a, b) =>
               new Date(b.date) - new Date(a.date)
             );
             setTransactions(sortedTransactions || []);
 
             const sellTransactions = sortedTransactions.filter(txn => txn.type === "SELL");
             const totalGain = sellTransactions
-            .filter(txn => txn.profitOrLoss > 0)
-            .reduce((sum, txn) => sum + txn.profitOrLoss, 0);
+              .filter(txn => txn.profitOrLoss > 0)
+              .reduce((sum, txn) => sum + txn.profitOrLoss, 0);
 
             const totalLoss = sellTransactions
-            .filter(txn => txn.profitOrLoss < 0)
-            .reduce((sum, txn) => sum + Math.abs(txn.profitOrLoss), 0);
-            
+              .filter(txn => txn.profitOrLoss < 0)
+              .reduce((sum, txn) => sum + Math.abs(txn.profitOrLoss), 0);
+
 
             setTotalGain(totalGain.toFixed(2))
             setTotalLoss(totalLoss.toFixed(2))
@@ -210,12 +210,12 @@ const PortfolioSummary = () => {
     if (transactionType !== "all" && transaction.type.toLowerCase() !== transactionType) {
       return false;
     }
-    
+
     // Filter by time range
     if (timeRange !== "all") {
       const transactionDate = new Date(transaction.date);
       const currentDate = new Date();
-      
+
       if (timeRange === "week") {
         // Past week
         const oneWeekAgo = new Date();
@@ -233,19 +233,19 @@ const PortfolioSummary = () => {
         return transactionDate >= oneYearAgo;
       }
     }
-    
+
     return true;
   });
 
   const handleTransaction = (stock, type) => {
     const stockPrice = stockPrices[stock.symbol] ? stockPrices[stock.symbol].c : stock.averagePrice;
-    
+
     setSelectedStock({
       ...stock,
       currentPrice: stockPrice,
       previousClose: stockPrices[stock.symbol] ? stockPrices[stock.symbol].pc : stockPrice
     });
-    
+
     if (type === "BUY") {
       setQuantity(1);
       setShowBuyModal(true);
@@ -260,21 +260,21 @@ const PortfolioSummary = () => {
     try {
       // Show loading state
       setLoading(true);
-      
+
       // Get user from local storage
       const storedUser = localStorage.getItem("currentUser");
       const currentUser = storedUser ? JSON.parse(storedUser) : null;
-      
+
       // Calculate total cost
       const totalCost = selectedStock.currentPrice * quantity;
-      
+
       // Check if user has enough funds
       if (totalCost > portfolioData.wallet) {
         alert(`Insufficient funds. Your wallet balance: ${formatCurrency(portfolioData.wallet)}`);
         setLoading(false);
         return;
       }
-      
+
       // Send transaction to API
       const response = await fetch("http://localhost:3000/stocks/transactions", {
         method: "POST",
@@ -296,7 +296,7 @@ const PortfolioSummary = () => {
         setShowBuyModal(false);
         setSelectedStock(null);
         setQuantity(1);
-        
+
         // Show success message
         const successToast = document.createElement('div');
         successToast.className = 'toast-success';
@@ -305,7 +305,7 @@ const PortfolioSummary = () => {
           <div class="toast-message">Successfully purchased ${quantity} shares of ${selectedStock.symbol}</div>
         `;
         document.body.appendChild(successToast);
-        
+
         // Remove toast after 3 seconds
         setTimeout(() => {
           successToast.classList.add('toast-fade-out');
@@ -313,7 +313,7 @@ const PortfolioSummary = () => {
             document.body.removeChild(successToast);
           }, 300);
         }, 3000);
-        
+
         // Refresh portfolio data
         refreshPortfolio();
       } else {
@@ -332,18 +332,18 @@ const PortfolioSummary = () => {
     try {
       // Show loading state
       setLoading(true);
-      
+
       // Get user from local storage
       const storedUser = localStorage.getItem("currentUser");
       const currentUser = storedUser ? JSON.parse(storedUser) : null;
-      
+
       // Validate sell quantity
       if (sellQuantity > selectedStock.quantity) {
         alert(`You only have ${selectedStock.quantity} shares available to sell.`);
         setLoading(false);
         return;
       }
-      
+
       // Send transaction to API
       const response = await fetch("http://localhost:3000/stocks/transaction", {
         method: "POST",
@@ -366,7 +366,7 @@ const PortfolioSummary = () => {
         setSelectedStock(null);
         setSellQuantity(1);
         setSellPrice(0);
-        
+
         // Show success message
         const successToast = document.createElement('div');
         successToast.className = 'toast-success';
@@ -375,7 +375,7 @@ const PortfolioSummary = () => {
           <div class="toast-message">Successfully sold ${sellQuantity} shares of ${selectedStock.symbol}</div>
         `;
         document.body.appendChild(successToast);
-        
+
         // Remove toast after 3 seconds
         setTimeout(() => {
           successToast.classList.add('toast-fade-out');
@@ -383,7 +383,7 @@ const PortfolioSummary = () => {
             document.body.removeChild(successToast);
           }, 300);
         }, 3000);
-        
+
         // Refresh portfolio data
         refreshPortfolio();
         calculatePortfolioStats();
@@ -401,7 +401,7 @@ const PortfolioSummary = () => {
 
   const calculatePortfolioStats = () => {
     console.log("calculatePortfolioStats", portfolioData)
- 
+
     if (!portfolioData || !portfolioData.stocks || portfolioData.stocks.length === 0) {
       return {
         totalValue: 0,
@@ -415,13 +415,13 @@ const PortfolioSummary = () => {
     console.log("comes here")
     let totalValue = 0;
     let previousDayValue = 0;
-    
+
     portfolioData.stocks.forEach(stock => {
       const stockInfo = stockPrices[stock.symbol];
       if (stockInfo) {
         const currentValue = stock.quantity * stockInfo.c;
         const previousValue = stock.quantity * stockInfo.pc;
-        
+
         totalValue += currentValue;
         previousDayValue += previousValue;
       } else {
@@ -430,25 +430,25 @@ const PortfolioSummary = () => {
         previousDayValue += stock.quantity * stock.averagePrice;
       }
     });
-    
+
     const totalInvested = portfolioData.investmentFund;
     const totalGain = totalValue - totalInvested;
     const totalGainPercent = totalInvested > 0 ? (totalGain / totalInvested) * 100 : 0;
 
     const totalLoss = totalGain < 0 ? Math.abs(totalGain) : 0;
     const totalLossPercent = totalGain < 0 ? Math.abs(totalGainPercent) : 0;
-    
+
     const todayChange = totalValue - previousDayValue;
     const todayChangePercent = previousDayValue > 0 ? (todayChange / previousDayValue) * 100 : 0;
 
 
     const grouped = {};
-    
+
     let totalGainLoss = 0;
     transactions.sort((a, b) => new Date(b.date) - new Date(a.date));
     const updatedTransactions = [];
-    const usedBuys = {}; 
- 
+    const usedBuys = {};
+
 
     for (let i = 0; i < transactions.length; i++) {
       const tx = transactions[i];
@@ -479,12 +479,12 @@ const PortfolioSummary = () => {
         totalGainLoss += gain;
       }
 
-    updatedTransactions.push(tx);
-}
+      updatedTransactions.push(tx);
+    }
 
-totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
-   
-    
+    totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
+
+
     return {
       totalValue,
       totalGain,
@@ -499,7 +499,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
   };
 
   const portfolioStats = calculatePortfolioStats();
-  
+
   // Custom pie chart tooltip
   const CustomTooltip = ({ active, payload }) => {
     if (active && payload && payload.length) {
@@ -559,7 +559,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
             </p>
           </div>
           <div className="col-md-6 d-flex justify-content-md-end align-items-center">
-            <button 
+            <button
               className="btn btn-outline-primary rounded-pill me-2"
               onClick={refreshPortfolio}
             >
@@ -586,21 +586,19 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
               </div>
             </div>
           </div>
-          
+
           <div className="col-12 col-md-6 col-lg-3 mb-3">
             <div className="custom-card h-100 hover-lift">
               <h3 className="font-poppins text-primary-custom fs-5 mb-3">Total Gain/Loss</h3>
-              <p className={`portfolio-value font-poppins fw-bold mb-0 ${
-                totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
-              }`}>
-                {formatCurrency(portfolioStats.totalGainLoss) !== NaN ? formatCurrency(portfolioStats.totalGainLoss) : formatCurrency(portfolioStats.totalGain)}
-              </p>
+              <p className={`portfolio-value font-poppins fw-bold mb-0 ${totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
+                }`}>
+                {!isNaN(portfolioStats.totalGainLoss) ? formatCurrency(portfolioStats.totalGainLoss) : formatCurrency(portfolioStats.totalGain)}              </p>
               <div className={`summary-indicator ${portfolioStats.totalGain >= 0 ? 'bg-success-soft' : 'bg-danger-soft'}`}>
                 <i className={`bi ${portfolioStats.totalGain >= 0 ? 'bi-graph-up-arrow' : 'bi-graph-down-arrow'}`}></i>
               </div>
             </div>
           </div>
-          
+
           <div className="col-12 col-md-6 col-lg-3 mb-3">
             <div className="custom-card h-100 hover-lift">
               <h3 className="font-poppins text-primary-custom fs-5 mb-3">Wallet Balance</h3>
@@ -612,21 +610,21 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
               </div>
             </div>
           </div>
-          
+
           <div className="col-12 col-md-6 col-lg-3 mb-3">
             <div className="custom-card h-100 hover-lift d-flex flex-column">
               <h3 className="font-poppins text-primary-custom fs-5 mb-3">View Options</h3>
               <div className="btn-group view-toggle" role="group">
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className={`btn ${activeView === 'holdings' ? 'btn-primary' : 'btn-outline-primary'}`}
                   onClick={() => setActiveView('holdings')}
                 >
                   <i className="bi bi-grid me-2"></i>
                   Holdings
                 </button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className={`btn ${activeView === 'transactions' ? 'btn-primary' : 'btn-outline-primary'}`}
                   onClick={() => setActiveView('transactions')}
                 >
@@ -641,7 +639,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
             </div>
           </div>
         </div>
-        
+
         {/* Portfolio Distribution */}
         <div className="row justify-content-center mb-4">
           <div className="col-12 col-lg-10 col-xl-11">
@@ -665,9 +663,9 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                             onMouseLeave={() => setHoveredStock(null)}
                           >
                             {chartData.map((entry, index) => (
-                              <Cell 
-                                key={`cell-${index}`} 
-                                fill={entry.color} 
+                              <Cell
+                                key={`cell-${index}`}
+                                fill={entry.color}
                                 stroke={hoveredStock === entry.name ? "#fff" : "transparent"}
                                 strokeWidth={2}
                                 className={hoveredStock === entry.name ? "pie-segment-active" : ""}
@@ -697,19 +695,19 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                       chartData.map((stock, index) => {
                         // Calculate total portfolio value for percentage calculation
                         const totalPortfolioValue = chartData.reduce((total, item) => total + item.value, 0);
-                        const percentage = totalPortfolioValue > 0 
-                          ? ((stock.value / totalPortfolioValue) * 100).toFixed(1) 
+                        const percentage = totalPortfolioValue > 0
+                          ? ((stock.value / totalPortfolioValue) * 100).toFixed(1)
                           : 0;
-                        
+
                         return (
-                          <div 
-                            key={index} 
+                          <div
+                            key={index}
                             className={`legend-item d-flex align-items-center mb-2 p-2 ${hoveredStock === stock.name ? 'legend-item-active' : ''}`}
                             onMouseEnter={() => setHoveredStock(stock.name)}
                             onMouseLeave={() => setHoveredStock(null)}
                           >
-                            <div 
-                              className="legend-color me-2" 
+                            <div
+                              className="legend-color me-2"
                               style={{ backgroundColor: stock.color }}
                             ></div>
                             <div className="d-flex justify-content-between w-100">
@@ -724,11 +722,11 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                                   {formatCurrency(stock.value)}
                                 </span>
                                 <div className="percentage-bar-container">
-                                  <div 
-                                    className="percentage-bar" 
-                                    style={{ 
+                                  <div
+                                    className="percentage-bar"
+                                    style={{
                                       width: `${percentage}%`,
-                                      backgroundColor: stock.color 
+                                      backgroundColor: stock.color
                                     }}
                                   ></div>
                                   <span className="percentage-text">{percentage}%</span>
@@ -753,123 +751,120 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
         {/* Content based on active view */}
         {activeView === 'holdings' ? (
           // Portfolio Holdings
-        <div className="row justify-content-center">
-          <div className="col-12 col-lg-10 col-xl-11">
-            <h2 className="font-poppins fw-bold text-primary-custom ps-3 mb-3">Your Holdings</h2>
-            
-            {portfolioData.stocks && portfolioData.stocks.length > 0 ? (
-              portfolioData.stocks.map((stock, index) => {
-                const stockInfo = stockPrices[stock.symbol] || { c: stock.averagePrice, pc: stock.averagePrice, d: 0, dp: 0 };
-                const currentValue = stock.quantity * stockInfo.c;
-                const investedValue = stock.quantity * stock.averagePrice;
-                const totalGain = currentValue - investedValue;
-                const gainPercent = investedValue > 0 ? (totalGain / investedValue) * 100 : 0;
-                const isPositive = stockInfo.d >= 0;
-                
-                return (
-                  <div className="custom-card card mb-3 hover-lift" key={index}>
-                    <div className="stock-item">
-                      <div className="row align-items-center">
-                        <div className="col-12 col-md-2 mb-3 mb-md-0">
-                          <div className="d-flex flex-column align-items-center">
-                            <h2 className="fs-2 fw-bold mb-0 font-poppins text-primary-custom">
-                              {stock.symbol}
-                            </h2>
-                            <span
-                              className={`price-pill d-inline-flex align-items-center mt-2 ${
-                                isPositive ? "positive-change" : "negative-change"
-                              }`}
-                            >
-                              <i
-                                className={`bi ${
-                                  isPositive
+          <div className="row justify-content-center">
+            <div className="col-12 col-lg-10 col-xl-11">
+              <h2 className="font-poppins fw-bold text-primary-custom ps-3 mb-3">Your Holdings</h2>
+
+              {portfolioData.stocks && portfolioData.stocks.length > 0 ? (
+                portfolioData.stocks.map((stock, index) => {
+                  const stockInfo = stockPrices[stock.symbol] || { c: stock.averagePrice, pc: stock.averagePrice, d: 0, dp: 0 };
+                  const currentValue = stock.quantity * stockInfo.c;
+                  const investedValue = stock.quantity * stock.averagePrice;
+                  const totalGain = currentValue - investedValue;
+                  const gainPercent = investedValue > 0 ? (totalGain / investedValue) * 100 : 0;
+                  const isPositive = stockInfo.d >= 0;
+
+                  return (
+                    <div className="custom-card card mb-3 hover-lift" key={index}>
+                      <div className="stock-item">
+                        <div className="row align-items-center">
+                          <div className="col-12 col-md-2 mb-3 mb-md-0">
+                            <div className="d-flex flex-column align-items-center">
+                              <h2 className="fs-2 fw-bold mb-0 font-poppins text-primary-custom">
+                                {stock.symbol}
+                              </h2>
+                              <span
+                                className={`price-pill d-inline-flex align-items-center mt-2 ${isPositive ? "positive-change" : "negative-change"
+                                  }`}
+                              >
+                                <i
+                                  className={`bi ${isPositive
                                     ? "bi-arrow-up-right"
                                     : "bi-arrow-down-right"
-                                } me-1`}
-                              ></i>
-                              {formatPercentChange(stockInfo.dp)}
-                            </span>
+                                    } me-1`}
+                                ></i>
+                                {formatPercentChange(stockInfo.dp)}
+                              </span>
+                            </div>
                           </div>
-                        </div>
 
-                        <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
-                          <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
-                            Shares
-                          </p>
-                          <p className="fs-5 fw-bold font-inter mb-0">
-                            {stock.quantity}
-                          </p>
-                          <p className="small font-inter text-secondary-custom mb-0">
-                            Avg. Cost: ${formatPrice(stock.averagePrice)}
-                          </p>
-                        </div>
+                          <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
+                            <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
+                              Shares
+                            </p>
+                            <p className="fs-5 fw-bold font-inter mb-0">
+                              {stock.quantity}
+                            </p>
+                            <p className="small font-inter text-secondary-custom mb-0">
+                              Avg. Cost: ${formatPrice(stock.averagePrice)}
+                            </p>
+                          </div>
 
-                        <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
-                          <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
-                            Current Price
-                          </p>
-                          <p className="fs-5 fw-bold font-inter mb-0 d-flex align-items-center justify-content-center">
-                            <i className="bi bi-currency-dollar"></i>
-                            {formatPrice(stockInfo.c)}
-                          </p>
-                        </div>
+                          <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
+                            <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
+                              Current Price
+                            </p>
+                            <p className="fs-5 fw-bold font-inter mb-0 d-flex align-items-center justify-content-center">
+                              <i className="bi bi-currency-dollar"></i>
+                              {formatPrice(stockInfo.c)}
+                            </p>
+                          </div>
 
-                        <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
-                          <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
-                            Market Value
-                          </p>
-                          <p className="fs-5 fw-bold font-inter mb-0">
-                            {formatCurrency(currentValue)}
-                          </p>
-                        </div>
+                          <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
+                            <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
+                              Market Value
+                            </p>
+                            <p className="fs-5 fw-bold font-inter mb-0">
+                              {formatCurrency(currentValue)}
+                            </p>
+                          </div>
 
-                        <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
-                          <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
-                            Total Gain/Loss
-                          </p>
-                          <p className={`fs-5 fw-bold font-inter mb-0 ${
-                            totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
-                          }`}>
-                            {formatCurrency(totalGain)}/ {formatCurrency(totalLoss)}
-                          </p>
-                          {/* <p className={`small font-inter mb-0 ${
+                          <div className="col-6 col-md-2 mb-3 mb-md-0 text-center">
+                            <p className="text-secondary-custom text-uppercase small fw-bold mb-1 font-inter">
+                              Total Gain/Loss
+                            </p>
+                            <p className={`fs-5 fw-bold font-inter mb-0 ${totalGain >= 0 ? 'text-success-custom' : 'text-danger-custom'
+                              }`}>
+                              {formatCurrency(totalGain)}/ {formatCurrency(totalLoss)}
+                            </p>
+                            {/* <p className={`small font-inter mb-0 ${
                             gainPercent >= 0 ? 'text-success-custom' : 'text-danger-custom'
                           }`}>
                             {formatPercentChange(gainPercent)}
                           </p> */}
-                        </div>
+                          </div>
 
-                        <div className="col-12 col-md-2 mt-3 mt-md-0">
-                          <div className="d-flex flex-column gap-2 action-buttons">
-                            <button className="custom-btn-primary btn py-2 fw-medium font-inter w-100 rounded-pill" onClick={() => handleStockDetailsNavigation(stock.symbol)}>
-                              <i className="bi bi-eye me-1"></i> Details
-                            </button>
-                            <div className="d-flex gap-2">
-                              <button className="sell-btn btn py-2 fw-medium font-inter w-100 rounded-pill" onClick={() => handleTransaction(stock, "SELL")}>
-                                <i className="bi bi-cart-dash me-1"></i> Sell
+                          <div className="col-12 col-md-2 mt-3 mt-md-0">
+                            <div className="d-flex flex-column gap-2 action-buttons">
+                              <button className="custom-btn-primary btn py-2 fw-medium font-inter w-100 rounded-pill" onClick={() => handleStockDetailsNavigation(stock.symbol)}>
+                                <i className="bi bi-eye me-1"></i> Details
                               </button>
+                              <div className="d-flex gap-2">
+                                <button className="sell-btn btn py-2 fw-medium font-inter w-100 rounded-pill" onClick={() => handleTransaction(stock, "SELL")}>
+                                  <i className="bi bi-cart-dash me-1"></i> Sell
+                                </button>
+                              </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
+                  );
+                })
+              ) : (
+                <div className="custom-card empty-state">
+                  <div className="text-center p-4">
+                    <i className="bi bi-wallet2 fs-1 text-secondary-custom mb-3"></i>
+                    <h3 className="font-poppins fs-5">Your portfolio is empty</h3>
+                    <p className="font-inter text-secondary-custom mb-4">Start adding stocks to your portfolio</p>
+                    <button className="btn custom-btn-primary px-4 py-2 font-inter rounded-pill" onClick={handleBuyStock}>
+                      Browse Stocks
+                    </button>
                   </div>
-                );
-              })
-            ) : (
-              <div className="custom-card empty-state">
-                <div className="text-center p-4">
-                  <i className="bi bi-wallet2 fs-1 text-secondary-custom mb-3"></i>
-                  <h3 className="font-poppins fs-5">Your portfolio is empty</h3>
-                  <p className="font-inter text-secondary-custom mb-4">Start adding stocks to your portfolio</p>
-                  <button className="btn custom-btn-primary px-4 py-2 font-inter rounded-pill" onClick={handleBuyStock}>
-                    Browse Stocks
-                  </button>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
         ) : (
           // Transaction History View
           <div className="row justify-content-center">
@@ -878,7 +873,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                 <div className="d-flex justify-content-between align-items-center mb-3">
                   <h3 className="font-poppins text-primary-custom fs-5 mb-0">Transaction History</h3>
                   <div className="transaction-filters">
-                    <select 
+                    <select
                       className="form-select form-select-sm me-2 d-inline-block w-auto"
                       value={transactionType}
                       onChange={(e) => setTransactionType(e.target.value)}
@@ -887,7 +882,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                       <option value="buy">Buy Only</option>
                       <option value="sell">Sell Only</option>
                     </select>
-                    <select 
+                    <select
                       className="form-select form-select-sm d-inline-block w-auto"
                       value={timeRange}
                       onChange={(e) => setTimeRange(e.target.value)}
@@ -899,7 +894,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                     </select>
                   </div>
                 </div>
-                
+
                 {filteredTransactions && filteredTransactions.length > 0 ? (
                   <div className="table-responsive transaction-table">
                     <table className="table table-hover">
@@ -948,8 +943,8 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                     <i className="bi bi-receipt fs-1 text-secondary-custom mb-3"></i>
                     <h3 className="font-poppins fs-5">No transactions found</h3>
                     <p className="font-inter text-secondary-custom">
-                      {transactionType !== "all" || timeRange !== "all" 
-                        ? "Try changing your filters to see more transactions" 
+                      {transactionType !== "all" || timeRange !== "all"
+                        ? "Try changing your filters to see more transactions"
                         : "Your transaction history will appear here"}
                     </p>
                     <button className="btn custom-btn-primary rounded-pill mt-2" onClick={handleBuyStock}>
@@ -984,57 +979,57 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                   </span>
                 </div>
               </div>
-              
+
               <div className="wallet-status mb-4">
                 <div className="d-flex justify-content-between align-items-center">
                   <span className="font-inter">Wallet Balance</span>
                   <span className="font-inter fw-bold">{formatCurrency(portfolioData.wallet || 0)}</span>
                 </div>
                 <div className="progress mt-2" style={{ height: '8px' }}>
-                  <div 
-                    className="progress-bar bg-primary" 
-                    role="progressbar" 
-                    style={{ 
-                      width: selectedStock ? `${Math.min(100, (portfolioData.wallet / (selectedStock.currentPrice * quantity)) * 100)}%` : '100%' 
+                  <div
+                    className="progress-bar bg-primary"
+                    role="progressbar"
+                    style={{
+                      width: selectedStock ? `${Math.min(100, (portfolioData.wallet / (selectedStock.currentPrice * quantity)) * 100)}%` : '100%'
                     }}
-                    aria-valuenow={selectedStock ? Math.min(100, (portfolioData.wallet / (selectedStock.currentPrice * quantity)) * 100) : 100} 
-                    aria-valuemin="0" 
+                    aria-valuenow={selectedStock ? Math.min(100, (portfolioData.wallet / (selectedStock.currentPrice * quantity)) * 100) : 100}
+                    aria-valuemin="0"
                     aria-valuemax="100"
                   ></div>
                 </div>
               </div>
-              
+
               <div className="mb-4">
                 <label htmlFor="quantity" className="form-label font-inter mb-2">Quantity</label>
                 <div className="quantity-selector">
-                  <button 
-                    className="quantity-btn minus" 
+                  <button
+                    className="quantity-btn minus"
                     onClick={() => setQuantity(Math.max(1, quantity - 1))}
                   >
                     <i className="bi bi-dash"></i>
                   </button>
-                  <input 
-                    type="number" 
-                    className="form-control text-center" 
-                    id="quantity" 
-                    value={quantity} 
+                  <input
+                    type="number"
+                    className="form-control text-center"
+                    id="quantity"
+                    value={quantity}
                     onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                     min="1"
                   />
-                  <button 
-                    className="quantity-btn plus" 
+                  <button
+                    className="quantity-btn plus"
                     onClick={() => setQuantity(quantity + 1)}
                   >
                     <i className="bi bi-plus"></i>
                   </button>
                 </div>
-                
+
                 <div className="quantity-shortcuts mt-2">
                   <button className="btn btn-sm btn-outline-primary me-2" onClick={() => setQuantity(5)}>5</button>
                   <button className="btn btn-sm btn-outline-primary me-2" onClick={() => setQuantity(10)}>10</button>
                   <button className="btn btn-sm btn-outline-primary me-2" onClick={() => setQuantity(25)}>25</button>
-                  <button 
-                    className="btn btn-sm btn-outline-primary" 
+                  <button
+                    className="btn btn-sm btn-outline-primary"
                     onClick={() => {
                       if (selectedStock && portfolioData.wallet) {
                         const maxAffordable = Math.floor(portfolioData.wallet / selectedStock.currentPrice);
@@ -1046,7 +1041,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                   </button>
                 </div>
               </div>
-              
+
               <div className="order-summary p-3 bg-light rounded-3 mb-4">
                 <div className="d-flex justify-content-between mb-2">
                   <span className="font-inter">Subtotal:</span>
@@ -1066,7 +1061,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                   </span>
                 </div>
               </div>
-              
+
               {selectedStock && (selectedStock.currentPrice * quantity > portfolioData.wallet) && (
                 <div className="alert alert-danger" role="alert">
                   <i className="bi bi-exclamation-triangle me-2"></i>
@@ -1078,9 +1073,9 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
               <button type="button" className="btn btn-outline-secondary font-inter rounded-pill" onClick={() => setShowBuyModal(false)}>
                 Cancel
               </button>
-              <button 
-                type="button" 
-                className="btn btn-primary font-inter px-4 py-2 rounded-pill" 
+              <button
+                type="button"
+                className="btn btn-primary font-inter px-4 py-2 rounded-pill"
                 onClick={handleConfirmBuy}
                 disabled={selectedStock && (selectedStock.currentPrice * quantity > portfolioData.wallet)}
               >
@@ -1090,7 +1085,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
           </div>
         </div>
       </div>
-      
+
       {/* Sell Modal */}
       <div className={`modal fade ${showSellModal ? 'show' : ''}`} style={{ display: showSellModal ? 'block' : 'none' }} tabIndex="-1">
         <div className="modal-dialog modal-dialog-centered">
@@ -1133,35 +1128,35 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                   </div>
                 </div>
               </div>
-              
+
               <div className="mb-4">
                 <label htmlFor="sellPrice" className="form-label font-inter mb-2">Sell Price</label>
                 <div className="input-group">
                   <span className="input-group-text">$</span>
-                  <input 
-                    type="number" 
-                    className="form-control" 
-                    id="sellPrice" 
-                    value={sellPrice} 
+                  <input
+                    type="number"
+                    className="form-control"
+                    id="sellPrice"
+                    value={sellPrice}
                     onChange={(e) => setSellPrice(parseFloat(e.target.value) || 0)}
                     step="0.01"
                     min="0.01"
                   />
                 </div>
                 <div className="price-shortcuts mt-2">
-                  <button 
+                  <button
                     className="btn btn-sm btn-outline-primary me-2"
                     onClick={() => setSellPrice(selectedStock ? selectedStock.currentPrice * 0.95 : 0)}
                   >
                     -5%
                   </button>
-                  <button 
+                  <button
                     className="btn btn-sm btn-outline-primary me-2"
                     onClick={() => setSellPrice(selectedStock ? selectedStock.currentPrice : 0)}
                   >
                     Market
                   </button>
-                  <button 
+                  <button
                     className="btn btn-sm btn-outline-primary"
                     onClick={() => setSellPrice(selectedStock ? selectedStock.currentPrice * 1.05 : 0)}
                   >
@@ -1169,56 +1164,56 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                   </button>
                 </div>
               </div>
-              
+
               <div className="mb-4">
                 <label htmlFor="sellQuantity" className="form-label font-inter mb-2">Quantity</label>
                 <div className="quantity-selector">
-                  <button 
-                    className="quantity-btn minus" 
+                  <button
+                    className="quantity-btn minus"
                     onClick={() => setSellQuantity(Math.max(1, sellQuantity - 1))}
                   >
                     <i className="bi bi-dash"></i>
                   </button>
-                  <input 
-                    type="number" 
-                    className="form-control text-center" 
-                    id="sellQuantity" 
-                    value={sellQuantity} 
+                  <input
+                    type="number"
+                    className="form-control text-center"
+                    id="sellQuantity"
+                    value={sellQuantity}
                     onChange={(e) => setSellQuantity(Math.max(1, parseInt(e.target.value) || 1))}
                     min="1"
                     max={selectedStock?.quantity || 1}
                   />
-                  <button 
-                    className="quantity-btn plus" 
+                  <button
+                    className="quantity-btn plus"
                     onClick={() => setSellQuantity(prev => Math.min((selectedStock?.quantity || 1), prev + 1))}
                   >
                     <i className="bi bi-plus"></i>
                   </button>
                 </div>
-                
+
                 <div className="quantity-slider mt-3">
-                  <input 
-                    type="range" 
-                    className="form-range" 
-                    min="1" 
-                    max={selectedStock?.quantity || 1} 
+                  <input
+                    type="range"
+                    className="form-range"
+                    min="1"
+                    max={selectedStock?.quantity || 1}
                     value={sellQuantity}
                     onChange={(e) => setSellQuantity(parseInt(e.target.value))}
                   />
                   <div className="d-flex justify-content-between">
-                    <button 
+                    <button
                       className="btn btn-sm btn-outline-primary"
                       onClick={() => setSellQuantity(1)}
                     >
                       Min
                     </button>
-                    <button 
+                    <button
                       className="btn btn-sm btn-outline-primary"
                       onClick={() => setSellQuantity(Math.floor((selectedStock?.quantity || 0) / 2))}
                     >
                       Half
                     </button>
-                    <button 
+                    <button
                       className="btn btn-sm btn-outline-primary"
                       onClick={() => setSellQuantity(selectedStock?.quantity || 0)}
                     >
@@ -1227,7 +1222,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                   </div>
                 </div>
               </div>
-              
+
               <div className="order-summary p-3 bg-light rounded-3 mb-3">
                 <div className="d-flex justify-content-between mb-2">
                   <span className="font-inter">Sell Price × Quantity:</span>
@@ -1246,7 +1241,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                     {formatCurrency(sellPrice * sellQuantity)}
                   </span>
                 </div>
-                
+
                 {selectedStock && (
                   <div className="profit-loss-indicator mt-2">
                     <div className="d-flex justify-content-between">
@@ -1261,7 +1256,7 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
                   </div>
                 )}
               </div>
-              
+
               {selectedStock && sellPrice < selectedStock.currentPrice * 0.95 && (
                 <div className="alert alert-warning" role="alert">
                   <i className="bi bi-exclamation-triangle me-2"></i>
@@ -1273,9 +1268,9 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
               <button type="button" className="btn btn-outline-secondary font-inter rounded-pill" onClick={() => setShowSellModal(false)}>
                 Cancel
               </button>
-              <button 
-                type="button" 
-                className="btn btn-danger font-inter px-4 py-2 rounded-pill" 
+              <button
+                type="button"
+                className="btn btn-danger font-inter px-4 py-2 rounded-pill"
                 onClick={handleConfirmSell}
                 disabled={selectedStock && (sellQuantity > selectedStock.quantity)}
               >
@@ -1288,12 +1283,12 @@ totalGainLoss = parseFloat(totalGainLoss.toFixed(2)); // optional rounding
 
       {/* Modal backdrop */}
       {(showBuyModal || showSellModal) && (
-        <div className="modal-backdrop fade show" style={{ 
-          backgroundColor: 'rgba(0,0,0,0.5)', 
+        <div className="modal-backdrop fade show" style={{
+          backgroundColor: 'rgba(0,0,0,0.5)',
           backdropFilter: 'blur(5px)'
         }}></div>
       )}
-      
+
       {/* Toast notifications container */}
       <div id="toast-container" className="position-fixed bottom-0 end-0 p-3"></div>
     </>
