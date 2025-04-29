@@ -153,7 +153,7 @@ export const verifyAuth = createAsyncThunk(
 			// const response = await axios.get(
 			// 	`${
 			// 		authService.API_URL ||
-			// 		"http://localhost:3000"
+			// 		"https://stockwise-backend-3ey8.onrender.com"
 			// 	}/auth/me`
 			// ); // Replace with your actual endpoint
 			// console.log(

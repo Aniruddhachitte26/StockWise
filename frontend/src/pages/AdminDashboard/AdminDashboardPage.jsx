@@ -9,7 +9,7 @@ import axios from 'axios';
 import Footer from '../../components/common/Footer';
 
 // API URL
-const API_URL = "http://localhost:3000";
+const API_URL = "https://stockwise-backend-3ey8.onrender.com";
 
 const AdminDashboardPage = () => {
   const [loading, setLoading] = useState(true);

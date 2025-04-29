@@ -106,7 +106,7 @@
 
 //     try {
 //       const res = await axios.post(
-//         'http://localhost:3000/api/payments/create-payment-intent',
+//         'https://stockwise-backend-3ey8.onrender.com/api/payments/create-payment-intent',
 //         {
 //           userId,
 //           amount: parseFloat(amount) * 100, // cents
@@ -129,7 +129,7 @@
 //       if (result.paymentIntent?.status === 'succeeded') {
 //         // Update wallet
 //         await axios.post(
-//           'http://localhost:3000/api/payments/payment-success',
+//           'https://stockwise-backend-3ey8.onrender.com/api/payments/payment-success',
 //           {
 //             userId,
 //             amount: parseFloat(amount) * 100,
@@ -353,7 +353,7 @@ const WalletComponent = ({ userId, onClose }) => {
     try {
       // Step 1: Create payment intent from your backend
       const res = await axios.post(
-        'http://localhost:3000/api/payments/create-payment-intent',
+        'https://stockwise-backend-3ey8.onrender.com/api/payments/create-payment-intent',
         {
           userId,
           amount: parseFloat(amount) * 100, // convert to cents
@@ -381,7 +381,7 @@ const WalletComponent = ({ userId, onClose }) => {
       if (result.paymentIntent?.status === 'succeeded') {
         // Step 3: Notify backend to update wallet
         await axios.post(
-          'http://localhost:3000/api/payments/payment-success',
+          'https://stockwise-backend-3ey8.onrender.com/api/payments/payment-success',
           {
             userId,
             amount: parseFloat(amount) * 100,

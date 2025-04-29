@@ -185,7 +185,7 @@ const UserDetailsModal = ({
         <Button 
           variant="link" 
           style={{ color: 'var(--primary)' }}
-          onClick={() => window.open(`http://localhost:3000/images/${user.proof}`, '_blank')}
+          onClick={() => window.open(`https://stockwise-backend-3ey8.onrender.com/images/${user.proof}`, '_blank')}
         >
           <i className="bi bi-file-earmark-text me-1"></i>
           View Document
@@ -195,7 +195,7 @@ const UserDetailsModal = ({
     {user.proof && (
       <div className="mt-3 text-center">
         <img 
-          src={`http://localhost:3000/images/${user.proof}`}
+          src={`https://stockwise-backend-3ey8.onrender.com/images/${user.proof}`}
           alt="Verification Document" 
           style={{ 
             maxWidth: '100%', 

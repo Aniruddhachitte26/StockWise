@@ -60,7 +60,7 @@ const StockListingPage = () => {
     if (!userId) return;
   
     try {
-      const res = await fetch(`http://localhost:3000/stocks/watchlist/${userId}`);
+      const res = await fetch(`https://stockwise-backend-3ey8.onrender.com/stocks/watchlist/${userId}`);
       if (!res.ok) throw new Error("Failed to fetch watchlist");
       const data = await res.json();
       setWatchlist(data.watchlist || []); // Use empty array fallback
@@ -252,7 +252,7 @@ const StockListingPage = () => {
       };
       
       // Send transaction to the backend API
-      const response = await fetch("http://localhost:3000/stocks/transaction", {
+      const response = await fetch("https://stockwise-backend-3ey8.onrender.com/stocks/transaction", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -356,8 +356,8 @@ const StockListingPage = () => {
   
     try {
       const url = isAlreadyInWatchlist
-        ? "http://localhost:3000/stocks/watchlist/remove"
-        : "http://localhost:3000/stocks/watchlist/add";
+        ? "https://stockwise-backend-3ey8.onrender.com/stocks/watchlist/remove"
+        : "https://stockwise-backend-3ey8.onrender.com/stocks/watchlist/add";
   
       const response = await fetch(url, {
         method: "POST",

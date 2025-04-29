@@ -41,7 +41,7 @@ export default function ChatBot() {
     setShowOptions(false);
     
     try {
-      const res = await axios.post("http://localhost:3000/summary/ask", {
+      const res = await axios.post("https://stockwise-backend-3ey8.onrender.com/summary/ask", {
         sessionId,
         message: textToSend,
         userId

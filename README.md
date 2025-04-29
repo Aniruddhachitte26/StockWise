@@ -215,4 +215,4 @@ cd frontend
 npm run dev
 ```
 
-The frontend will be available at http://localhost:5173 and the backend will run on http://localhost:3000.
+The frontend will be available at http://localhost:5173 and the backend will run on https://stockwise-backend-3ey8.onrender.com.

@@ -79,7 +79,7 @@ const WatchlistPreview = () => {
       }
       
       const response = await fetch(
-        `http://localhost:3000/stocks/watchlist/${currentUser.id}`
+        `https://stockwise-backend-3ey8.onrender.com/stocks/watchlist/${currentUser.id}`
       );
       
       if (!response.ok) {
@@ -106,7 +106,7 @@ const WatchlistPreview = () => {
         return;
       }
       
-      const response = await fetch("http://localhost:3000/stocks/watchlist/remove", {
+      const response = await fetch("https://stockwise-backend-3ey8.onrender.com/stocks/watchlist/remove", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -157,7 +157,7 @@ const WatchlistPreview = () => {
         return;
       }
       
-      const response = await fetch("http://localhost:3000/stocks/transaction", {
+      const response = await fetch("https://stockwise-backend-3ey8.onrender.com/stocks/transaction", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -206,7 +206,7 @@ const WatchlistPreview = () => {
         return;
       }
       
-      const response = await fetch("http://localhost:3000/stocks/transaction", {
+      const response = await fetch("https://stockwise-backend-3ey8.onrender.com/stocks/transaction", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
