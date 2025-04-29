@@ -275,7 +275,7 @@ const MarketOverview = ({ newsData = [], isLoading = false }) => {
   useEffect(() => {
     const fetchMarketNews = async () => {
       try {
-        const response = await axios.get("https://stockwise-backend-bixs.onrender.com/market/news");
+        const response = await axios.get("https://stockwise-backend-3ey8.onrender.com/market/news");
         setDisplayedNews(response.data); // adjust based on actual response structure
       } catch (error) {
         console.error("Error fetching market news:", error);

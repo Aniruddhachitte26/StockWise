@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Form, InputGroup, Badge, Spinner, Modal } from 'react-bootstrap';
 import axios from 'axios';
 
-const API_URL = 'https://stockwise-backend-bixs.onrender.com';
+const API_URL = 'https://stockwise-backend-3ey8.onrender.com';
 
 const StockTable = () => {
   const [stocks, setStocks] = useState([]);

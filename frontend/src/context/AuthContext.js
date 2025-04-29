@@ -5,7 +5,7 @@ import axios from 'axios';
 export const AuthContext = createContext();
 
 // API URL
-const API_URL = "https://stockwise-backend-bixs.onrender.com"; // Update this with your actual backend URL
+const API_URL = "https://stockwise-backend-3ey8.onrender.com"; // Update this with your actual backend URL
 
 // Provider component
 export const AuthProvider = ({ children }) => {

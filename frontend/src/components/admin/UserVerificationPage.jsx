@@ -10,7 +10,7 @@ import axios from 'axios';
 import { useTheme } from '../common/ThemeProvider';
 import Footer from '../common/Footer';
 
-const API_URL = "https://stockwise-backend-bixs.onrender.com"; // Update based on your backend URL
+const API_URL = "https://stockwise-backend-3ey8.onrender.com"; // Update based on your backend URL
 
 const UserVerificationPage = () => {
     const [users, setUsers] = useState([]);

@@ -1,7 +1,7 @@
 // src/config/constants.js
 
 // API URL
-export const API_URL = 'https://stockwise-backend-bixs.onrender.com';
+export const API_URL = 'https://stockwise-backend-3ey8.onrender.com';
 
 // Chart Periods
 export const CHART_PERIODS = {
