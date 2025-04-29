@@ -83,7 +83,7 @@ const PortfolioSummary = () => {
         
         // Fetch portfolio data from API
         const response = await fetch(
-          `https://stockwise-backend-3ey8.onrender.com/stocks/portfolio/${currentUser.id}`
+          `https://stockwise-demo.sleepysoul.cc/login/stocks/portfolio/${currentUser.id}`
         );
         
         // if (!response.ok) {
@@ -100,7 +100,7 @@ const PortfolioSummary = () => {
           
           try {
             const pricesResponse = await fetch(
-              `https://stockwise-backend-3ey8.onrender.com/stocks/prices?symbols=${symbols}`
+              `https://stockwise-demo.sleepysoul.cc/login/stocks/prices?symbols=${symbols}`
             );
             
             if (pricesResponse.ok) {
@@ -161,7 +161,7 @@ const PortfolioSummary = () => {
         // Fetch transaction history using the new API endpoint
         try {
           const transactionsResponse = await fetch(
-            `https://stockwise-backend-3ey8.onrender.com/stocks/transactions/${currentUser.id}`
+            `https://stockwise-demo.sleepysoul.cc/login/stocks/transactions/${currentUser.id}`
           );
           
           if (transactionsResponse.ok) {
@@ -276,7 +276,7 @@ const PortfolioSummary = () => {
       }
       
       // Send transaction to API
-      const response = await fetch("https://stockwise-backend-3ey8.onrender.com/stocks/transactions", {
+      const response = await fetch("https://stockwise-demo.sleepysoul.cc/login/stocks/transactions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -345,7 +345,7 @@ const PortfolioSummary = () => {
       }
       
       // Send transaction to API
-      const response = await fetch("https://stockwise-backend-3ey8.onrender.com/stocks/transaction", {
+      const response = await fetch("https://stockwise-demo.sleepysoul.cc/login/stocks/transaction", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

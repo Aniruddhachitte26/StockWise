@@ -66,8 +66,8 @@ const StockDetailPage = () => {
   
     try {
       const url = isAlreadyInWatchlist
-        ? "https://stockwise-backend-3ey8.onrender.com/stocks/watchlist/remove"
-        : "https://stockwise-backend-3ey8.onrender.com/stocks/watchlist/add";
+        ? "https://stockwise-demo.sleepysoul.cc/login/stocks/watchlist/remove"
+        : "https://stockwise-demo.sleepysoul.cc/login/stocks/watchlist/add";
   
       const response = await fetch(url, {
         method: "POST",

@@ -664,7 +664,7 @@ function ProfileComponent() {
                                                         <div className="text-center mb-3 document-preview-container">
                                                             <img
                                                                 // Construct the full URL to the image on the backend server
-                                                                src={`${API_URL || 'https://stockwise-backend-3ey8.onrender.com'}/images/${user.proof}`}
+                                                                src={`${API_URL || 'https://stockwise-demo.sleepysoul.cc/login'}/images/${user.proof}`}
                                                                 alt="Document Preview"
                                                                 style={styles.documentPreview} // Use your defined styles
                                                                 // Add error handling for non-image files or load failures
@@ -693,7 +693,7 @@ function ProfileComponent() {
                                                                 variant="outline-primary" // Changed variant for better visibility
                                                                 size="sm"
                                                                 // Construct the full URL for viewing/downloading
-                                                                onClick={() => window.open(`${API_URL || 'https://stockwise-backend-3ey8.onrender.com'}/images/${user.proof}`, '_blank')}
+                                                                onClick={() => window.open(`${API_URL || 'https://stockwise-demo.sleepysoul.cc/login'}/images/${user.proof}`, '_blank')}
                                                                 title="View Full Document"
                                                             >
                                                                 <i className="bi bi-eye me-1"></i>
