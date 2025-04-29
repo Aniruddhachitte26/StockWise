@@ -27,12 +27,49 @@ if (!process.env.JWT_SECRET) {
 // Initialize express app
 const app = express();
 
-// Connect to MongoDB
+// --- Configure CORS ---
+const allowedOrigins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://stockwise-demo.sleepysoul.cc",
+    "https://stockwise-api.sleepysoul.cc"
+];
+
+const corsOptions = {
+    origin: function (origin, callback) {
+        // Allow requests with no origin (like mobile apps, curl, etc)
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            console.warn(`CORS blocked for origin: ${origin}`);
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
+    methods: ["GET", "HEAD", "PUT", "PATCH", "POST", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"],
+    exposedHeaders: ["Content-Length", "Content-Type"],
+    credentials: true,
+    optionsSuccessStatus: 204,
+    maxAge: 86400 // 24 hours
+};
+
+// Apply CORS to all routes
+app.use(cors(corsOptions));
+
+// Handle preflight requests explicitly
+app.options("*", cors(corsOptions));
+
+// Connect to MongoDB and Redis
 connectDB();
 connectRedis();
 
-// Middleware
-app.use(cors());
+// --- Log all incoming requests for debugging
+app.use((req, res, next) => {
+    console.log(`[${req.method}] ${req.originalUrl} - Origin: ${req.headers.origin || 'No origin'}`);
+    next();
+});
+
+// Body parsing middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -55,22 +92,31 @@ app.use("/admin", adminRoutes);
 
 // Default route
 app.get("/", (req, res) => {
-    res.send("Hello from the server...!");
+    res.send("StockWise API Server is running");
+});
+
+// Handle 404 errors
+app.use((req, res, next) => {
+    res.status(404).json({ error: "Route not found" });
 });
 
 // Error handling middleware
 app.use((err, req, res, next) => {
+    console.error(`Error occurred: ${err.message}`);
     console.error(err.stack);
-    res.status(500).json({ error: "Server error" });
+    res.status(err.status || 500).json({ 
+        error: process.env.NODE_ENV === 'production' ? "Server error" : err.message 
+    });
 });
 
 // Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
-    console.log(
-        `Swagger documentation available at http://localhost:${PORT}/api-docs`
-    );
+    console.log(`⚡️ Server running on port ${PORT}`);
+    console.log(`💻 Environment: ${process.env.NODE_ENV || 'development'}`);
+    if (!process.env.NODE_ENV || process.env.NODE_ENV === 'development') {
+        console.log(`📚 Swagger documentation available at http://localhost:${PORT}/api-docs`);
+    }
 });
 
 module.exports = app;
