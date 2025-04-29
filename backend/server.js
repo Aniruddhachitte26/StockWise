@@ -49,7 +49,7 @@ const allowedOrigins = [
 // };
 
 const corsOptions = {
-	origin: ["http://localhost:5173", "http://127.0.0.1:5173", "https://stockwise-demo.sleepysoul.cc"], // Allow this specific origin
+	origin: allowedOrigins, // Allow this specific origin
 	methods: ["GET", "POST", "PUT", "DELETE"],
 	credentials: true,
 	optionsSuccessStatus: 200
