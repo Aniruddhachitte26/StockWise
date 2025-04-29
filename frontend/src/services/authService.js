@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // API URL - Ensure this is correctly pointing to your backend
-const API_URL = "http://localhost:3000";
+const API_URL = "https://stockwise-backend-bixs.onrender.com";
 
 // --- Axios Default Header Setup ---
 // This function should ideally be called ONCE when the token changes,

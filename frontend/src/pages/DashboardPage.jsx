@@ -88,7 +88,7 @@ const DashboardPage = () => {
       if (!currentUser?.id) return;
 
       const response = await fetch(
-        `http://localhost:3000/stocks/watchlist/${currentUser.id}`
+        `https://stockwise-backend-bixs.onrender.com/stocks/watchlist/${currentUser.id}`
       );
       if (!response.ok) throw new Error("Failed to fetch watchlist");
 
@@ -106,7 +106,7 @@ const DashboardPage = () => {
       if (!currentUser?.id) return;
 
       const response = await fetch(
-        `http://localhost:3000/stocks/transactions/${currentUser.id}`
+        `https://stockwise-backend-bixs.onrender.com/stocks/transactions/${currentUser.id}`
       );
       if (!response.ok) throw new Error("Failed to fetch transactions");
 
@@ -147,7 +147,7 @@ const DashboardPage = () => {
       setTotalGainLoss(parseFloat(totalGain.toFixed(2)));
 
       try {
-        const resp = await fetch(`http://localhost:3000/stocks/portfolio/${currentUser.id}`);
+        const resp = await fetch(`https://stockwise-backend-bixs.onrender.com/stocks/portfolio/${currentUser.id}`);
         
         if (!resp.ok) {
           throw new Error("Failed to fetch portfolio");

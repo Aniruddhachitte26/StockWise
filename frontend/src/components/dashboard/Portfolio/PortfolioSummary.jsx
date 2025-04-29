@@ -83,7 +83,7 @@ const PortfolioSummary = () => {
 
         // Fetch portfolio data from API
         const response = await fetch(
-          `http://localhost:3000/stocks/portfolio/${currentUser.id}`
+          `https://stockwise-backend-bixs.onrender.com/stocks/portfolio/${currentUser.id}`
         );
 
         // if (!response.ok) {
@@ -100,7 +100,7 @@ const PortfolioSummary = () => {
 
           try {
             const pricesResponse = await fetch(
-              `http://localhost:3000/stocks/prices?symbols=${symbols}`
+              `https://stockwise-backend-bixs.onrender.com/stocks/prices?symbols=${symbols}`
             );
 
             if (pricesResponse.ok) {
@@ -161,7 +161,7 @@ const PortfolioSummary = () => {
         // Fetch transaction history using the new API endpoint
         try {
           const transactionsResponse = await fetch(
-            `http://localhost:3000/stocks/transactions/${currentUser.id}`
+            `https://stockwise-backend-bixs.onrender.com/stocks/transactions/${currentUser.id}`
           );
 
           if (transactionsResponse.ok) {
@@ -276,7 +276,7 @@ const PortfolioSummary = () => {
       }
 
       // Send transaction to API
-      const response = await fetch("http://localhost:3000/stocks/transactions", {
+      const response = await fetch("https://stockwise-backend-bixs.onrender.com/stocks/transactions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -345,7 +345,7 @@ const PortfolioSummary = () => {
       }
 
       // Send transaction to API
-      const response = await fetch("http://localhost:3000/stocks/transaction", {
+      const response = await fetch("https://stockwise-backend-bixs.onrender.com/stocks/transaction", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
